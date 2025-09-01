@@ -1,0 +1,5 @@
+{
+  "name": "Slide Presentation",
+  "description": "An application to create, edit, and present interactive, room-based decks. Features a presenter mode with a separate control window for managing dynamic elements like puzzles, object inventory, and layered maps.",
+  "requestFramePermissions": []
+}
