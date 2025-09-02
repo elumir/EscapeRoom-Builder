@@ -219,7 +219,7 @@ const PresenterView: React.FC = () => {
             Window Open
           </span>
         ) : (
-          <a href={`#/present/${id}`}
+          <a href={`/game/present/${id}`}
             onClick={(e) => {
                 e.preventDefault();
                 const win = window.open(e.currentTarget.href, 'Presentation', 'width=800,height=600');
