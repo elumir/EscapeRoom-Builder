@@ -1,5 +1,6 @@
 
 import type { Presentation, Room } from '../types';
+import { generateUUID } from '../utils/uuid';
 
 const API_BASE_URL = '/api';
 
@@ -51,7 +52,7 @@ export const savePresentation = async (presentation: Presentation): Promise<void
 
 export const createPresentation = async (title: string): Promise<Presentation | null> => {
     const newRoom: Room = {
-        id: crypto.randomUUID(),
+        id: generateUUID(),
         name: 'First Room',
         image: null,
         mapImage: null,
@@ -61,7 +62,7 @@ export const createPresentation = async (title: string): Promise<Presentation | 
         puzzles: [],
     };
     const newPresentation: Presentation = {
-        id: crypto.randomUUID(),
+        id: generateUUID(),
         title,
         rooms: [newRoom],
         visitedRoomIds: [],

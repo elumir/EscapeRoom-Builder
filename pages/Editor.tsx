@@ -5,6 +5,7 @@ import type { Presentation, Room as RoomType, InventoryObject, Puzzle } from '..
 import Room from '../components/Slide';
 import Icon from '../components/Icon';
 import PresenterPreview from '../components/PresenterPreview';
+import { generateUUID } from '../utils/uuid';
 
 type Status = 'loading' | 'success' | 'error';
 
@@ -115,7 +116,7 @@ const Editor: React.FC = () => {
 
   const addRoom = () => {
     if (!presentation) return;
-    const newRoom: RoomType = { id: crypto.randomUUID(), name: `Room ${presentation.rooms.length + 1}`, image: null, mapImage: null, notes: '', backgroundColor: '#ffffff', objects: [], puzzles: [] };
+    const newRoom: RoomType = { id: generateUUID(), name: `Room ${presentation.rooms.length + 1}`, image: null, mapImage: null, notes: '', backgroundColor: '#ffffff', objects: [], puzzles: [] };
     const newRooms = [...presentation.rooms, newRoom];
     updatePresentation({ ...presentation, rooms: newRooms });
     selectRoom(newRooms.length - 1);
@@ -168,7 +169,7 @@ const Editor: React.FC = () => {
   };
 
   const addObject = () => {
-    const newObject: InventoryObject = { id: crypto.randomUUID(), name: 'New Object', description: 'Description...', showInInventory: false};
+    const newObject: InventoryObject = { id: generateUUID(), name: 'New Object', description: 'Description...', showInInventory: false};
     setEditingRoomObjects([...editingRoomObjects, newObject]);
   }
 
@@ -183,7 +184,7 @@ const Editor: React.FC = () => {
   }
 
   const addPuzzle = () => {
-    const newPuzzle: Puzzle = { id: crypto.randomUUID(), name: 'New Puzzle', isSolved: false, unsolvedText: '', solvedText: '', image: null, sound: null, showImageOverlay: false, lockedObjectIds: [], lockedRoomIds: [], lockedPuzzleIds: [], autoAddLockedObjects: false };
+    const newPuzzle: Puzzle = { id: generateUUID(), name: 'New Puzzle', isSolved: false, unsolvedText: '', solvedText: '', image: null, sound: null, showImageOverlay: false, lockedObjectIds: [], lockedRoomIds: [], lockedPuzzleIds: [], autoAddLockedObjects: false };
     setEditingRoomPuzzles([...editingRoomPuzzles, newPuzzle]);
   }
 
