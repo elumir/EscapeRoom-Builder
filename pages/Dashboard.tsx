@@ -10,6 +10,8 @@ const Dashboard: React.FC = () => {
     const [presentations, setPresentations] = useState<Presentation[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [newTitle, setNewTitle] = useState('');
+    const [isCreating, setIsCreating] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -22,20 +24,35 @@ const Dashboard: React.FC = () => {
 
     const handleCreatePresentation = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (newTitle.trim()) {
+        if (!newTitle.trim() || isCreating) return;
+
+        setIsCreating(true);
+        setError(null);
+
+        try {
             const newPresentation = await presentationService.createPresentation(newTitle.trim());
             if (newPresentation) {
                 setIsModalOpen(false);
                 setNewTitle('');
-                // Re-fetch to update the list
-                const updatedPresentations = await presentationService.getPresentations();
-                setPresentations(updatedPresentations);
+                setPresentations(prev => [newPresentation, ...prev]);
                 navigate(`/editor/${newPresentation.id}`);
             } else {
-                alert('Failed to create presentation. Please try again.');
+                setError('Failed to create presentation. The server returned an unexpected response.');
             }
+        } catch (err) {
+            console.error("Creation failed:", err);
+            setError(err instanceof Error ? err.message : 'An unknown error occurred.');
+        } finally {
+            setIsCreating(false);
         }
     };
+    
+    const openModal = () => {
+        setIsModalOpen(true);
+        setNewTitle('');
+        setError(null);
+    };
+
 
     const handleDelete = async (id: string) => {
         if (window.confirm('Are you sure you want to delete this presentation?')) {
@@ -65,7 +82,7 @@ const Dashboard: React.FC = () => {
                 <div className="container mx-auto px-6 py-4 flex justify-between items-center">
                     <h1 className="text-2xl font-bold text-brand-600 dark:text-brand-400">Escape Builder</h1>
                     <button
-                        onClick={() => setIsModalOpen(true)}
+                        onClick={openModal}
                         className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors duration-300 shadow"
                     >
                         <Icon as="plus" className="w-5 h-5" />
@@ -122,6 +139,12 @@ const Dashboard: React.FC = () => {
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                     <div className="bg-white dark:bg-slate-800 p-8 rounded-lg shadow-2xl w-full max-w-md">
                         <h2 className="text-2xl font-bold mb-6 text-slate-800 dark:text-slate-200">Create New Presentation</h2>
+                        {error && (
+                            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+                                <strong className="font-bold">Error: </strong>
+                                <span className="block sm:inline">{error}</span>
+                            </div>
+                        )}
                         <form onSubmit={handleCreatePresentation}>
                             <input
                                 type="text"
@@ -133,7 +156,9 @@ const Dashboard: React.FC = () => {
                             />
                             <div className="mt-6 flex justify-end gap-4">
                                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">Cancel</button>
-                                <button type="submit" className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors">Create</button>
+                                <button type="submit" disabled={isCreating} className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors disabled:bg-brand-400 disabled:cursor-not-allowed">
+                                    {isCreating ? 'Creating...' : 'Create'}
+                                </button>
                             </div>
                         </form>
                     </div>
