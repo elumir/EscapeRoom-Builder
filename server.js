@@ -11,6 +11,12 @@ const port = process.env.PORT || 8080;
 app.use(cors());
 app.use(express.json({ limit: '50mb' })); // Increase limit for large presentations with images
 
+// Simple logger for all incoming requests
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
+  next();
+});
+
 // Database connection pool
 const dbPool = mysql.createPool({
   host: process.env.DB_HOST,
