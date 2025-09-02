@@ -118,8 +118,8 @@ app.post('/api/presentations', async (req, res) => {
         return res.status(400).json({ error: 'Invalid presentation data provided.' });
     }
     const sql = 'INSERT INTO presentations (id, title, data) VALUES (?, ?, ?)';
-    // Pass the object directly. The mysql2 driver handles serializing it for the JSON column.
-    await dbPool.query(sql, [presentationData.id, presentationData.title, presentationData]);
+    // Explicitly stringify the data for the JSON column.
+    await dbPool.query(sql, [presentationData.id, presentationData.title, JSON.stringify(presentationData)]);
     res.status(201).json(presentationData);
   } catch (error) {
     console.error('Failed to create presentation:', error);
@@ -135,8 +135,8 @@ app.put('/api/presentations/:id', async (req, res) => {
         return res.status(400).json({ error: 'Invalid presentation data provided.' });
     }
     const sql = 'UPDATE presentations SET title = ?, data = ?, updated_at = NOW() WHERE id = ?';
-    // Pass the object directly. The mysql2 driver handles serialization.
-    const [result] = await dbPool.query(sql, [presentationData.title, presentationData, req.params.id]);
+    // Explicitly stringify data for the JSON column.
+    const [result] = await dbPool.query(sql, [presentationData.title, JSON.stringify(presentationData), req.params.id]);
     
     if (result.affectedRows > 0) {
         res.json(presentationData);

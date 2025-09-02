@@ -27,7 +27,6 @@ const PresenterPreview: React.FC<PresenterPreviewProps> = ({ presentation, curre
   const {
       allUnsolvedPuzzles,
       lockingPuzzlesByRoomId,
-      // Fix: Corrected typo from `lockingPzzlesByPuzzleId` to `lockingPuzzlesByPuzzleId`.
       lockingPuzzlesByPuzzleId,
       inventoryObjects,
   } = usePresenterState(presentation);
@@ -107,7 +106,6 @@ const PresenterPreview: React.FC<PresenterPreviewProps> = ({ presentation, curre
                             </h2>
                             <div className="space-y-4">
                             {currentRoom.puzzles.map(puzzle => {
-                                // Fix: Corrected typo from `lockingPzzlesByPuzzleId` to `lockingPuzzlesByPuzzleId`.
                                 const lockingPuzzleName = lockingPuzzlesByPuzzleId.get(puzzle.id);
                                 return (
                                   <PuzzleItem 
@@ -220,7 +218,6 @@ const PresenterPreview: React.FC<PresenterPreviewProps> = ({ presentation, curre
                           Puzzles <span className="font-normal text-slate-500">(Toggle)</span>
                         </h3>
                         {currentRoom.puzzles.map(puzzle => {
-                            // Fix: Corrected typo from `lockingPzzlesByPuzzleId` to `lockingPuzzlesByPuzzleId`.
                             const lockingPuzzleName = lockingPuzzlesByPuzzleId.get(puzzle.id);
                             return (
                                 <PuzzleItem 

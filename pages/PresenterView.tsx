@@ -25,7 +25,6 @@ const PresenterView: React.FC = () => {
   
   const { 
     lockingPuzzlesByRoomId, 
-    // Fix: Corrected typo from `lockingPzzlesByPuzzleId` to `lockingPuzzlesByPuzzleId`.
     lockingPuzzlesByPuzzleId,
     allUnsolvedPuzzles, 
     inventoryObjects 
@@ -311,7 +310,6 @@ const PresenterView: React.FC = () => {
                     </h2>
                     <div className="space-y-4">
                       {currentRoom.puzzles.map(puzzle => {
-                        // Fix: Corrected typo from `lockingPzzlesByPuzzleId` to `lockingPuzzlesByPuzzleId`.
                         const lockingPuzzleName = lockingPuzzlesByPuzzleId.get(puzzle.id);
                         return (
                           <PuzzleItem 
