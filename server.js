@@ -47,19 +47,18 @@ async function testDbConnection() {
 // Get all presentations (full data)
 app.get('/api/presentations', async (req, res) => {
   try {
-    const [rows] = await dbPool.query('SELECT data FROM presentations ORDER BY updated_at DESC');
+    // Select the data as a raw string to handle potential malformed JSON entries gracefully.
+    // This prevents the mysql2 driver from crashing on invalid JSON.
+    const [rows] = await dbPool.query('SELECT CAST(data AS CHAR) as data FROM presentations ORDER BY updated_at DESC');
     const presentations = rows.map(row => {
-      // Handle data that might have been double-stringified in older versions
-      if (typeof row.data === 'string') {
-        try {
-          return JSON.parse(row.data);
-        } catch (e) {
-          console.error('Failed to parse corrupt presentation data:', row.data, e);
-          return null;
-        }
+      try {
+        // row.data is now always a string, so we must parse it.
+        return JSON.parse(row.data); 
+      } catch (e) {
+        console.error('Failed to parse corrupt presentation data:', row.data, e);
+        return null; // Return null for invalid entries
       }
-      return row.data;
-    }).filter(Boolean); // Filter out any entries that failed to parse
+    }).filter(Boolean); // Filter out any nulls from failed parses
     res.json(presentations);
   } catch (error) {
     console.error('Failed to fetch presentations:', error);
@@ -70,19 +69,16 @@ app.get('/api/presentations', async (req, res) => {
 // Get a single presentation by ID
 app.get('/api/presentations/:id', async (req, res) => {
   try {
-    const [rows] = await dbPool.query('SELECT data FROM presentations WHERE id = ?', [req.params.id]);
+    // Select the data as a raw string to prevent driver crashes on malformed JSON.
+    const [rows] = await dbPool.query('SELECT CAST(data AS CHAR) as data FROM presentations WHERE id = ?', [req.params.id]);
     if (rows.length > 0) {
-      let presentationData = rows[0].data;
-      // Handle data that might have been double-stringified in older versions
-      if (typeof presentationData === 'string') {
-          try {
-              presentationData = JSON.parse(presentationData);
-          } catch (e) {
-              console.error(`Failed to parse corrupt presentation data for id ${req.params.id}:`, e);
-              return res.status(500).json({ error: 'Failed to parse presentation data from database.' });
-          }
+      try {
+        const presentationData = JSON.parse(rows[0].data);
+        res.json(presentationData);
+      } catch (e) {
+        console.error(`Failed to parse corrupt presentation data for id ${req.params.id}:`, e);
+        return res.status(500).json({ error: 'Failed to parse presentation data from database.' });
       }
-      res.json(presentationData);
     } else {
       res.status(404).json({ error: 'Presentation not found' });
     }
