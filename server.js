@@ -122,7 +122,14 @@ app.delete('/api/presentations/:id', async (req, res) => {
 // === FRONTEND SERVING (MUST be defined after API routes) ===
 
 // Serve static files from the project root
-app.use(express.static(__dirname)); 
+app.use(express.static(__dirname, {
+  setHeaders: (res, filePath) => {
+    // Serve .ts and .tsx files with the correct JavaScript MIME type
+    if (filePath.endsWith('.ts') || filePath.endsWith('.tsx')) {
+      res.setHeader('Content-Type', 'application/javascript');
+    }
+  }
+})); 
 
 // For any other route, serve the index.html file to support client-side routing
 app.get('*', (req, res) => {
