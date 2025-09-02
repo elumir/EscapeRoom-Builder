@@ -48,7 +48,18 @@ async function testDbConnection() {
 app.get('/api/presentations', async (req, res) => {
   try {
     const [rows] = await dbPool.query('SELECT data FROM presentations ORDER BY updated_at DESC');
-    const presentations = rows.map(row => row.data);
+    const presentations = rows.map(row => {
+      // Handle data that might have been double-stringified in older versions
+      if (typeof row.data === 'string') {
+        try {
+          return JSON.parse(row.data);
+        } catch (e) {
+          console.error('Failed to parse corrupt presentation data:', row.data, e);
+          return null;
+        }
+      }
+      return row.data;
+    }).filter(Boolean); // Filter out any entries that failed to parse
     res.json(presentations);
   } catch (error) {
     console.error('Failed to fetch presentations:', error);
@@ -61,7 +72,17 @@ app.get('/api/presentations/:id', async (req, res) => {
   try {
     const [rows] = await dbPool.query('SELECT data FROM presentations WHERE id = ?', [req.params.id]);
     if (rows.length > 0) {
-      res.json(rows[0].data);
+      let presentationData = rows[0].data;
+      // Handle data that might have been double-stringified in older versions
+      if (typeof presentationData === 'string') {
+          try {
+              presentationData = JSON.parse(presentationData);
+          } catch (e) {
+              console.error(`Failed to parse corrupt presentation data for id ${req.params.id}:`, e);
+              return res.status(500).json({ error: 'Failed to parse presentation data from database.' });
+          }
+      }
+      res.json(presentationData);
     } else {
       res.status(404).json({ error: 'Presentation not found' });
     }
@@ -78,8 +99,10 @@ app.post('/api/presentations', async (req, res) => {
     if (!presentationData || !presentationData.id || !presentationData.title) {
         return res.status(400).json({ error: 'Invalid presentation data provided.' });
     }
+    // The mysql2 driver handles JSON serialization automatically for JSON columns.
+    // No need to JSON.stringify() here.
     const sql = 'INSERT INTO presentations (id, title, data) VALUES (?, ?, ?)';
-    await dbPool.query(sql, [presentationData.id, presentationData.title, JSON.stringify(presentationData)]);
+    await dbPool.query(sql, [presentationData.id, presentationData.title, presentationData]);
     res.status(201).json(presentationData);
   } catch (error) {
     console.error('Failed to create presentation:', error);
@@ -94,8 +117,10 @@ app.put('/api/presentations/:id', async (req, res) => {
      if (!presentationData || !presentationData.id || !presentationData.title) {
         return res.status(400).json({ error: 'Invalid presentation data provided.' });
     }
+    // The mysql2 driver handles JSON serialization automatically for JSON columns.
+    // No need to JSON.stringify() here.
     const sql = 'UPDATE presentations SET title = ?, data = ?, updated_at = NOW() WHERE id = ?';
-    const [result] = await dbPool.query(sql, [presentationData.title, JSON.stringify(presentationData), req.params.id]);
+    const [result] = await dbPool.query(sql, [presentationData.title, presentationData, req.params.id]);
     
     if (result.affectedRows > 0) {
         res.json(presentationData);
