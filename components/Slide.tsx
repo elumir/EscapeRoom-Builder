@@ -14,7 +14,6 @@ const Room: React.FC<RoomProps> = ({ room, inventoryItems, visibleMapImages, cla
 
   const isLightBg = !isFullScreenImage && ['#ffffff', '#fbbf24', '#34d399'].includes(backgroundColor);
   
-  // In full-screen mode, text is on a dark overlay, so it should be light.
   const textColor = isLightBg ? '#1f2937' : '#f8fafc';
   const bodyTextColor = isLightBg ? '#374151' : '#e2e8f0';
 
@@ -27,12 +26,10 @@ const Room: React.FC<RoomProps> = ({ room, inventoryItems, visibleMapImages, cla
   }
 
   const imageContainerClass = isFullScreenImage
-    ? 'absolute inset-0 w-full h-full bg-slate-800'
+    ? 'w-full h-full bg-slate-800'
     : 'w-[70%] h-full flex items-center justify-center bg-slate-100 dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700';
 
-  const sidebarContainerClass = isFullScreenImage
-    ? 'absolute z-10 bottom-4 right-4 w-[25%] max-h-[80%] rounded-lg shadow-2xl bg-slate-900/60 dark:bg-black/70 backdrop-blur-md overflow-hidden flex flex-col'
-    : 'w-[30%] h-full flex flex-col bg-white/20 dark:bg-black/20';
+  const sidebarContainerClass = 'w-[30%] h-full flex flex-col bg-white/20 dark:bg-black/20';
 
   return (
     <div
@@ -50,35 +47,39 @@ const Room: React.FC<RoomProps> = ({ room, inventoryItems, visibleMapImages, cla
           </div>
         )}
       </div>
-      <div className={sidebarContainerClass}>
-        <div className="relative h-1/2 flex items-center justify-center text-center p-2 md:p-4 border-b border-slate-200/50 dark:border-slate-700/50">
-             {visibleMapImages && visibleMapImages.length > 0 ? (
-                <div className="absolute inset-0">
-                    {visibleMapImages.map((mapImage, index) => (
-                        mapImage && <img key={index} src={`/api/assets/${mapImage}`} alt={`Map Layer ${index + 1}`} className="absolute inset-0 w-full h-full object-contain" />
-                    ))}
-                </div>
+      
+      {!isFullScreenImage && (
+        <div className={sidebarContainerClass}>
+          <div className="relative h-1/2 flex items-center justify-center text-center p-2 md:p-4 border-b border-slate-200/50 dark:border-slate-700/50">
+               {visibleMapImages && visibleMapImages.length > 0 ? (
+                  <div className="absolute inset-0">
+                      {visibleMapImages.map((mapImage, index) => (
+                          mapImage && <img key={index} src={`/api/assets/${mapImage}`} alt={`Map Layer ${index + 1}`} className="absolute inset-0 w-full h-full object-contain" />
+                      ))}
+                  </div>
+                ) : (
+                  <div className="text-slate-400 dark:text-slate-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="w-12 h-12">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 20l-5.447-2.724A1 1 0 0 1 3 16.382V5.618a1 1 0 0 1 1.447-.894L9 7m0 13v-6m0 6l5.447-2.724A1 1 0 0 0 15 16.382V5.618a1 1 0 0 0-1.447-.894L9 7m0 0-3-1.5m3 1.5v6.5m0-6.5L12 5.5m0 0 3 1.5m-3-1.5V3" />
+                    </svg>
+                  </div>
+               )}
+          </div>
+          <div className="h-1/2 flex flex-col justify-start p-2 md:p-4 overflow-y-auto">
+              <h2 className="text-sm md:text-md font-bold mb-2 sticky top-0 text-center" style={{color: textColor}}>Inventory</h2>
+              {inventoryItems.length > 0 ? (
+                  <ul className={inventoryListClass}>
+                      {inventoryItems.map((item, index) => (
+                          <li key={index} className="px-2 py-1 bg-slate-200/50 dark:bg-slate-800/50 rounded-md break-words break-inside-avoid mb-1" style={{color: bodyTextColor}}>{item}</li>
+                      ))}
+                  </ul>
               ) : (
-                <div className="text-slate-400 dark:text-slate-500">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="w-12 h-12">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 20l-5.447-2.724A1 1 0 0 1 3 16.382V5.618a1 1 0 0 1 1.447-.894L9 7m0 13v-6m0 6l5.447-2.724A1 1 0 0 0 15 16.382V5.618a1 1 0 0 0-1.447-.894L9 7m0 0-3-1.5m3 1.5v6.5m0-6.5L12 5.5m0 0 3 1.5m-3-1.5V3" />
-                  </svg>
-                </div>
-             )}
+                   <p className="text-xs text-slate-500 dark:text-slate-400 italic text-center">Inventory is empty.</p>
+              )}
+          </div>
         </div>
-        <div className="h-1/2 flex flex-col justify-start p-2 md:p-4 overflow-y-auto">
-            <h2 className="text-sm md:text-md font-bold mb-2 sticky top-0 text-center" style={{color: textColor}}>Inventory</h2>
-            {inventoryItems.length > 0 ? (
-                <ul className={inventoryListClass}>
-                    {inventoryItems.map((item, index) => (
-                        <li key={index} className="px-2 py-1 bg-slate-200/50 dark:bg-slate-800/50 rounded-md break-words break-inside-avoid mb-1" style={{color: bodyTextColor}}>{item}</li>
-                    ))}
-                </ul>
-            ) : (
-                 <p className="text-xs text-slate-500 dark:text-slate-400 italic text-center">Inventory is empty.</p>
-            )}
-        </div>
-      </div>
+      )}
+
       {overlayImageUrl && (
         <div className="absolute inset-0 z-20 bg-black/70 flex items-center justify-center p-4 backdrop-blur-sm">
             <img src={`/api/assets/${overlayImageUrl}`} alt="Puzzle Overlay" className="max-w-full max-h-full object-contain rounded-lg shadow-2xl" />
