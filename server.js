@@ -27,11 +27,13 @@ const dbPool = mysql.createPool({
 
 // API Routes
 
-// Get all presentations (lightweight version: id and title only)
+// Get all presentations (full data)
 app.get('/api/presentations', async (req, res) => {
   try {
-    const [rows] = await dbPool.query('SELECT id, title FROM presentations ORDER BY updated_at DESC');
-    res.json(rows);
+    const [rows] = await dbPool.query('SELECT data FROM presentations ORDER BY updated_at DESC');
+    // The 'data' column contains the JSON for each presentation.
+    const presentations = rows.map(row => row.data);
+    res.json(presentations);
   } catch (error) {
     console.error('Failed to fetch presentations:', error);
     res.status(500).json({ error: 'Database query failed' });

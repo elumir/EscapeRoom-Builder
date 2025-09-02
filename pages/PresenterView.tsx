@@ -36,7 +36,6 @@ const PresenterView: React.FC = () => {
 
   useEffect(() => {
     if (id) {
-      // FIX: Await promises and handle async logic correctly
       const fetchAndInitialize = async () => {
         const data = await presentationService.getPresentation(id);
         if (data) {
@@ -57,7 +56,6 @@ const PresenterView: React.FC = () => {
     }
     const handleStorageChange = async (e: StorageEvent) => {
       if (e.key === 'presentations' && id) {
-        // FIX: Await promise from presentationService
         const data = await presentationService.getPresentation(id);
         if (data) {
           setPresentation(data);
@@ -68,10 +66,15 @@ const PresenterView: React.FC = () => {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, [id]);
 
-  const updateAndBroadcast = useCallback((updatedPresentation: Presentation) => {
+  const updateAndBroadcast = useCallback(async (updatedPresentation: Presentation) => {
     setPresentation(updatedPresentation);
-    presentationService.savePresentation(updatedPresentation);
-    postMessage({ type: 'STATE_UPDATE' });
+    try {
+        await presentationService.savePresentation(updatedPresentation);
+        postMessage({ type: 'STATE_UPDATE' });
+    } catch (error) {
+        console.error("Failed to save presentation state:", error);
+        alert("A change could not be saved. Please check your connection.");
+    }
   }, [postMessage]);
 
   const goToRoom = useCallback((index: number) => {

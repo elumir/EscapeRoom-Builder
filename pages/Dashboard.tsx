@@ -13,9 +13,9 @@ const Dashboard: React.FC = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        // FIX: Await promise from presentationService
         const fetchPresentations = async () => {
-            setPresentations(await presentationService.getPresentations());
+            const data = await presentationService.getPresentations();
+            setPresentations(data);
         };
         fetchPresentations();
     }, []);
@@ -23,19 +23,28 @@ const Dashboard: React.FC = () => {
     const handleCreatePresentation = async (e: React.FormEvent) => {
         e.preventDefault();
         if (newTitle.trim()) {
-            // FIX: Await promise from presentationService
             const newPresentation = await presentationService.createPresentation(newTitle.trim());
-            setIsModalOpen(false);
-            setNewTitle('');
-            navigate(`/editor/${newPresentation.id}`);
+            if (newPresentation) {
+                setIsModalOpen(false);
+                setNewTitle('');
+                // Re-fetch to update the list
+                const updatedPresentations = await presentationService.getPresentations();
+                setPresentations(updatedPresentations);
+                navigate(`/editor/${newPresentation.id}`);
+            } else {
+                alert('Failed to create presentation. Please try again.');
+            }
         }
     };
 
     const handleDelete = async (id: string) => {
         if (window.confirm('Are you sure you want to delete this presentation?')) {
-            // FIX: Await promises from presentationService
-            await presentationService.deletePresentation(id);
-            setPresentations(await presentationService.getPresentations());
+            const success = await presentationService.deletePresentation(id);
+            if (success) {
+                setPresentations(presentations.filter(p => p.id !== id));
+            } else {
+                alert('Failed to delete presentation. Please try again.');
+            }
         }
     };
     

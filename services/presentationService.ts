@@ -15,23 +15,20 @@ const handleResponse = async (response: Response) => {
 };
 
 export const getPresentations = async (): Promise<Presentation[]> => {
-    // The backend now returns a lightweight list (id, title).
-    // The full data is fetched when a specific presentation is opened.
-    // We will adapt the Presentation type here for the dashboard.
-    const presentationsList: {id: string, title: string}[] = await fetch(`${API_BASE_URL}/presentations`).then(handleResponse);
-    
-    // For the dashboard preview, we need a 'rooms' array. We'll return a minimal structure.
-    return presentationsList.map(p => ({
-        id: p.id,
-        title: p.title,
-        rooms: [], // Rooms are not needed for the dashboard list view
-        visitedRoomIds: [],
-    }));
+    try {
+        const response = await fetch(`${API_BASE_URL}/presentations`);
+        // The API now returns the full presentation objects, so no mapping is needed.
+        return await handleResponse(response) || [];
+    } catch (error) {
+        console.error("Failed to fetch presentations list:", error);
+        return [];
+    }
 };
 
 export const getPresentation = async (id: string): Promise<Presentation | undefined> => {
     try {
-        return await fetch(`${API_BASE_URL}/presentations/${id}`).then(handleResponse);
+        const response = await fetch(`${API_BASE_URL}/presentations/${id}`);
+        return await handleResponse(response);
     } catch (error) {
         console.error("Failed to fetch presentation:", error);
         return undefined;
@@ -39,16 +36,20 @@ export const getPresentation = async (id: string): Promise<Presentation | undefi
 };
 
 export const savePresentation = async (presentation: Presentation): Promise<void> => {
-    await fetch(`${API_BASE_URL}/presentations/${presentation.id}`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(presentation),
-    }).then(handleResponse);
+    try {
+        const response = await fetch(`${API_BASE_URL}/presentations/${presentation.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(presentation),
+        });
+        await handleResponse(response);
+    } catch (error) {
+        console.error("Failed to save presentation:", error);
+        throw error;
+    }
 };
 
-export const createPresentation = async (title: string): Promise<Presentation> => {
+export const createPresentation = async (title: string): Promise<Presentation | null> => {
     const newRoom: Room = {
         id: crypto.randomUUID(),
         name: 'First Room',
@@ -66,18 +67,29 @@ export const createPresentation = async (title: string): Promise<Presentation> =
         visitedRoomIds: [],
     };
 
-    return await fetch(`${API_BASE_URL}/presentations`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newPresentation),
-    }).then(handleResponse);
+    try {
+        const response = await fetch(`${API_BASE_URL}/presentations`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newPresentation),
+        });
+        return await handleResponse(response);
+    } catch (error) {
+        console.error("Failed to create presentation:", error);
+        return null;
+    }
 };
 
 
-export const deletePresentation = async (id: string): Promise<void> => {
-    await fetch(`${API_BASE_URL}/presentations/${id}`, {
-        method: 'DELETE',
-    }).then(handleResponse);
+export const deletePresentation = async (id: string): Promise<boolean> => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/presentations/${id}`, {
+            method: 'DELETE',
+        });
+        await handleResponse(response);
+        return true;
+    } catch(error) {
+        console.error("Failed to delete presentation:", error);
+        return false;
+    }
 };
