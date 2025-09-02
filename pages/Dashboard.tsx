@@ -62,6 +62,7 @@ const Dashboard: React.FC = () => {
         }
     };
     
+    // FIX: Added missing isFullScreenImage property to satisfy RoomType interface.
     const fallbackRoom: RoomType = {
         id: 'dummy', 
         name: 'Empty', 
@@ -69,6 +70,7 @@ const Dashboard: React.FC = () => {
         mapImage: null,
         notes: '', 
         backgroundColor: '#eee', 
+        isFullScreenImage: false,
         objects: [],
         puzzles: [],
     };

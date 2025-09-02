@@ -27,6 +27,7 @@ export interface Room {
   mapImage: string | null; // Asset ID
   notes: string;
   backgroundColor: string;
+  isFullScreenImage: boolean;
   objects: InventoryObject[];
   puzzles: Puzzle[];
 }

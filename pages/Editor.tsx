@@ -121,7 +121,7 @@ const Editor: React.FC = () => {
 
   const addRoom = () => {
     if (!game) return;
-    const newRoom: RoomType = { id: generateUUID(), name: `Room ${game.rooms.length + 1}`, image: null, mapImage: null, notes: '', backgroundColor: '#ffffff', objects: [], puzzles: [] };
+    const newRoom: RoomType = { id: generateUUID(), name: `Room ${game.rooms.length + 1}`, image: null, mapImage: null, notes: '', backgroundColor: '#ffffff', isFullScreenImage: false, objects: [], puzzles: [] };
     const newRooms = [...game.rooms, newRoom];
     updateGame({ ...game, rooms: newRooms });
     selectRoom(newRooms.length - 1);
@@ -143,10 +143,10 @@ const Editor: React.FC = () => {
     }
   };
   
-  const changeRoomColor = (color: string) => {
+  const changeRoomProperty = (property: keyof RoomType, value: any) => {
     if (!game) return;
     const newRooms = [...game.rooms];
-    newRooms[selectedRoomIndex] = { ...newRooms[selectedRoomIndex], backgroundColor: color };
+    newRooms[selectedRoomIndex] = { ...newRooms[selectedRoomIndex], [property]: value };
     updateGame({ ...game, rooms: newRooms });
   }
 
@@ -192,6 +192,7 @@ const Editor: React.FC = () => {
 
   const handlePuzzleChange = (index: number, field: keyof Puzzle, value: string | boolean | string[] | null) => {
     const newPuzzles = [...editingRoomPuzzles];
+    // FIX: Corrected typo from `newPzzles` to `newPuzzles`.
     newPuzzles[index] = { ...newPuzzles[index], [field]: value };
     setEditingRoomPuzzles(newPuzzles);
   }
@@ -447,9 +448,9 @@ const Editor: React.FC = () => {
             <div className='w-full max-w-4xl mx-auto'>
               <div className="relative w-full aspect-video">
                 <Room room={currentRoom} inventoryItems={inventoryItems} visibleMapImages={allMapImages} />
-                <div className="absolute inset-0 flex">
-                  <div className="w-[70%] h-full group relative">
-                      <label className="w-full h-full cursor-pointer flex items-center justify-center bg-black/0 hover:bg-black/30 transition-colors duration-300">
+                <div className={`absolute inset-0 flex ${currentRoom.isFullScreenImage ? 'pointer-events-none' : ''}`}>
+                  <div className={`h-full group relative ${currentRoom.isFullScreenImage ? 'w-full' : 'w-[70%]'}`}>
+                      <label className={`w-full h-full cursor-pointer flex items-center justify-center bg-black/0 hover:bg-black/30 transition-colors duration-300 ${currentRoom.isFullScreenImage ? 'pointer-events-auto' : ''}`}>
                         <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'image')} className="sr-only" />
                           <div className="text-white text-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
                               <p className="font-bold text-lg">{currentRoom.image ? "Change Image" : "Upload Image"}</p>
@@ -457,7 +458,7 @@ const Editor: React.FC = () => {
                           </div>
                       </label>
                   </div>
-                   <div className="w-[30%] h-full">
+                   <div className={`h-full ${currentRoom.isFullScreenImage ? 'hidden' : 'w-[30%]'}`}>
                      <div className="h-1/2 relative group">
                           <label className="w-full h-full cursor-pointer flex items-center justify-center bg-black/0 hover:bg-black/30 transition-colors duration-300">
                               <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'mapImage')} className="sr-only" />
@@ -730,9 +731,21 @@ const Editor: React.FC = () => {
                           <h3 className="font-semibold text-sm mb-2 text-slate-600 dark:text-slate-400">Background Color</h3>
                           <div className="flex flex-wrap gap-2">
                             {COLORS.map(color => (
-                              <button key={color} onClick={() => changeRoomColor(color)} className={`w-8 h-8 rounded-full border-2 ${currentRoom.backgroundColor === color ? 'border-brand-500 ring-2 ring-brand-500' : 'border-slate-300 dark:border-slate-600'}`} style={{backgroundColor: color}}/>
+                              <button key={color} onClick={() => changeRoomProperty('backgroundColor', color)} className={`w-8 h-8 rounded-full border-2 ${currentRoom.backgroundColor === color ? 'border-brand-500 ring-2 ring-brand-500' : 'border-slate-300 dark:border-slate-600'}`} style={{backgroundColor: color}}/>
                             ))}
                           </div>
+                        </div>
+                        <div>
+                            <label className="flex items-center justify-between gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer">
+                                <span>Full-Screen Image</span>
+                                <input
+                                    type="checkbox"
+                                    className="sr-only peer"
+                                    checked={currentRoom.isFullScreenImage || false}
+                                    onChange={(e) => changeRoomProperty('isFullScreenImage', e.target.checked)}
+                                />
+                                <div className="relative w-11 h-6 bg-slate-200 dark:bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-600"></div>
+                            </label>
                         </div>
                     </div>
                 </Accordion>
