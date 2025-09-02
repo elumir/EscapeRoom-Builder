@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
-import type { Presentation } from '../types';
+import type { Game } from '../types';
 
-export const usePresenterState = (presentation: Presentation | null) => {
+export const usePresenterState = (game: Game | null) => {
     const presenterState = useMemo(() => {
-        if (!presentation) {
+        if (!game) {
             return {
                 allUnsolvedPuzzles: [],
                 lockingPuzzlesByRoomId: new Map<string, string>(),
@@ -12,7 +12,7 @@ export const usePresenterState = (presentation: Presentation | null) => {
             };
         }
 
-        const allUnsolvedPuzzles = presentation.rooms.flatMap(r => r.puzzles).filter(p => !p.isSolved);
+        const allUnsolvedPuzzles = game.rooms.flatMap(r => r.puzzles).filter(p => !p.isSolved);
 
         const lockingPuzzlesByRoomId = new Map<string, string>();
         const lockingPuzzlesByPuzzleId = new Map<string, string>();
@@ -30,7 +30,7 @@ export const usePresenterState = (presentation: Presentation | null) => {
             });
         });
 
-        const inventoryObjects = presentation.rooms.flatMap(r => r.objects).filter(o => o.showInInventory);
+        const inventoryObjects = game.rooms.flatMap(r => r.objects).filter(o => o.showInInventory);
 
         return {
             allUnsolvedPuzzles,
@@ -38,7 +38,7 @@ export const usePresenterState = (presentation: Presentation | null) => {
             lockingPuzzlesByPuzzleId,
             inventoryObjects,
         };
-    }, [presentation]);
+    }, [game]);
 
     return presenterState;
 };

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import * as presentationService from '../services/presentationService';
-import type { Presentation, Room as RoomType, InventoryObject, Puzzle } from '../types';
+import * as gameService from '../services/presentationService';
+import type { Game, Room as RoomType, InventoryObject, Puzzle } from '../types';
 import Room from '../components/Slide';
 import Icon from '../components/Icon';
 import PresenterPreview from '../components/PresenterPreview';
@@ -12,10 +12,10 @@ type Status = 'loading' | 'success' | 'error';
 
 const Editor: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const [presentation, setPresentation] = useState<Presentation | null>(null);
+  const [game, setGame] = useState<Game | null>(null);
   const [status, setStatus] = useState<Status>('loading');
   const [selectedRoomIndex, setSelectedRoomIndex] = useState(0);
-  const [editingPresentationTitle, setEditingPresentationTitle] = useState('');
+  const [editingGameTitle, setEditingGameTitle] = useState('');
   const [editingRoomName, setEditingRoomName] = useState('');
   const [editingRoomNotes, setEditingRoomNotes] = useState('');
   const [editingRoomObjects, setEditingRoomObjects] = useState<InventoryObject[]>([]);
@@ -34,12 +34,12 @@ const Editor: React.FC = () => {
 
   useEffect(() => {
     if (id) {
-      const fetchPresentation = async () => {
+      const fetchGame = async () => {
         setStatus('loading');
-        const data = await presentationService.getPresentation(id);
+        const data = await gameService.getGame(id);
         if (data) {
-          setPresentation(data);
-          setEditingPresentationTitle(data.title);
+          setGame(data);
+          setEditingGameTitle(data.title);
           if (data.rooms.length > 0) {
               const currentRoom = data.rooms[0];
               setEditingRoomName(currentRoom.name);
@@ -52,7 +52,7 @@ const Editor: React.FC = () => {
           setStatus('error');
         }
       };
-      fetchPresentation();
+      fetchGame();
     }
   }, [id]);
 
@@ -74,34 +74,34 @@ const Editor: React.FC = () => {
     };
   }, []);
 
-  const updatePresentation = useCallback((updatedPresentation: Presentation) => {
-    setPresentation(updatedPresentation);
-    presentationService.savePresentation(updatedPresentation);
+  const updateGame = useCallback((updatedGame: Game) => {
+    setGame(updatedGame);
+    gameService.saveGame(updatedGame);
   }, []);
 
   useEffect(() => {
-    if (presentation && presentation.title !== editingPresentationTitle) {
+    if (game && game.title !== editingGameTitle) {
       const handler = setTimeout(() => {
-        updatePresentation({ ...presentation, title: editingPresentationTitle });
+        updateGame({ ...game, title: editingGameTitle });
       }, 500);
       return () => clearTimeout(handler);
     }
-  }, [editingPresentationTitle, presentation, updatePresentation]);
+  }, [editingGameTitle, game, updateGame]);
 
   const useDebouncedUpdater = <T,>(value: T, property: keyof RoomType) => {
     useEffect(() => {
-        if (presentation) {
+        if (game) {
             const handler = setTimeout(() => {
-                const currentRoom = presentation.rooms[selectedRoomIndex];
+                const currentRoom = game.rooms[selectedRoomIndex];
                 if (currentRoom && JSON.stringify(currentRoom[property]) !== JSON.stringify(value)) {
-                    const newRooms = [...presentation.rooms];
+                    const newRooms = [...game.rooms];
                     newRooms[selectedRoomIndex] = { ...currentRoom, [property]: value };
-                    updatePresentation({ ...presentation, rooms: newRooms });
+                    updateGame({ ...game, rooms: newRooms });
                 }
             }, 500);
             return () => clearTimeout(handler);
         }
-    }, [value, selectedRoomIndex, presentation, updatePresentation, property]);
+    }, [value, selectedRoomIndex, game, updateGame, property]);
   };
   
   useDebouncedUpdater(editingRoomName, 'name');
@@ -111,7 +111,7 @@ const Editor: React.FC = () => {
 
   const selectRoom = (index: number) => {
     setSelectedRoomIndex(index);
-    const room = presentation?.rooms[index];
+    const room = game?.rooms[index];
     setEditingRoomName(room?.name || '');
     setEditingRoomNotes(room?.notes || '');
     setEditingRoomObjects(room?.objects || []);
@@ -119,10 +119,10 @@ const Editor: React.FC = () => {
   };
 
   const addRoom = () => {
-    if (!presentation) return;
-    const newRoom: RoomType = { id: generateUUID(), name: `Room ${presentation.rooms.length + 1}`, image: null, mapImage: null, notes: '', backgroundColor: '#ffffff', objects: [], puzzles: [] };
-    const newRooms = [...presentation.rooms, newRoom];
-    updatePresentation({ ...presentation, rooms: newRooms });
+    if (!game) return;
+    const newRoom: RoomType = { id: generateUUID(), name: `Room ${game.rooms.length + 1}`, image: null, mapImage: null, notes: '', backgroundColor: '#ffffff', objects: [], puzzles: [] };
+    const newRooms = [...game.rooms, newRoom];
+    updateGame({ ...game, rooms: newRooms });
     selectRoom(newRooms.length - 1);
     setTimeout(() => {
         roomsContainerRef.current?.lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'end' });
@@ -130,33 +130,33 @@ const Editor: React.FC = () => {
   };
   
   const deleteRoom = () => {
-    if (!presentation || presentation.rooms.length <= 1) {
+    if (!game || game.rooms.length <= 1) {
       alert("You cannot delete the last room.");
       return;
     };
     if(window.confirm('Are you sure you want to delete this room?')){
-        const newRooms = presentation.rooms.filter((_, i) => i !== selectedRoomIndex);
+        const newRooms = game.rooms.filter((_, i) => i !== selectedRoomIndex);
         const newIndex = Math.max(0, selectedRoomIndex - 1);
-        updatePresentation({ ...presentation, rooms: newRooms });
+        updateGame({ ...game, rooms: newRooms });
         selectRoom(newIndex);
     }
   };
   
   const changeRoomColor = (color: string) => {
-    if (!presentation) return;
-    const newRooms = [...presentation.rooms];
+    if (!game) return;
+    const newRooms = [...game.rooms];
     newRooms[selectedRoomIndex] = { ...newRooms[selectedRoomIndex], backgroundColor: color };
-    updatePresentation({ ...presentation, rooms: newRooms });
+    updateGame({ ...game, rooms: newRooms });
   }
 
   const handleFileUpload = async (file: File, property: 'image' | 'mapImage') => {
-      if (!presentation) return;
+      if (!game) return;
       try {
           // TODO: Add a loading state indicator
-          const { assetId } = await presentationService.uploadAsset(presentation.id, file);
-          const newRooms = [...presentation.rooms];
+          const { assetId } = await gameService.uploadAsset(game.id, file);
+          const newRooms = [...game.rooms];
           newRooms[selectedRoomIndex] = { ...newRooms[selectedRoomIndex], [property]: assetId };
-          updatePresentation({ ...presentation, rooms: newRooms });
+          updateGame({ ...game, rooms: newRooms });
       } catch (error) {
           console.error(`${property} upload failed:`, error);
           alert(`Failed to upload ${property}. Please try again.`);
@@ -200,10 +200,10 @@ const Editor: React.FC = () => {
         handlePuzzleChange(index, field, null);
         return;
       }
-      if (presentation) {
+      if (game) {
         try {
             // TODO: Add loading state
-            const { assetId } = await presentationService.uploadAsset(presentation.id, file);
+            const { assetId } = await gameService.uploadAsset(game.id, file);
             handlePuzzleChange(index, field, assetId);
         } catch (error) {
             console.error(`Puzzle ${field} upload failed:`, error);
@@ -217,8 +217,8 @@ const Editor: React.FC = () => {
   }
 
   const handleToggleObject = (objectId: string, newState: boolean) => {
-    if (!presentation) return;
-    const newRooms = presentation.rooms.map(room => ({
+    if (!game) return;
+    const newRooms = game.rooms.map(room => ({
         ...room,
         objects: room.objects.map(obj => 
             obj.id === objectId ? { ...obj, showInInventory: newState } : obj
@@ -230,16 +230,16 @@ const Editor: React.FC = () => {
        setEditingRoomObjects(currentRoom.objects);
     }
     
-    updatePresentation({ ...presentation, rooms: newRooms });
+    updateGame({ ...game, rooms: newRooms });
   }
   
   const handleTogglePuzzle = (puzzleId: string, newState: boolean) => {
-    if (!presentation) return;
+    if (!game) return;
 
     let targetPuzzle: Puzzle | null = null;
     let targetRoomId: string | null = null;
 
-    for (const room of presentation.rooms) {
+    for (const room of game.rooms) {
         const foundPuzzle = room.puzzles.find(p => p.id === puzzleId);
         if (foundPuzzle) {
             targetPuzzle = foundPuzzle;
@@ -253,7 +253,7 @@ const Editor: React.FC = () => {
     const shouldAutoAdd = newState && targetPuzzle.autoAddLockedObjects;
     const objectIdsToUpdate = shouldAutoAdd ? targetPuzzle.lockedObjectIds : [];
 
-    const newRooms = presentation.rooms.map(room => {
+    const newRooms = game.rooms.map(room => {
         let newObjects = room.objects;
         // If this is the room with the puzzle AND we need to update objects
         if (room.id === targetRoomId && shouldAutoAdd) {
@@ -269,13 +269,13 @@ const Editor: React.FC = () => {
         return { ...room, objects: newObjects, puzzles: newPuzzles };
     });
 
-    const newPresentation = { ...presentation, rooms: newRooms };
+    const newGame = { ...game, rooms: newRooms };
     
-    const updatedCurrentRoom = newPresentation.rooms[selectedRoomIndex];
+    const updatedCurrentRoom = newGame.rooms[selectedRoomIndex];
     setEditingRoomPuzzles(updatedCurrentRoom.puzzles);
     setEditingRoomObjects(updatedCurrentRoom.objects);
     
-    updatePresentation(newPresentation);
+    updateGame(newGame);
   };
 
   const handleTogglePuzzleImage = (puzzleId: string, newState: boolean) => {
@@ -295,26 +295,26 @@ const Editor: React.FC = () => {
   const COLORS = ['#ffffff', '#000000', '#f87171', '#fbbf24', '#34d399', '#60a5fa', '#a78bfa'];
 
   if (status === 'loading') {
-    return <div className="flex items-center justify-center h-screen">Loading presentation...</div>;
+    return <div className="flex items-center justify-center h-screen">Loading game...</div>;
   }
   
   if (status === 'error') {
-     return <div className="flex items-center justify-center h-screen">Error: Presentation not found.</div>;
+     return <div className="flex items-center justify-center h-screen">Error: Game not found.</div>;
   }
 
-  if (!presentation || !presentation.rooms[selectedRoomIndex]) {
-    // This handles the case where presentation is loaded but has no rooms.
-    return <div className="flex items-center justify-center h-screen">This presentation has no rooms.</div>;
+  if (!game || !game.rooms[selectedRoomIndex]) {
+    // This handles the case where game is loaded but has no rooms.
+    return <div className="flex items-center justify-center h-screen">This game has no rooms.</div>;
   }
 
-  const currentRoom = presentation.rooms[selectedRoomIndex];
-  const inventoryItems = presentation.rooms
+  const currentRoom = game.rooms[selectedRoomIndex];
+  const inventoryItems = game.rooms
     .flatMap(r => r.objects)
     .filter(t => t.showInInventory)
     .map(t => t.name);
   
   // In the editor, we can see all potential map images layered
-  const allMapImages = presentation.rooms.map(r => r.mapImage).filter(Boolean);
+  const allMapImages = game.rooms.map(r => r.mapImage).filter(Boolean);
 
   return (
     <div className="flex flex-col h-screen bg-slate-200 dark:bg-slate-900">
@@ -322,7 +322,7 @@ const Editor: React.FC = () => {
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
             <div className="w-full h-full max-w-6xl max-h-[90vh] bg-slate-800 rounded-lg shadow-2xl">
                 <PresenterPreview
-                    presentation={presentation}
+                    game={game}
                     currentRoomIndex={selectedRoomIndex}
                     onToggleObject={handleToggleObject}
                     onTogglePuzzle={handleTogglePuzzle}
@@ -338,8 +338,8 @@ const Editor: React.FC = () => {
           <Link to="/" className="text-xl font-bold text-brand-600 dark:text-brand-400 p-2">Studio</Link>
           <input 
             type="text" 
-            value={editingPresentationTitle} 
-            onChange={e => setEditingPresentationTitle(e.target.value)} 
+            value={editingGameTitle} 
+            onChange={e => setEditingGameTitle(e.target.value)} 
             className="text-lg font-semibold bg-transparent rounded-md p-1 focus:bg-slate-100 dark:focus:bg-slate-700 outline-none"
           />
         </div>
@@ -355,7 +355,7 @@ const Editor: React.FC = () => {
         {/* Left Sidebar - Thumbnails */}
         <aside className="w-48 bg-white dark:bg-slate-800 p-2 overflow-y-auto shadow-lg">
           <div className="space-y-2" ref={roomsContainerRef}>
-            {presentation.rooms.map((room, index) => (
+            {game.rooms.map((room, index) => (
               <div key={room.id} onClick={() => selectRoom(index)} className={`cursor-pointer rounded-md overflow-hidden border-2 ${selectedRoomIndex === index ? 'border-brand-500' : 'border-transparent hover:border-brand-300'}`}>
                 <div className="flex items-start gap-2">
                   <span className="text-xs font-bold text-slate-500 dark:text-slate-400 p-1">{index + 1}</span>
@@ -508,7 +508,7 @@ const Editor: React.FC = () => {
                                             {openPuzzleObjectsDropdown === puzzle.id && (
                                                 <div ref={objectsDropdownRef} className="absolute z-20 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
                                                     <div className="space-y-1 p-2">
-                                                        {presentation.rooms.map(room => (
+                                                        {game.rooms.map(room => (
                                                             <div key={room.id}>
                                                                 <h5 className="text-xs font-bold text-slate-500 dark:text-slate-400 sticky top-0 bg-white dark:bg-slate-800 py-1 px-2 -mx-2">{room.name}</h5>
                                                                 {room.objects.length > 0 ? (
@@ -552,7 +552,7 @@ const Editor: React.FC = () => {
                                             {openPuzzleRoomsDropdown === puzzle.id && (
                                                 <div ref={roomsDropdownRef} className="absolute z-20 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
                                                     <div className="space-y-1 p-2">
-                                                        {presentation.rooms.filter(room => room.id !== currentRoom.id).map(room => (
+                                                        {game.rooms.filter(room => room.id !== currentRoom.id).map(room => (
                                                             <label key={room.id} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 pl-2 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md p-1">
                                                                 <input
                                                                     type="checkbox"
@@ -587,7 +587,7 @@ const Editor: React.FC = () => {
                                             {openPuzzlePuzzlesDropdown === puzzle.id && (
                                                 <div ref={puzzlesDropdownRef} className="absolute z-20 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
                                                     <div className="space-y-1 p-2">
-                                                        {presentation.rooms.map(room => (
+                                                        {game.rooms.map(room => (
                                                             <div key={room.id}>
                                                                 <h5 className="text-xs font-bold text-slate-500 dark:text-slate-400 sticky top-0 bg-white dark:bg-slate-800 py-1 px-2 -mx-2">{room.name}</h5>
                                                                 {room.puzzles.filter(p => p.id !== puzzle.id).length > 0 ? (
@@ -688,7 +688,7 @@ const Editor: React.FC = () => {
                         </button>
                     </div>
                     <PresenterPreview 
-                        presentation={presentation} 
+                        game={game} 
                         currentRoomIndex={selectedRoomIndex} 
                         onToggleObject={handleToggleObject}
                         onTogglePuzzle={handleTogglePuzzle}

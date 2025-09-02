@@ -1,13 +1,14 @@
 
+
 import React, { useState, useEffect } from 'react';
-import type { Presentation } from '../types';
+import type { Game } from '../types';
 import Icon from './Icon';
 import ObjectItem from './presenter/ObjectItem';
 import PuzzleItem from './presenter/PuzzleItem';
 import { usePresenterState } from '../hooks/usePresenterState';
 
 interface PresenterPreviewProps {
-  presentation: Presentation;
+  game: Game;
   currentRoomIndex: number;
   onToggleObject: (objectId: string, newState: boolean) => void;
   onTogglePuzzle: (puzzleId: string, newState: boolean) => void;
@@ -16,7 +17,7 @@ interface PresenterPreviewProps {
   onClose?: () => void;
 }
 
-const PresenterPreview: React.FC<PresenterPreviewProps> = ({ presentation, currentRoomIndex: initialRoomIndex, onToggleObject, onTogglePuzzle, onTogglePuzzleImage, isExpanded, onClose }) => {
+const PresenterPreview: React.FC<PresenterPreviewProps> = ({ game, currentRoomIndex: initialRoomIndex, onToggleObject, onTogglePuzzle, onTogglePuzzleImage, isExpanded, onClose }) => {
   const [currentRoomIndex, setCurrentRoomIndex] = useState(initialRoomIndex);
   const [visibleDescriptionIds, setVisibleDescriptionIds] = useState<Set<string>>(new Set());
 
@@ -29,7 +30,7 @@ const PresenterPreview: React.FC<PresenterPreviewProps> = ({ presentation, curre
       lockingPuzzlesByRoomId,
       lockingPuzzlesByPuzzleId,
       inventoryObjects,
-  } = usePresenterState(presentation);
+  } = usePresenterState(game);
 
 
   const handleToggleDescriptionVisibility = (objectId: string) => {
@@ -44,14 +45,14 @@ const PresenterPreview: React.FC<PresenterPreviewProps> = ({ presentation, curre
       });
   };
 
-  const currentRoom = presentation.rooms[currentRoomIndex];
+  const currentRoom = game.rooms[currentRoomIndex];
   const availableObjects = currentRoom?.objects.filter(o => !o.showInInventory) || [];
   
   if (isExpanded) {
     return (
         <div className="h-full bg-slate-800 text-white flex flex-col rounded-lg">
             <header className="p-4 bg-slate-900 flex justify-between items-center flex-shrink-0 rounded-t-lg">
-                <h1 className="text-xl font-bold">{presentation.title} - Presenter Preview</h1>
+                <h1 className="text-xl font-bold">{game.title} - Presenter Preview</h1>
                 {onClose && (
                     <button onClick={onClose} className="text-slate-400 hover:text-white">
                         <Icon as="close" />
@@ -62,7 +63,7 @@ const PresenterPreview: React.FC<PresenterPreviewProps> = ({ presentation, curre
                 <div className="col-span-3 overflow-y-auto pr-2">
                     <h2 className="text-lg font-semibold mb-4 text-slate-300 sticky top-0 bg-slate-800 py-2">Rooms</h2>
                     <div className="space-y-2">
-                        {presentation.rooms.map((room, index) => {
+                        {game.rooms.map((room, index) => {
                             const isLocked = lockingPuzzlesByRoomId.has(room.id);
                             const lockingPuzzleName = lockingPuzzlesByRoomId.get(room.id);
                             return (
@@ -179,7 +180,7 @@ const PresenterPreview: React.FC<PresenterPreviewProps> = ({ presentation, curre
         <div className="flex flex-1 overflow-hidden">
             <div className="w-1/3 overflow-y-auto p-2 space-y-1 border-r border-slate-700">
               <h2 className="font-bold text-slate-400 text-[9px] mb-1">Rooms</h2>
-              {presentation.rooms.map((room, index) => {
+              {game.rooms.map((room, index) => {
                   const isLocked = lockingPuzzlesByRoomId.has(room.id);
                   const lockingPuzzleName = lockingPuzzlesByRoomId.get(room.id);
                   return (

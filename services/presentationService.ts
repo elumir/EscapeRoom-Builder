@@ -1,5 +1,6 @@
 
-import type { Presentation, Room } from '../types';
+
+import type { Game, Room } from '../types';
 import { generateUUID } from '../utils/uuid';
 
 const API_BASE_URL = '/api';
@@ -15,42 +16,42 @@ const handleResponse = async (response: Response) => {
     return response.json();
 };
 
-export const getPresentations = async (): Promise<Presentation[]> => {
+export const getGames = async (): Promise<Game[]> => {
     try {
         const response = await fetch(`${API_BASE_URL}/presentations`);
         // The API now returns the full presentation objects, so no mapping is needed.
         return await handleResponse(response) || [];
     } catch (error) {
-        console.error("Failed to fetch presentations list:", error);
+        console.error("Failed to fetch games list:", error);
         return [];
     }
 };
 
-export const getPresentation = async (id: string): Promise<Presentation | undefined> => {
+export const getGame = async (id: string): Promise<Game | undefined> => {
     try {
         const response = await fetch(`${API_BASE_URL}/presentations/${id}`);
         return await handleResponse(response);
     } catch (error) {
-        console.error("Failed to fetch presentation:", error);
+        console.error("Failed to fetch game:", error);
         return undefined;
     }
 };
 
-export const savePresentation = async (presentation: Presentation): Promise<void> => {
+export const saveGame = async (game: Game): Promise<void> => {
     try {
-        const response = await fetch(`${API_BASE_URL}/presentations/${presentation.id}`, {
+        const response = await fetch(`${API_BASE_URL}/presentations/${game.id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(presentation),
+            body: JSON.stringify(game),
         });
         await handleResponse(response);
     } catch (error) {
-        console.error("Failed to save presentation:", error);
+        console.error("Failed to save game:", error);
         throw error;
     }
 };
 
-export const createPresentation = async (title: string): Promise<Presentation> => {
+export const createGame = async (title: string): Promise<Game> => {
     const newRoom: Room = {
         id: generateUUID(),
         name: 'First Room',
@@ -61,7 +62,7 @@ export const createPresentation = async (title: string): Promise<Presentation> =
         objects: [],
         puzzles: [],
     };
-    const newPresentation: Presentation = {
+    const newGame: Game = {
         id: generateUUID(),
         title,
         rooms: [newRoom],
@@ -72,17 +73,17 @@ export const createPresentation = async (title: string): Promise<Presentation> =
         const response = await fetch(`${API_BASE_URL}/presentations`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(newPresentation),
+            body: JSON.stringify(newGame),
         });
         return await handleResponse(response);
     } catch (error) {
-        console.error("Failed to create presentation:", error);
+        console.error("Failed to create game:", error);
         throw error;
     }
 };
 
 
-export const deletePresentation = async (id: string): Promise<boolean> => {
+export const deleteGame = async (id: string): Promise<boolean> => {
     try {
         const response = await fetch(`${API_BASE_URL}/presentations/${id}`, {
             method: 'DELETE',
@@ -90,14 +91,14 @@ export const deletePresentation = async (id: string): Promise<boolean> => {
         await handleResponse(response);
         return true;
     } catch(error) {
-        console.error("Failed to delete presentation:", error);
+        console.error("Failed to delete game:", error);
         return false;
     }
 };
 
-export const uploadAsset = async (presentationId: string, file: File): Promise<{ assetId: string }> => {
+export const uploadAsset = async (gameId: string, file: File): Promise<{ assetId: string }> => {
     try {
-        const response = await fetch(`${API_BASE_URL}/presentations/${presentationId}/assets`, {
+        const response = await fetch(`${API_BASE_URL}/presentations/${gameId}/assets`, {
             method: 'POST',
             headers: { 'Content-Type': file.type },
             body: file,

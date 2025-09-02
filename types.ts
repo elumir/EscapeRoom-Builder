@@ -31,7 +31,7 @@ export interface Room {
   puzzles: Puzzle[];
 }
 
-export interface Presentation {
+export interface Game {
   id:string;
   title: string;
   rooms: Room[];

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import * as presentationService from '../services/presentationService';
-import type { Presentation } from '../types';
+import * as gameService from '../services/presentationService';
+import type { Game } from '../types';
 import Room from '../components/Slide';
 import { useBroadcastChannel } from '../hooks/useBroadcastChannel';
 
@@ -14,17 +14,17 @@ type Status = 'loading' | 'success' | 'error';
 
 const PresentationView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const [presentation, setPresentation] = useState<Presentation | null>(null);
+  const [game, setGame] = useState<Game | null>(null);
   const [status, setStatus] = useState<Status>('loading');
   const [currentRoomIndex, setCurrentRoomIndex] = useState(0);
 
-  const channelName = `presentation-${id}`;
+  const channelName = `game-${id}`;
 
   const fetchLatestState = async () => {
     if (id) {
-      const data = await presentationService.getPresentation(id);
+      const data = await gameService.getGame(id);
       if (data) {
-        setPresentation(data);
+        setGame(data);
         setStatus('success');
       } else {
         setStatus('error');
@@ -46,28 +46,28 @@ const PresentationView: React.FC = () => {
   }, [id]);
 
   if (status === 'loading') {
-    return <div className="w-screen h-screen bg-black flex items-center justify-center text-white">Loading Presentation...</div>;
+    return <div className="w-screen h-screen bg-black flex items-center justify-center text-white">Loading Game...</div>;
   }
 
-  if (status === 'error' || !presentation) {
-     return <div className="w-screen h-screen bg-black flex items-center justify-center text-white">Could not load presentation.</div>;
+  if (status === 'error' || !game) {
+     return <div className="w-screen h-screen bg-black flex items-center justify-center text-white">Could not load game.</div>;
   }
 
-  const currentRoom = presentation.rooms[currentRoomIndex];
+  const currentRoom = game.rooms[currentRoomIndex];
 
   if (!currentRoom) {
-      return <div className="w-screen h-screen bg-black flex items-center justify-center text-white">End of Presentation</div>;
+      return <div className="w-screen h-screen bg-black flex items-center justify-center text-white">End of Game</div>;
   }
   
-  const inventoryItems = presentation.rooms
+  const inventoryItems = game.rooms
     .flatMap(r => r.objects)
     .filter(t => t.showInInventory)
     .map(t => t.name);
 
   const overlayImageUrl = currentRoom.puzzles.find(p => p.showImageOverlay)?.image || null;
   
-  const visibleMapImages = presentation.rooms
-    .filter(r => presentation.visitedRoomIds.includes(r.id))
+  const visibleMapImages = game.rooms
+    .filter(r => game.visitedRoomIds.includes(r.id))
     .map(r => r.mapImage)
     .filter(Boolean);
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import * as presentationService from '../services/presentationService';
-import type { Presentation, Puzzle } from '../types';
+import * as gameService from '../services/presentationService';
+import type { Game, Puzzle } from '../types';
 import Icon from '../components/Icon';
 import { useBroadcastChannel } from '../hooks/useBroadcastChannel';
 import ObjectItem from '../components/presenter/ObjectItem';
@@ -17,7 +17,7 @@ type Status = 'loading' | 'success' | 'error';
 
 const PresenterView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const [presentation, setPresentation] = useState<Presentation | null>(null);
+  const [game, setGame] = useState<Game | null>(null);
   const [status, setStatus] = useState<Status>('loading');
   const [currentRoomIndex, setCurrentRoomIndex] = useState(0);
   const [presentationWindow, setPresentationWindow] = useState<Window | null>(null);
@@ -28,12 +28,12 @@ const PresenterView: React.FC = () => {
     lockingPuzzlesByPuzzleId,
     allUnsolvedPuzzles, 
     inventoryObjects 
-  } = usePresenterState(presentation);
+  } = usePresenterState(game);
 
 
   const isPresentationWindowOpen = presentationWindow && !presentationWindow.closed;
 
-  const channelName = `presentation-${id}`;
+  const channelName = `game-${id}`;
   const postMessage = useBroadcastChannel<BroadcastMessage>(channelName, () => {});
 
   useEffect(() => {
@@ -49,18 +49,18 @@ const PresenterView: React.FC = () => {
     const fetchAndInitialize = async () => {
       if (!id) return;
       setStatus('loading');
-      const data = await presentationService.getPresentation(id);
+      const data = await gameService.getGame(id);
       if (data) {
         if (data.rooms.length > 0 && data.visitedRoomIds.length === 0) {
           // On first load, mark the initial room as visited
-          const initialVisited: Presentation = {
+          const initialVisited: Game = {
             ...data,
             visitedRoomIds: [data.rooms[0].id],
           };
-          setPresentation(initialVisited);
-          await presentationService.savePresentation(initialVisited);
+          setGame(initialVisited);
+          await gameService.saveGame(initialVisited);
         } else {
-          setPresentation(data);
+          setGame(data);
         }
         setStatus('success');
       } else {
@@ -71,9 +71,9 @@ const PresenterView: React.FC = () => {
 
     const handleStorageChange = async (e: StorageEvent) => {
       if (e.key === 'presentations' && id) {
-        const data = await presentationService.getPresentation(id);
+        const data = await gameService.getGame(id);
         if (data) {
-          setPresentation(data);
+          setGame(data);
         }
       }
     };
@@ -81,56 +81,56 @@ const PresenterView: React.FC = () => {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, [id]);
 
-  const updateAndBroadcast = useCallback(async (updatedPresentation: Presentation) => {
-    setPresentation(updatedPresentation);
+  const updateAndBroadcast = useCallback(async (updatedGame: Game) => {
+    setGame(updatedGame);
     try {
-        await presentationService.savePresentation(updatedPresentation);
+        await gameService.saveGame(updatedGame);
         postMessage({ type: 'STATE_UPDATE' });
     } catch (error) {
-        console.error("Failed to save presentation state:", error);
+        console.error("Failed to save game state:", error);
         alert("A change could not be saved. Please check your connection.");
     }
   }, [postMessage]);
 
   const goToRoom = useCallback((index: number) => {
-    if (!presentation) return;
-    if (index >= 0 && index < presentation.rooms.length) {
+    if (!game) return;
+    if (index >= 0 && index < game.rooms.length) {
       setCurrentRoomIndex(index);
       postMessage({ type: 'GOTO_ROOM', roomIndex: index });
 
-      const newRoomId = presentation.rooms[index].id;
-      if (!presentation.visitedRoomIds.includes(newRoomId)) {
-        const updatedPresentation = {
-          ...presentation,
-          visitedRoomIds: [...presentation.visitedRoomIds, newRoomId],
+      const newRoomId = game.rooms[index].id;
+      if (!game.visitedRoomIds.includes(newRoomId)) {
+        const updatedGame = {
+          ...game,
+          visitedRoomIds: [...game.visitedRoomIds, newRoomId],
         };
-        updateAndBroadcast(updatedPresentation);
+        updateAndBroadcast(updatedGame);
       }
     }
-  }, [presentation, postMessage, updateAndBroadcast]);
+  }, [game, postMessage, updateAndBroadcast]);
 
 
   const handleToggleObject = (objectId: string, newState: boolean) => {
-    if (!presentation) return;
+    if (!game) return;
 
-    const updatedPresentation = {
-        ...presentation,
-        rooms: presentation.rooms.map(room => ({
+    const updatedGame = {
+        ...game,
+        rooms: game.rooms.map(room => ({
             ...room,
             objects: room.objects.map(obj =>
                 obj.id === objectId ? { ...obj, showInInventory: newState } : obj
             )
         }))
     };
-    updateAndBroadcast(updatedPresentation);
+    updateAndBroadcast(updatedGame);
   };
 
   const handleTogglePuzzle = (puzzleId: string, newState: boolean) => {
-    if (!presentation) return;
+    if (!game) return;
 
     let targetPuzzle: Puzzle | null = null;
     let targetRoomId: string | null = null;
-    for (const room of presentation.rooms) {
+    for (const room of game.rooms) {
         const foundPuzzle = room.puzzles.find(p => p.id === puzzleId);
         if (foundPuzzle) {
             targetPuzzle = foundPuzzle;
@@ -144,7 +144,7 @@ const PresenterView: React.FC = () => {
     const shouldAutoAdd = newState && targetPuzzle.autoAddLockedObjects;
     const objectIdsToUpdate = shouldAutoAdd ? targetPuzzle.lockedObjectIds : [];
     
-    const updatedRooms = presentation.rooms.map(room => {
+    const updatedRooms = game.rooms.map(room => {
         let newObjects = room.objects;
         if (room.id === targetRoomId && shouldAutoAdd) {
             newObjects = room.objects.map(obj => 
@@ -159,17 +159,17 @@ const PresenterView: React.FC = () => {
         return { ...room, objects: newObjects, puzzles: newPuzzles };
     });
     
-    const updatedPresentation = { ...presentation, rooms: updatedRooms };
-    updateAndBroadcast(updatedPresentation);
+    const updatedGame = { ...game, rooms: updatedRooms };
+    updateAndBroadcast(updatedGame);
   };
   
   const handleTogglePuzzleImage = (puzzleId: string, newState: boolean) => {
-    if (!presentation || !presentation.rooms[currentRoomIndex]) return;
-    const currentRoomId = presentation.rooms[currentRoomIndex].id;
+    if (!game || !game.rooms[currentRoomIndex]) return;
+    const currentRoomId = game.rooms[currentRoomIndex].id;
 
-    const updatedPresentation = {
-        ...presentation,
-        rooms: presentation.rooms.map(room => {
+    const updatedGame = {
+        ...game,
+        rooms: game.rooms.map(room => {
             if (room.id !== currentRoomId) return room;
             return {
                 ...room,
@@ -182,7 +182,7 @@ const PresenterView: React.FC = () => {
             };
         })
     };
-    updateAndBroadcast(updatedPresentation);
+    updateAndBroadcast(updatedGame);
   };
   
   const handleToggleDescriptionVisibility = (objectId: string) => {
@@ -201,17 +201,17 @@ const PresenterView: React.FC = () => {
     return <div className="h-screen bg-slate-800 text-white flex items-center justify-center">Loading Presenter View...</div>;
   }
   
-  if (status === 'error' || !presentation) {
-    return <div className="h-screen bg-slate-800 text-white flex items-center justify-center">Error: Could not load presentation.</div>;
+  if (status === 'error' || !game) {
+    return <div className="h-screen bg-slate-800 text-white flex items-center justify-center">Error: Could not load game.</div>;
   }
   
-  const currentRoom = presentation.rooms[currentRoomIndex];
+  const currentRoom = game.rooms[currentRoomIndex];
   const availableObjects = currentRoom?.objects.filter(o => !o.showInInventory) || [];
 
   return (
     <div className="h-screen bg-slate-800 text-white flex flex-col">
       <header className="p-4 bg-slate-900 flex justify-between items-center flex-shrink-0">
-        <h1 className="text-xl font-bold">{presentation.title} - Presenter View</h1>
+        <h1 className="text-xl font-bold">{game.title} - Presenter View</h1>
         {isPresentationWindowOpen ? (
           <span className="flex items-center gap-2 px-4 py-2 bg-slate-600 text-white rounded-lg cursor-not-allowed">
             <Icon as="present" className="w-5 h-5" />
@@ -246,7 +246,7 @@ const PresenterView: React.FC = () => {
 
                 const features = `width=${width},height=${height},left=${left},top=${top},location=no,menubar=no,toolbar=no,status=no`;
                 
-                const win = window.open(e.currentTarget.href, 'Presentation', features);
+                const win = window.open(e.currentTarget.href, 'Game', features);
                 setPresentationWindow(win);
             }}
             target="_blank"
@@ -254,7 +254,7 @@ const PresenterView: React.FC = () => {
             className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors duration-300 shadow"
           >
             <Icon as="present" className="w-5 h-5" />
-            Open Presentation Window
+            Open Game Window
           </a>
         )}
       </header>
@@ -263,7 +263,7 @@ const PresenterView: React.FC = () => {
         <div className="col-span-3 overflow-y-auto pr-2">
             <h2 className="text-lg font-semibold mb-4 text-slate-300 sticky top-0 bg-slate-800 py-2">Rooms</h2>
             <div className="space-y-2">
-                {presentation.rooms.map((room, index) => {
+                {game.rooms.map((room, index) => {
                     const isLocked = lockingPuzzlesByRoomId.has(room.id);
                     const lockingPuzzleName = lockingPuzzlesByRoomId.get(room.id);
                     return (
