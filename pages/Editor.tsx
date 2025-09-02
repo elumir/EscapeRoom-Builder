@@ -21,6 +21,7 @@ const Editor: React.FC = () => {
   const [editingRoomObjects, setEditingRoomObjects] = useState<InventoryObject[]>([]);
   const [editingRoomPuzzles, setEditingRoomPuzzles] = useState<Puzzle[]>([]);
   const [isPreviewExpanded, setIsPreviewExpanded] = useState(false);
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [openPuzzleObjectsDropdown, setOpenPuzzleObjectsDropdown] = useState<string | null>(null);
   const [openPuzzleRoomsDropdown, setOpenPuzzleRoomsDropdown] = useState<string | null>(null);
   const [openPuzzlePuzzlesDropdown, setOpenPuzzlePuzzlesDropdown] = useState<string | null>(null);
@@ -292,6 +293,41 @@ const Editor: React.FC = () => {
     setEditingRoomPuzzles(newPuzzles);
   };
 
+  const handleResetAndPresent = async () => {
+    if (!game) return;
+
+    const resetGame: Game = {
+        ...game,
+        rooms: game.rooms.map(room => ({
+            ...room,
+            objects: room.objects.map(obj => ({
+                ...obj,
+                showInInventory: false,
+            })),
+            puzzles: room.puzzles.map(p => ({
+                ...p,
+                isSolved: false,
+                showImageOverlay: false,
+            })),
+        })),
+        visitedRoomIds: game.rooms.length > 0 ? [game.rooms[0].id] : [],
+    };
+
+    updateGame(resetGame);
+    
+    // Also update the local editing state to match
+    const newCurrentRoom = resetGame.rooms[selectedRoomIndex];
+    if (newCurrentRoom) {
+      setEditingRoomObjects(newCurrentRoom.objects);
+      setEditingRoomPuzzles(newCurrentRoom.puzzles);
+    }
+
+    window.open(`/game/presenter/${id}`, '_blank', 'noopener,noreferrer');
+    
+    setIsResetModalOpen(false);
+  };
+
+
   const COLORS = ['#ffffff', '#000000', '#f87171', '#fbbf24', '#34d399', '#60a5fa', '#a78bfa'];
 
   if (status === 'loading') {
@@ -318,6 +354,41 @@ const Editor: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen bg-slate-200 dark:bg-slate-900">
+       {isResetModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-slate-800 p-8 rounded-lg shadow-2xl w-full max-w-lg">
+                <h2 className="text-2xl font-bold mb-4 text-slate-800 dark:text-slate-200">Start Presentation</h2>
+                <p className="text-slate-600 dark:text-slate-400 mb-6">
+                    Do you want to reset all puzzles, inventory, and visited rooms to their default state before starting?
+                </p>
+                <div className="mt-6 flex justify-end gap-4">
+                    <button 
+                        type="button" 
+                        onClick={() => setIsResetModalOpen(false)} 
+                        className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
+                    >
+                        Cancel
+                    </button>
+                    <a 
+                        href={`/game/presenter/${id}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        onClick={() => setIsResetModalOpen(false)}
+                        className="px-4 py-2 text-center bg-slate-500 text-white rounded-lg hover:bg-slate-600 transition-colors"
+                    >
+                        Present with Current State
+                    </a>
+                    <button 
+                        type="button" 
+                        onClick={handleResetAndPresent} 
+                        className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors"
+                    >
+                        Reset and Present
+                    </button>
+                </div>
+            </div>
+        </div>
+       )}
        {isPreviewExpanded && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
             <div className="w-full h-full max-w-6xl max-h-[90vh] bg-slate-800 rounded-lg shadow-2xl">
@@ -344,10 +415,10 @@ const Editor: React.FC = () => {
           />
         </div>
         <div className="flex items-center gap-2">
-          <a href={`/game/presenter/${id}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors duration-300 shadow">
+          <button onClick={() => setIsResetModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors duration-300 shadow">
             <Icon as="present" className="w-5 h-5" />
             Present
-          </a>
+          </button>
         </div>
       </header>
       
