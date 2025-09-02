@@ -11,7 +11,7 @@ const port = process.env.PORT || 8080;
 // Middleware
 app.use(cors());
 app.use(express.json({ limit: '50mb' })); // Increase limit for large presentations with images
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(__dirname)); // Serve static files from the project root
 
 // Database connection pool
 const dbPool = mysql.createPool({
@@ -107,7 +107,7 @@ app.delete('/api/presentations/:id', async (req, res) => {
 
 // Serve the frontend for all other routes
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 // Start server
