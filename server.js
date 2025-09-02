@@ -11,7 +11,6 @@ const port = process.env.PORT || 8080;
 // Middleware
 app.use(cors());
 app.use(express.json({ limit: '50mb' })); // Increase limit for large presentations with images
-app.use(express.static(__dirname)); // Serve static files from the project root
 
 // Database connection pool
 const dbPool = mysql.createPool({
@@ -25,7 +24,20 @@ const dbPool = mysql.createPool({
   queueLimit: 0
 });
 
-// API Routes
+// Function to test the database connection on startup
+async function testDbConnection() {
+  try {
+    const connection = await dbPool.getConnection();
+    console.log('Successfully connected to the database.');
+    connection.release();
+  } catch (error) {
+    console.error('!!! FAILED TO CONNECT TO DATABASE !!!');
+    console.error('Please check your .env file and database credentials.');
+    console.error(error.message);
+  }
+}
+
+// === API ROUTES (MUST be defined before static file serving) ===
 
 // Get all presentations (full data)
 app.get('/api/presentations', async (req, res) => {
@@ -47,7 +59,7 @@ app.get('/api/presentations/:id', async (req, res) => {
     if (rows.length > 0) {
       res.json(rows[0].data);
     } else {
-      res.status(404).json({ error: 'Presentation not found' });
+      res.status(444).json({ error: 'Presentation not found' });
     }
   } catch (error) {
     console.error(`Failed to fetch presentation ${req.params.id}:`, error);
@@ -107,7 +119,13 @@ app.delete('/api/presentations/:id', async (req, res) => {
   }
 });
 
-// Serve the frontend for all other routes
+
+// === FRONTEND SERVING (MUST be defined after API routes) ===
+
+// Serve static files from the project root
+app.use(express.static(__dirname)); 
+
+// For any other route, serve the index.html file to support client-side routing
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
@@ -115,4 +133,5 @@ app.get('*', (req, res) => {
 // Start server
 app.listen(port, () => {
   console.log(`Server listening on port ${port}`);
+  testDbConnection();
 });
