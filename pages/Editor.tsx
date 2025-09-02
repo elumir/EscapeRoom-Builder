@@ -25,6 +25,9 @@ const Editor: React.FC = () => {
   const [openPuzzleObjectsDropdown, setOpenPuzzleObjectsDropdown] = useState<string | null>(null);
   const [openPuzzleRoomsDropdown, setOpenPuzzleRoomsDropdown] = useState<string | null>(null);
   const [openPuzzlePuzzlesDropdown, setOpenPuzzlePuzzlesDropdown] = useState<string | null>(null);
+  const [draggedRoomIndex, setDraggedRoomIndex] = useState<number | null>(null);
+  const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
+
 
   const objectsDropdownRef = useRef<HTMLDivElement>(null);
   const roomsDropdownRef = useRef<HTMLDivElement>(null);
@@ -328,6 +331,51 @@ const Editor: React.FC = () => {
     setIsResetModalOpen(false);
   };
 
+  const handleDragStart = (index: number) => {
+    setDraggedRoomIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedRoomIndex === null || draggedRoomIndex === index) {
+      setDropTargetIndex(null);
+      return;
+    }
+    setDropTargetIndex(index);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDropTargetIndex(null);
+  };
+
+  const handleDrop = (index: number) => {
+    if (draggedRoomIndex === null || draggedRoomIndex === index || !game) return;
+
+    const newRooms = [...game.rooms];
+    const [removed] = newRooms.splice(draggedRoomIndex, 1);
+    newRooms.splice(index, 0, removed);
+
+    const selectedRoomId = game.rooms[selectedRoomIndex].id;
+    const newSelectedRoomIndex = newRooms.findIndex(r => r.id === selectedRoomId);
+
+    updateGame({ ...game, rooms: newRooms });
+    
+    if (newSelectedRoomIndex !== -1) {
+      setSelectedRoomIndex(newSelectedRoomIndex);
+    } else {
+      selectRoom(index); // Fallback
+    }
+
+    setDraggedRoomIndex(null);
+    setDropTargetIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedRoomIndex(null);
+    setDropTargetIndex(null);
+  };
+
 
   const COLORS = ['#000000', '#ffffff', '#f87171', '#fbbf24', '#34d399', '#60a5fa', '#a78bfa'];
 
@@ -428,13 +476,29 @@ const Editor: React.FC = () => {
         <aside className="w-48 bg-white dark:bg-slate-800 p-2 overflow-y-auto shadow-lg">
           <div className="space-y-2" ref={roomsContainerRef}>
             {game.rooms.map((room, index) => (
-              <div key={room.id} onClick={() => selectRoom(index)} className={`cursor-pointer rounded-md overflow-hidden border-2 ${selectedRoomIndex === index ? 'border-brand-500' : 'border-transparent hover:border-brand-300'}`}>
-                <div className="flex items-start gap-2">
-                  <span className="text-xs font-bold text-slate-500 dark:text-slate-400 p-1">{index + 1}</span>
-                  <div className="flex-1 transform scale-[0.95] origin-top-left">
-                     <Room room={room} inventoryItems={inventoryItems} visibleMapImages={allMapImages} className="shadow-md" />
+              <div 
+                key={room.id}
+                draggable
+                onDragStart={() => handleDragStart(index)}
+                onDragOver={(e) => handleDragOver(e, index)}
+                onDragLeave={handleDragLeave}
+                onDrop={() => handleDrop(index)}
+                onDragEnd={handleDragEnd}
+                onClick={() => selectRoom(index)} 
+                className={`relative group cursor-pointer rounded-md overflow-hidden border-2 ${selectedRoomIndex === index ? 'border-brand-500' : 'border-transparent hover:border-brand-300'} ${draggedRoomIndex === index ? 'opacity-50' : ''}`}
+                >
+                  {dropTargetIndex === index && draggedRoomIndex !== index && (
+                    <div className="absolute top-0 left-0 w-full h-1 bg-brand-500 z-10" />
+                  )}
+                  <div className="flex items-start gap-2">
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 p-1">{index + 1}</span>
+                    <div className="flex-1 transform scale-[0.95] origin-top-left">
+                       <Room room={room} inventoryItems={inventoryItems} visibleMapImages={allMapImages} className="shadow-md" />
+                    </div>
                   </div>
-                </div>
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 p-1 bg-black/50 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                    <Icon as="reorder" className="w-5 h-5" />
+                  </div>
               </div>
             ))}
           </div>
