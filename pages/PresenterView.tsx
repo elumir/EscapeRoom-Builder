@@ -222,7 +222,32 @@ const PresenterView: React.FC = () => {
           <a href={`/game/present/${id}`}
             onClick={(e) => {
                 e.preventDefault();
-                const win = window.open(e.currentTarget.href, 'Presentation', 'width=800,height=600');
+                
+                const screenWidth = window.screen.availWidth;
+                const screenHeight = window.screen.availHeight;
+                const aspectRatio = 16 / 9;
+
+                let width, height;
+
+                if ((screenWidth / screenHeight) > aspectRatio) {
+                    // Screen is wider than 16:9 (e.g., ultrawide), so height is the limiting factor.
+                    height = screenHeight;
+                    width = height * aspectRatio;
+                } else {
+                    // Screen is taller or same as 16:9, so width is the limiting factor.
+                    width = screenWidth;
+                    height = width / aspectRatio;
+                }
+                
+                width = Math.floor(width);
+                height = Math.floor(height);
+
+                const left = Math.floor((window.screen.availWidth - width) / 2);
+                const top = Math.floor((window.screen.availHeight - height) / 2);
+
+                const features = `width=${width},height=${height},left=${left},top=${top},location=no,menubar=no,toolbar=no,status=no`;
+                
+                const win = window.open(e.currentTarget.href, 'Presentation', features);
                 setPresentationWindow(win);
             }}
             target="_blank"

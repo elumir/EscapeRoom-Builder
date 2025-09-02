@@ -73,7 +73,7 @@ const PresentationView: React.FC = () => {
 
   return (
     <div className="w-screen h-screen bg-black flex items-center justify-center">
-      <div className="w-full h-full">
+      <div className="w-full max-w-[calc(100vh*16/9)] max-h-[calc(100vw*9/16)] aspect-video">
         <Room 
           room={currentRoom} 
           inventoryItems={inventoryItems}
