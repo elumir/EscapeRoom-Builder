@@ -94,3 +94,17 @@ export const deletePresentation = async (id: string): Promise<boolean> => {
         return false;
     }
 };
+
+export const uploadAsset = async (presentationId: string, file: File): Promise<{ assetId: string }> => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/presentations/${presentationId}/assets`, {
+            method: 'POST',
+            headers: { 'Content-Type': file.type },
+            body: file,
+        });
+        return await handleResponse(response);
+    } catch (error) {
+        console.error("Failed to upload asset:", error);
+        throw error;
+    }
+};

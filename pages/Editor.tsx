@@ -149,30 +149,18 @@ const Editor: React.FC = () => {
     updatePresentation({ ...presentation, rooms: newRooms });
   }
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && presentation) {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            const newRooms = [...presentation.rooms];
-            newRooms[selectedRoomIndex] = { ...newRooms[selectedRoomIndex], image: reader.result as string };
-            updatePresentation({ ...presentation, rooms: newRooms });
-        };
-        reader.readAsDataURL(file);
-    }
-  };
-  
-  const handleMapImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && presentation) {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            const newRooms = [...presentation.rooms];
-            newRooms[selectedRoomIndex] = { ...newRooms[selectedRoomIndex], mapImage: reader.result as string };
-            updatePresentation({ ...presentation, rooms: newRooms });
-        };
-        reader.readAsDataURL(file);
-    }
+  const handleFileUpload = async (file: File, property: 'image' | 'mapImage') => {
+      if (!presentation) return;
+      try {
+          // TODO: Add a loading state indicator
+          const { assetId } = await presentationService.uploadAsset(presentation.id, file);
+          const newRooms = [...presentation.rooms];
+          newRooms[selectedRoomIndex] = { ...newRooms[selectedRoomIndex], [property]: assetId };
+          updatePresentation({ ...presentation, rooms: newRooms });
+      } catch (error) {
+          console.error(`${property} upload failed:`, error);
+          alert(`Failed to upload ${property}. Please try again.`);
+      }
   };
 
   const addObject = () => {
@@ -207,16 +195,21 @@ const Editor: React.FC = () => {
     setEditingRoomPuzzles(newPuzzles);
   }
   
-  const handlePuzzleFileChange = (index: number, field: 'image' | 'sound', file: File | null) => {
+  const handlePuzzleFileChange = async (index: number, field: 'image' | 'sound', file: File | null) => {
       if (!file) {
         handlePuzzleChange(index, field, null);
         return;
-      };
-      const reader = new FileReader();
-      reader.onloadend = () => {
-          handlePuzzleChange(index, field, reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      }
+      if (presentation) {
+        try {
+            // TODO: Add loading state
+            const { assetId } = await presentationService.uploadAsset(presentation.id, file);
+            handlePuzzleChange(index, field, assetId);
+        } catch (error) {
+            console.error(`Puzzle ${field} upload failed:`, error);
+            alert(`Failed to upload puzzle ${field}. Please try again.`);
+        }
+      }
   }
 
   const deletePuzzle = (index: number) => {
@@ -386,7 +379,7 @@ const Editor: React.FC = () => {
                 <div className="absolute inset-0 flex">
                   <div className="w-[70%] h-full group relative">
                       <label className="w-full h-full cursor-pointer flex items-center justify-center bg-black/0 hover:bg-black/30 transition-colors duration-300">
-                        <input type="file" accept="image/*" onChange={handleImageUpload} className="sr-only" />
+                        <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'image')} className="sr-only" />
                           <div className="text-white text-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
                               <p className="font-bold text-lg">{currentRoom.image ? "Change Image" : "Upload Image"}</p>
                               <p className="text-sm">Click or drag & drop</p>
@@ -396,7 +389,7 @@ const Editor: React.FC = () => {
                    <div className="w-[30%] h-full">
                      <div className="h-1/2 relative group">
                           <label className="w-full h-full cursor-pointer flex items-center justify-center bg-black/0 hover:bg-black/30 transition-colors duration-300">
-                              <input type="file" accept="image/*" onChange={handleMapImageUpload} className="sr-only" />
+                              <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'mapImage')} className="sr-only" />
                               <div className="text-white text-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none p-2">
                                   <p className="font-bold text-sm">{currentRoom.mapImage ? "Change" : "Upload"}</p>
                                   <p className="text-xs">Map Image</p>
@@ -480,7 +473,7 @@ const Editor: React.FC = () => {
                                  <label className="block mb-1 text-slate-600 dark:text-slate-400">Image</label>
                                  {puzzle.image ? (
                                     <div className="flex items-center gap-2">
-                                        <img src={puzzle.image} alt="Puzzle preview" className="w-16 h-16 object-cover rounded-md border border-slate-300 dark:border-slate-600" />
+                                        <img src={`/api/assets/${puzzle.image}`} alt="Puzzle preview" className="w-16 h-16 object-cover rounded-md border border-slate-300 dark:border-slate-600" />
                                         <button onClick={() => handlePuzzleFileChange(index, 'image', null)} className="text-red-500 hover:text-red-700 text-xs">Clear</button>
                                     </div>
                                  ) : (

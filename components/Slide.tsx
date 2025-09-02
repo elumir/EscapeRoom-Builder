@@ -31,7 +31,7 @@ const Room: React.FC<RoomProps> = ({ room, inventoryItems, visibleMapImages, cla
     >
       <div className="w-[70%] h-full flex items-center justify-center bg-slate-100 dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700">
         {image ? (
-          <img src={image} alt="" className="w-full h-full object-cover" />
+          <img src={`/api/assets/${image}`} alt="" className="w-full h-full object-cover" />
         ) : (
           <div className="text-slate-400 dark:text-slate-500">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-16 h-16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
@@ -45,7 +45,7 @@ const Room: React.FC<RoomProps> = ({ room, inventoryItems, visibleMapImages, cla
              {visibleMapImages && visibleMapImages.length > 0 ? (
                 <div className="absolute inset-0">
                     {visibleMapImages.map((mapImage, index) => (
-                        mapImage && <img key={index} src={mapImage} alt={`Map Layer ${index + 1}`} className="absolute inset-0 w-full h-full object-contain" />
+                        mapImage && <img key={index} src={`/api/assets/${mapImage}`} alt={`Map Layer ${index + 1}`} className="absolute inset-0 w-full h-full object-contain" />
                     ))}
                 </div>
               ) : (
@@ -71,7 +71,7 @@ const Room: React.FC<RoomProps> = ({ room, inventoryItems, visibleMapImages, cla
       </div>
       {overlayImageUrl && (
         <div className="absolute inset-0 z-10 bg-black/70 flex items-center justify-center p-4 backdrop-blur-sm">
-            <img src={overlayImageUrl} alt="Puzzle Overlay" className="max-w-full max-h-full object-contain rounded-lg shadow-2xl" />
+            <img src={`/api/assets/${overlayImageUrl}`} alt="Puzzle Overlay" className="max-w-full max-h-full object-contain rounded-lg shadow-2xl" />
         </div>
       )}
     </div>

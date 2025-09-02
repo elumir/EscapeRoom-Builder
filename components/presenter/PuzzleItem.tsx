@@ -24,7 +24,7 @@ const PuzzleItem: React.FC<{
 
     useEffect(() => {
         if (puzzle.sound) {
-            const audio = new Audio(puzzle.sound);
+            const audio = new Audio(`/api/assets/${puzzle.sound}`);
             audioRef.current = audio;
 
             const setAudioData = () => setDuration(audio.duration);
@@ -167,7 +167,7 @@ const PuzzleItem: React.FC<{
                     <div className={`flex items-center gap-3 w-full bg-slate-700/50 p-2 rounded-lg transition-opacity ${isLocked ? 'opacity-60' : ''}`}>
                         <button onClick={handlePlayPause} disabled={isLocked} className="p-2 bg-slate-700 rounded-full hover:bg-slate-600 flex-shrink-0 disabled:cursor-not-allowed disabled:hover:bg-slate-700">
                             {isPlaying ? (
-                                <svg xmlns="http://www.w.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0zM7 8a1 1 0 0 1 2 0v4a1 1 0 1 1-2 0V8zm4 0a1 1 0 0 1 2 0v4a1 1 0 1 1-2 0V8z" clipRule="evenodd" /></svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0zM7 8a1 1 0 0 1 2 0v4a1 1 0 1 1-2 0V8zm4 0a1 1 0 0 1 2 0v4a1 1 0 1 1-2 0V8z" clipRule="evenodd" /></svg>
                             ) : (
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM9.555 7.168A1 1 0 0 0 8 8v4a1 1 0 0 0 1.555.832l3-2a1 1 0 0 0 0-1.664l-3-2z" /></svg>
                             )}

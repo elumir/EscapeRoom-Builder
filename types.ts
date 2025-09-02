@@ -11,8 +11,8 @@ export interface Puzzle {
   isSolved: boolean;
   unsolvedText: string;
   solvedText: string;
-  image: string | null; // Base64 Data URL
-  sound: string | null; // Base64 Data URL
+  image: string | null; // Asset ID
+  sound: string | null; // Asset ID
   showImageOverlay: boolean;
   lockedObjectIds: string[];
   lockedRoomIds: string[];
@@ -23,8 +23,8 @@ export interface Puzzle {
 export interface Room {
   id: string;
   name: string;
-  image: string | null; // Base64 Data URL
-  mapImage: string | null; // Base64 Data URL for the layered map
+  image: string | null; // Asset ID
+  mapImage: string | null; // Asset ID
   notes: string;
   backgroundColor: string;
   objects: InventoryObject[];
