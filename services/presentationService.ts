@@ -6,8 +6,8 @@ const API_BASE_URL = '/api';
 
 const handleResponse = async (response: Response) => {
     if (!response.ok) {
-        const error = await response.json().catch(() => ({ message: response.statusText }));
-        throw new Error(error.message || 'An API error occurred');
+        const errorBody = await response.json().catch(() => ({}));
+        throw new Error(errorBody.error || errorBody.message || response.statusText || 'An API error occurred');
     }
     if (response.status === 204) { // No Content
         return;

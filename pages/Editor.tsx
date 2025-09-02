@@ -5,6 +5,7 @@ import type { Presentation, Room as RoomType, InventoryObject, Puzzle } from '..
 import Room from '../components/Slide';
 import Icon from '../components/Icon';
 import PresenterPreview from '../components/PresenterPreview';
+import Accordion from '../components/Accordion';
 import { generateUUID } from '../utils/uuid';
 
 type Status = 'loading' | 'success' | 'error';
@@ -27,6 +28,9 @@ const Editor: React.FC = () => {
   const objectsDropdownRef = useRef<HTMLDivElement>(null);
   const roomsDropdownRef = useRef<HTMLDivElement>(null);
   const puzzlesDropdownRef = useRef<HTMLDivElement>(null);
+  const roomsContainerRef = useRef<HTMLDivElement>(null);
+  const objectsContainerRef = useRef<HTMLDivElement>(null);
+  const puzzlesContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (id) {
@@ -120,6 +124,9 @@ const Editor: React.FC = () => {
     const newRooms = [...presentation.rooms, newRoom];
     updatePresentation({ ...presentation, rooms: newRooms });
     selectRoom(newRooms.length - 1);
+    setTimeout(() => {
+        roomsContainerRef.current?.lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }, 100);
   };
   
   const deleteRoom = () => {
@@ -171,6 +178,9 @@ const Editor: React.FC = () => {
   const addObject = () => {
     const newObject: InventoryObject = { id: generateUUID(), name: 'New Object', description: 'Description...', showInInventory: false};
     setEditingRoomObjects([...editingRoomObjects, newObject]);
+    setTimeout(() => {
+        objectsContainerRef.current?.lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }, 100);
   }
 
   const handleObjectChange = (index: number, field: 'name' | 'description', value: string) => {
@@ -186,6 +196,9 @@ const Editor: React.FC = () => {
   const addPuzzle = () => {
     const newPuzzle: Puzzle = { id: generateUUID(), name: 'New Puzzle', isSolved: false, unsolvedText: '', solvedText: '', image: null, sound: null, showImageOverlay: false, lockedObjectIds: [], lockedRoomIds: [], lockedPuzzleIds: [], autoAddLockedObjects: false };
     setEditingRoomPuzzles([...editingRoomPuzzles, newPuzzle]);
+    setTimeout(() => {
+        puzzlesContainerRef.current?.lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }, 100);
   }
 
   const handlePuzzleChange = (index: number, field: keyof Puzzle, value: string | boolean | string[] | null) => {
@@ -348,7 +361,7 @@ const Editor: React.FC = () => {
       <div className="flex flex-1 overflow-hidden">
         {/* Left Sidebar - Thumbnails */}
         <aside className="w-48 bg-white dark:bg-slate-800 p-2 overflow-y-auto shadow-lg">
-          <div className="space-y-2">
+          <div className="space-y-2" ref={roomsContainerRef}>
             {presentation.rooms.map((room, index) => (
               <div key={room.id} onClick={() => selectRoom(index)} className={`cursor-pointer rounded-md overflow-hidden border-2 ${selectedRoomIndex === index ? 'border-brand-500' : 'border-transparent hover:border-brand-300'}`}>
                 <div className="flex items-start gap-2">
@@ -397,7 +410,7 @@ const Editor: React.FC = () => {
             
             <div className="w-full max-w-4xl mx-auto mt-6 bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md">
                 <h3 className="font-semibold mb-3 text-slate-700 dark:text-slate-300">Objects</h3>
-                <div className="space-y-3 max-h-48 overflow-y-auto pr-2">
+                <div className="space-y-3 max-h-48 overflow-y-auto pr-2" ref={objectsContainerRef}>
                   {editingRoomObjects.length > 0 ? editingRoomObjects.map((obj, index) => (
                     <div key={obj.id} className="grid grid-cols-12 gap-2 items-center">
                       <input 
@@ -429,7 +442,7 @@ const Editor: React.FC = () => {
 
             <div className="w-full max-w-4xl mx-auto mt-6 bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md">
                 <h3 className="font-semibold mb-3 text-slate-700 dark:text-slate-300">Puzzles</h3>
-                 <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
+                 <div className="space-y-4 max-h-96 overflow-y-auto pr-2" ref={puzzlesContainerRef}>
                     {editingRoomPuzzles.length > 0 ? editingRoomPuzzles.map((puzzle, index) => (
                         <div key={puzzle.id} className="p-3 border border-slate-200 dark:border-slate-700 rounded-lg">
                             <div className="flex items-center justify-between mb-2">
@@ -463,11 +476,25 @@ const Editor: React.FC = () => {
                             <div className="grid grid-cols-2 gap-3 mt-2 text-sm">
                                <div>
                                  <label className="block mb-1 text-slate-600 dark:text-slate-400">Image</label>
-                                 <input type="file" accept="image/*" onChange={(e) => handlePuzzleFileChange(index, 'image', e.target.files?.[0] || null)} className="text-xs" />
+                                 {puzzle.image ? (
+                                    <div className="flex items-center gap-2">
+                                        <img src={puzzle.image} alt="Puzzle preview" className="w-16 h-16 object-cover rounded-md border border-slate-300 dark:border-slate-600" />
+                                        <button onClick={() => handlePuzzleFileChange(index, 'image', null)} className="text-red-500 hover:text-red-700 text-xs">Clear</button>
+                                    </div>
+                                 ) : (
+                                    <input type="file" accept="image/*" onChange={(e) => handlePuzzleFileChange(index, 'image', e.target.files?.[0] || null)} className="text-xs w-full" />
+                                 )}
                                </div>
                                <div>
                                  <label className="block mb-1 text-slate-600 dark:text-slate-400">Sound</label>
-                                 <input type="file" accept="audio/*" onChange={(e) => handlePuzzleFileChange(index, 'sound', e.target.files?.[0] || null)} className="text-xs"/>
+                                 {puzzle.sound ? (
+                                     <div className="flex items-center gap-2 text-xs">
+                                        <span>Audio file uploaded.</span>
+                                        <button onClick={() => handlePuzzleFileChange(index, 'sound', null)} className="text-red-500 hover:text-red-700">Clear</button>
+                                    </div>
+                                 ) : (
+                                    <input type="file" accept="audio/*" onChange={(e) => handlePuzzleFileChange(index, 'sound', e.target.files?.[0] || null)} className="text-xs w-full"/>
+                                 )}
                                </div>
                             </div>
                             <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
@@ -620,56 +647,58 @@ const Editor: React.FC = () => {
         </main>
         
         {/* Right Sidebar - Controls */}
-        <aside className="w-64 bg-white dark:bg-slate-800 p-4 flex flex-col gap-6 overflow-y-auto shadow-lg">
-            <div className="flex-shrink-0">
-              <h3 className="font-semibold mb-2">Room Name</h3>
-              <input
-                type="text"
-                value={editingRoomName}
-                onChange={e => setEditingRoomName(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500"
-              />
-            </div>
-            <div className="flex-shrink-0">
-              <h3 className="font-semibold mb-2">Background Color</h3>
-              <div className="flex flex-wrap gap-2">
-                {COLORS.map(color => (
-                  <button key={color} onClick={() => changeRoomColor(color)} className={`w-8 h-8 rounded-full border-2 ${currentRoom.backgroundColor === color ? 'border-brand-500' : 'border-slate-300'}`} style={{backgroundColor: color}}/>
-                ))}
-              </div>
-            </div>
-            <div className="flex-grow flex flex-col min-h-0">
-                <h3 className="font-semibold mb-2 flex-shrink-0">Room Description</h3>
-                <textarea
-                    value={editingRoomNotes}
-                    onChange={e => setEditingRoomNotes(e.target.value)}
-                    placeholder="Add room description here..."
-                    className="w-full flex-grow px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
-                />
-            </div>
-            <div className="flex-shrink-0">
-              <h3 className="font-semibold mb-2">Actions</h3>
-              <div className="space-y-2">
-                  <button onClick={deleteRoom} className="w-full flex items-center gap-2 p-2 bg-red-50 dark:bg-red-900/50 text-red-600 dark:text-red-300 rounded-md hover:bg-red-100 dark:hover:bg-red-900 transition text-sm">
-                    <Icon as="trash" className="w-4 h-4" /> Delete Room
-                  </button>
-              </div>
-            </div>
-            <div className="flex-shrink-0">
-              <div className="flex justify-between items-center mb-2">
-                <h3 className="font-semibold">Presenter Preview</h3>
-                <button onClick={() => setIsPreviewExpanded(true)} className="text-slate-500 hover:text-slate-800 dark:hover:text-slate-200">
-                    <Icon as="expand" className="w-4 h-4" />
-                </button>
-              </div>
-              <PresenterPreview 
-                presentation={presentation} 
-                currentRoomIndex={selectedRoomIndex} 
-                onToggleObject={handleToggleObject}
-                onTogglePuzzle={handleTogglePuzzle}
-                onTogglePuzzleImage={handleTogglePuzzleImage}
-                isExpanded={false}
-              />
+        <aside className="w-80 bg-white dark:bg-slate-800 flex flex-col shadow-lg">
+            <div className="flex-grow overflow-y-auto">
+                <Accordion title="Room Properties" defaultOpen={true}>
+                    <div className="space-y-4">
+                        <div>
+                          <h3 className="font-semibold text-sm mb-2 text-slate-600 dark:text-slate-400">Room Name</h3>
+                          <input
+                            type="text"
+                            value={editingRoomName}
+                            onChange={e => setEditingRoomName(e.target.value)}
+                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                          />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-sm mb-2 text-slate-600 dark:text-slate-400">Background Color</h3>
+                          <div className="flex flex-wrap gap-2">
+                            {COLORS.map(color => (
+                              <button key={color} onClick={() => changeRoomColor(color)} className={`w-8 h-8 rounded-full border-2 ${currentRoom.backgroundColor === color ? 'border-brand-500 ring-2 ring-brand-500' : 'border-slate-300 dark:border-slate-600'}`} style={{backgroundColor: color}}/>
+                            ))}
+                          </div>
+                        </div>
+                    </div>
+                </Accordion>
+                <Accordion title="Room Description">
+                    <textarea
+                        value={editingRoomNotes}
+                        onChange={e => setEditingRoomNotes(e.target.value)}
+                        placeholder="Add room description here..."
+                        className="w-full h-40 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
+                    />
+                </Accordion>
+                 <Accordion title="Actions">
+                     <button onClick={deleteRoom} className="w-full flex items-center gap-2 p-2 bg-red-50 dark:bg-red-900/50 text-red-600 dark:text-red-300 rounded-md hover:bg-red-100 dark:hover:bg-red-900 transition text-sm">
+                        <Icon as="trash" className="w-4 h-4" /> Delete Current Room
+                      </button>
+                 </Accordion>
+                 <Accordion title="Presenter Preview" defaultOpen={true}>
+                    <div className="flex justify-end mb-2">
+                        <button onClick={() => setIsPreviewExpanded(true)} className="text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 flex items-center gap-1 text-xs">
+                            <Icon as="expand" className="w-3 h-3" />
+                            Expand
+                        </button>
+                    </div>
+                    <PresenterPreview 
+                        presentation={presentation} 
+                        currentRoomIndex={selectedRoomIndex} 
+                        onToggleObject={handleToggleObject}
+                        onTogglePuzzle={handleTogglePuzzle}
+                        onTogglePuzzleImage={handleTogglePuzzleImage}
+                        isExpanded={false}
+                    />
+                 </Accordion>
             </div>
         </aside>
       </div>
