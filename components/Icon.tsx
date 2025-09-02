@@ -2,7 +2,7 @@
 import React from 'react';
 
 interface IconProps {
-  as: 'plus' | 'trash' | 'present' | 'prev' | 'next' | 'close' | 'reorder' | 'expand' | 'lock' | 'eye' | 'eye-slash' | 'chevron-down';
+  as: 'plus' | 'trash' | 'present' | 'prev' | 'next' | 'close' | 'reorder' | 'expand' | 'lock' | 'eye' | 'eye-slash' | 'chevron-down' | 'play' | 'pause' | 'refresh';
   className?: string;
 }
 
@@ -66,6 +66,21 @@ const icons = {
   'chevron-down': (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+    </svg>
+  ),
+  play: (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" />
+    </svg>
+  ),
+  pause: (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25v13.5m-6-13.5v13.5" />
+    </svg>
+  ),
+  refresh: (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 11.667 0l3.181-3.183m-4.991-2.691V5.25m0 0H9.345M12 5.25v4.992" />
     </svg>
   )
 };

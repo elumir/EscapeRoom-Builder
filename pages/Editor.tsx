@@ -20,6 +20,7 @@ const Editor: React.FC = () => {
   const [editingRoomNotes, setEditingRoomNotes] = useState('');
   const [editingRoomObjects, setEditingRoomObjects] = useState<InventoryObject[]>([]);
   const [editingRoomPuzzles, setEditingRoomPuzzles] = useState<Puzzle[]>([]);
+  const [editingTimerDuration, setEditingTimerDuration] = useState(60); // In minutes
   const [isPreviewExpanded, setIsPreviewExpanded] = useState(false);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [openPuzzleObjectsDropdown, setOpenPuzzleObjectsDropdown] = useState<string | null>(null);
@@ -51,6 +52,7 @@ const Editor: React.FC = () => {
               setEditingRoomObjects(currentRoom.objects || []);
               setEditingRoomPuzzles(currentRoom.puzzles || []);
           }
+          setEditingTimerDuration(data.timer ? data.timer.duration / 60 : 60);
           setStatus('success');
         } else {
           setStatus('error');
@@ -91,6 +93,24 @@ const Editor: React.FC = () => {
       return () => clearTimeout(handler);
     }
   }, [editingGameTitle, game, updateGame]);
+
+  useEffect(() => {
+    if (game && game.timer && game.timer.duration !== editingTimerDuration * 60) {
+        const handler = setTimeout(() => {
+            const newDuration = Math.max(1, editingTimerDuration) * 60;
+            updateGame({
+                ...game,
+                timer: {
+                    ...game.timer,
+                    duration: newDuration,
+                    // Reset remaining time if duration changes and timer isn't running
+                    remainingTime: game.timer.isRunning ? game.timer.remainingTime : newDuration,
+                }
+            });
+        }, 500);
+        return () => clearTimeout(handler);
+    }
+  }, [editingTimerDuration, game, updateGame]);
 
   const useDebouncedUpdater = <T,>(value: T, property: keyof RoomType) => {
     useEffect(() => {
@@ -820,6 +840,21 @@ const Editor: React.FC = () => {
                             onChange={e => setEditingRoomNotes(e.target.value)}
                             placeholder="Add room description here..."
                             className="w-full h-40 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
+                        />
+                    </div>
+                </Accordion>
+                 <Accordion title="Game Timer">
+                    <div>
+                        <label htmlFor="timer-duration" className="block font-semibold text-sm mb-2 text-slate-600 dark:text-slate-400">
+                            Duration (minutes)
+                        </label>
+                        <input
+                            id="timer-duration"
+                            type="number"
+                            value={editingTimerDuration}
+                            onChange={e => setEditingTimerDuration(Number(e.target.value))}
+                            min="1"
+                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500"
                         />
                     </div>
                 </Accordion>
