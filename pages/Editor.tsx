@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import * as presentationService from '../services/presentationService';
+import * as aiService from '../services/aiService';
 import type { Presentation, Room as RoomType, InventoryObject, Puzzle } from '../types';
 import Room from '../components/Slide';
 import Icon from '../components/Icon';
@@ -24,6 +25,12 @@ const Editor: React.FC = () => {
   const [openPuzzleObjectsDropdown, setOpenPuzzleObjectsDropdown] = useState<string | null>(null);
   const [openPuzzleRoomsDropdown, setOpenPuzzleRoomsDropdown] = useState<string | null>(null);
   const [openPuzzlePuzzlesDropdown, setOpenPuzzlePuzzlesDropdown] = useState<string | null>(null);
+
+  // AI Generation State
+  const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
+  const [generationError, setGenerationError] = useState<string | null>(null);
+  const [generatingPuzzleId, setGeneratingPuzzleId] = useState<string | null>(null);
+
 
   const objectsDropdownRef = useRef<HTMLDivElement>(null);
   const roomsDropdownRef = useRef<HTMLDivElement>(null);
@@ -298,6 +305,44 @@ const Editor: React.FC = () => {
     });
     setEditingRoomPuzzles(newPuzzles);
   };
+  
+  const handleGenerateDescription = async () => {
+    if (!presentation || !currentRoom) return;
+    setIsGeneratingDescription(true);
+    setGenerationError(null);
+    try {
+        const description = await aiService.generateRoomDescription(presentation.title, currentRoom.name);
+        setEditingRoomNotes(description);
+    } catch (err) {
+        setGenerationError(err instanceof Error ? err.message : 'An unknown AI error occurred.');
+    } finally {
+        setIsGeneratingDescription(false);
+    }
+  };
+  
+  const handleGeneratePuzzleIdea = async (puzzleIndex: number) => {
+    if (!presentation || !currentRoom) return;
+    const puzzle = editingRoomPuzzles[puzzleIndex];
+    if (!puzzle) return;
+
+    setGeneratingPuzzleId(puzzle.id);
+    setGenerationError(null);
+    try {
+        const idea = await aiService.generatePuzzleIdea(presentation, currentRoom);
+        const newPuzzles = [...editingRoomPuzzles];
+        newPuzzles[puzzleIndex] = {
+            ...newPuzzles[puzzleIndex],
+            name: idea.name,
+            unsolvedText: idea.unsolvedText,
+            solvedText: idea.solvedText
+        };
+        setEditingRoomPuzzles(newPuzzles);
+    } catch (err) {
+        setGenerationError(err instanceof Error ? err.message : 'An unknown AI error occurred.');
+    } finally {
+        setGeneratingPuzzleId(null);
+    }
+  };
 
   const COLORS = ['#ffffff', '#000000', '#f87171', '#fbbf24', '#34d399', '#60a5fa', '#a78bfa'];
 
@@ -441,7 +486,10 @@ const Editor: React.FC = () => {
             </div>
 
             <div className="w-full max-w-4xl mx-auto mt-6 bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md">
-                <h3 className="font-semibold mb-3 text-slate-700 dark:text-slate-300">Puzzles</h3>
+                <div className="flex justify-between items-center mb-3">
+                    <h3 className="font-semibold text-slate-700 dark:text-slate-300">Puzzles</h3>
+                    {generationError && <p className="text-red-500 text-sm">{generationError}</p>}
+                </div>
                  <div className="space-y-4 max-h-96 overflow-y-auto pr-2" ref={puzzlesContainerRef}>
                     {editingRoomPuzzles.length > 0 ? editingRoomPuzzles.map((puzzle, index) => (
                         <div key={puzzle.id} className="p-3 border border-slate-200 dark:border-slate-700 rounded-lg">
@@ -453,9 +501,19 @@ const Editor: React.FC = () => {
                                     placeholder="Puzzle Name"
                                     className="font-semibold px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm w-1/3"
                                 />
-                                <button onClick={() => deletePuzzle(index)} className="text-red-500 hover:text-red-700 dark:hover:text-red-400 p-1 rounded-full flex items-center justify-center">
-                                    <Icon as="trash" className="w-4 h-4" />
-                                </button>
+                                <div className="flex items-center gap-2">
+                                     <button
+                                        onClick={() => handleGeneratePuzzleIdea(index)}
+                                        disabled={!!generatingPuzzleId}
+                                        className="flex items-center gap-1.5 text-sm px-3 py-1 bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-900/50 dark:text-fuchsia-300 rounded-md hover:bg-fuchsia-200 dark:hover:bg-fuchsia-900 disabled:opacity-50 disabled:cursor-wait"
+                                    >
+                                        <Icon as="sparkles" className="w-4 h-4"/>
+                                        <span>{generatingPuzzleId === puzzle.id ? 'Generating...' : 'Generate Idea'}</span>
+                                    </button>
+                                    <button onClick={() => deletePuzzle(index)} className="text-red-500 hover:text-red-700 dark:hover:text-red-400 p-1 rounded-full flex items-center justify-center">
+                                        <Icon as="trash" className="w-4 h-4" />
+                                    </button>
+                                </div>
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                                 <textarea 
@@ -671,12 +729,23 @@ const Editor: React.FC = () => {
                     </div>
                 </Accordion>
                 <Accordion title="Room Description">
-                    <textarea
-                        value={editingRoomNotes}
-                        onChange={e => setEditingRoomNotes(e.target.value)}
-                        placeholder="Add room description here..."
-                        className="w-full h-40 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
-                    />
+                    <div className="space-y-3">
+                        <textarea
+                            value={editingRoomNotes}
+                            onChange={e => setEditingRoomNotes(e.target.value)}
+                            placeholder="Add room description here..."
+                            className="w-full h-40 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
+                        />
+                         <button
+                            onClick={handleGenerateDescription}
+                            disabled={isGeneratingDescription}
+                            className="w-full flex items-center justify-center gap-2 text-sm px-3 py-2 bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-900/50 dark:text-fuchsia-300 rounded-md hover:bg-fuchsia-200 dark:hover:bg-fuchsia-900 disabled:opacity-50 disabled:cursor-wait"
+                        >
+                            <Icon as="sparkles" className="w-4 h-4"/>
+                            <span>{isGeneratingDescription ? 'Generating...' : 'Generate with AI'}</span>
+                        </button>
+                         {generationError && !generatingPuzzleId && <p className="text-red-500 text-xs text-center">{generationError}</p>}
+                    </div>
                 </Accordion>
                  <Accordion title="Actions">
                      <button onClick={deleteRoom} className="w-full flex items-center gap-2 p-2 bg-red-50 dark:bg-red-900/50 text-red-600 dark:text-red-300 rounded-md hover:bg-red-100 dark:hover:bg-red-900 transition text-sm">
