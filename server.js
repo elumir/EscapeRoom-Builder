@@ -36,13 +36,12 @@ async function testDbConnection() {
   }
 }
 
-// === API ROUTES (MUST be defined before static file serving) ===
+// === API ROUTES ===
 
 // Get all presentations (full data)
 app.get('/api/presentations', async (req, res) => {
   try {
     const [rows] = await dbPool.query('SELECT data FROM presentations ORDER BY updated_at DESC');
-    // The 'data' column contains the JSON for each presentation.
     const presentations = rows.map(row => row.data);
     res.json(presentations);
   } catch (error) {
@@ -119,14 +118,14 @@ app.delete('/api/presentations/:id', async (req, res) => {
 });
 
 
-// === FRONTEND SERVING (MUST be defined after API routes) ===
+// === FRONTEND SERVING (for production) ===
 
-// Serve static files from the project root
-app.use(express.static(__dirname)); 
+const buildPath = path.join(__dirname, 'build');
+app.use(express.static(buildPath));
 
-// For any other route, serve the index.html file to support client-side routing
+// For any other route, serve the index.html from the build folder
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+  res.sendFile(path.join(buildPath, 'index.html'));
 });
 
 // Start server
