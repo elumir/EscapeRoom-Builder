@@ -1,9 +1,10 @@
 
-import React, { useState } from 'react';
-import type { Presentation, InventoryObject, Puzzle } from '../types';
+import React, { useState, useEffect } from 'react';
+import type { Presentation } from '../types';
 import Icon from './Icon';
 import ObjectItem from './presenter/ObjectItem';
 import PuzzleItem from './presenter/PuzzleItem';
+import { usePresenterState } from '../hooks/usePresenterState';
 
 interface PresenterPreviewProps {
   presentation: Presentation;
@@ -15,101 +16,22 @@ interface PresenterPreviewProps {
   onClose?: () => void;
 }
 
-const MiniObjectItem: React.FC<{
-    obj: InventoryObject;
-    onToggle: (id: string, state: boolean) => void;
-    lockingPuzzleName?: string;
-    isInventoryItem?: boolean;
-    isDescriptionVisible?: boolean;
-    onToggleDescription?: (id: string) => void;
-}> = ({ obj, onToggle, lockingPuzzleName, isInventoryItem = false, isDescriptionVisible, onToggleDescription }) => {
-    const isLocked = !!lockingPuzzleName;
-    return (
-        <div className={`mt-1 flex items-start gap-1 ${isLocked ? 'opacity-50' : ''}`}>
-            <label className={`flex items-center transform scale-75 origin-left ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
-                <input
-                    type="checkbox"
-                    checked={obj.showInInventory}
-                    onChange={(e) => onToggle(obj.id, e.target.checked)}
-                    className="sr-only peer"
-                    disabled={isLocked}
-                />
-                <div className="relative w-9 h-5 bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-600"></div>
-            </label>
-            <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                    <h4 className="font-bold text-brand-400/80 text-[9px] truncate">{obj.name}</h4>
-                    {isInventoryItem && onToggleDescription && (
-                        <button onClick={() => onToggleDescription(obj.id)} className="text-slate-500 hover:text-white flex-shrink-0">
-                           <Icon as={isDescriptionVisible ? 'eye-slash' : 'eye'} className="w-3 h-3" />
-                        </button>
-                    )}
-                </div>
-                {isDescriptionVisible && (
-                    <p className="text-slate-400 text-[8px] leading-tight break-words truncate">{obj.description}</p>
-                )}
-                {lockingPuzzleName && (
-                    <p className="text-red-500/80 text-[8px] leading-tight truncate mt-0.5">Locked by: {lockingPuzzleName}</p>
-                )}
-            </div>
-        </div>
-    );
-};
-
-const MiniPuzzleItem: React.FC<{
-    puzzle: Puzzle;
-    onToggle: (id: string, state: boolean) => void;
-    onToggleImage: (id: string, state: boolean) => void;
-    isLocked?: boolean;
-    lockingPuzzleName?: string;
-}> = ({ puzzle, onToggle, onToggleImage, isLocked, lockingPuzzleName }) => (
-    <div className={`mt-1 flex flex-col ${isLocked ? 'opacity-50' : ''}`}>
-      <div className="flex items-start gap-1">
-        <label className={`flex items-center transform scale-75 origin-left ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
-            <input
-                type="checkbox"
-                checked={puzzle.isSolved}
-                onChange={(e) => onToggle(puzzle.id, e.target.checked)}
-                className="sr-only peer"
-                disabled={isLocked}
-            />
-            <div className="relative w-9 h-5 bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-600"></div>
-        </label>
-        <div className="flex-1 min-w-0">
-            <h4 className="font-bold text-amber-400/80 text-[9px] truncate flex items-center gap-1">
-                {isLocked && <Icon as="lock" className="w-2 h-2 text-slate-400"/>}
-                {puzzle.name}
-            </h4>
-        </div>
-      </div>
-       {lockingPuzzleName && (
-           <p className="text-red-500/80 text-[8px] leading-tight truncate mt-0.5 pl-1">Locked by: {lockingPuzzleName}</p>
-       )}
-       {puzzle.image && (
-          <div className={`flex items-center gap-1 pl-1 mt-1 ${isLocked ? 'opacity-50' : ''}`}>
-              <label className={`flex items-center transform scale-75 origin-left ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
-                  <input
-                      type="checkbox"
-                      checked={puzzle.showImageOverlay}
-                      onChange={(e) => onToggleImage(puzzle.id, e.target.checked)}
-                      className="sr-only peer"
-                      disabled={isLocked}
-                  />
-                  <div className="relative w-9 h-5 bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-sky-600"></div>
-              </label>
-              <span className="text-slate-400 text-[9px]">Show Image</span>
-          </div>
-        )}
-    </div>
-);
-
 const PresenterPreview: React.FC<PresenterPreviewProps> = ({ presentation, currentRoomIndex: initialRoomIndex, onToggleObject, onTogglePuzzle, onTogglePuzzleImage, isExpanded, onClose }) => {
   const [currentRoomIndex, setCurrentRoomIndex] = useState(initialRoomIndex);
   const [visibleDescriptionIds, setVisibleDescriptionIds] = useState<Set<string>>(new Set());
 
-  React.useEffect(() => {
+  useEffect(() => {
     setCurrentRoomIndex(initialRoomIndex);
   }, [initialRoomIndex])
+
+  const {
+      allUnsolvedPuzzles,
+      lockingPuzzlesByRoomId,
+      // Fix: Corrected typo from `lockingPzzlesByPuzzleId` to `lockingPuzzlesByPuzzleId`.
+      lockingPuzzlesByPuzzleId,
+      inventoryObjects,
+  } = usePresenterState(presentation);
+
 
   const handleToggleDescriptionVisibility = (objectId: string) => {
       setVisibleDescriptionIds(prev => {
@@ -123,26 +45,7 @@ const PresenterPreview: React.FC<PresenterPreviewProps> = ({ presentation, curre
       });
   };
 
-  const allUnsolvedPuzzles = presentation.rooms.flatMap(r => r.puzzles).filter(p => !p.isSolved);
-
-  const lockingPuzzlesByRoomId = new Map<string, string>();
-  const lockingPuzzlesByPuzzleId = new Map<string, string>();
-
-  allUnsolvedPuzzles.forEach(puzzle => {
-      (puzzle.lockedRoomIds || []).forEach(roomId => {
-          if (!lockingPuzzlesByRoomId.has(roomId)) {
-              lockingPuzzlesByRoomId.set(roomId, puzzle.name);
-          }
-      });
-      (puzzle.lockedPuzzleIds || []).forEach(puzzleId => {
-          if (!lockingPuzzlesByPuzzleId.has(puzzleId)) {
-              lockingPuzzlesByPuzzleId.set(puzzleId, puzzle.name);
-          }
-      });
-  });
-
   const currentRoom = presentation.rooms[currentRoomIndex];
-  const inventoryObjects = presentation.rooms.flatMap(r => r.objects).filter(o => o.showInInventory);
   const availableObjects = currentRoom?.objects.filter(o => !o.showInInventory) || [];
   
   if (isExpanded) {
@@ -150,9 +53,11 @@ const PresenterPreview: React.FC<PresenterPreviewProps> = ({ presentation, curre
         <div className="h-full bg-slate-800 text-white flex flex-col rounded-lg">
             <header className="p-4 bg-slate-900 flex justify-between items-center flex-shrink-0 rounded-t-lg">
                 <h1 className="text-xl font-bold">{presentation.title} - Presenter Preview</h1>
-                <button onClick={onClose} className="text-slate-400 hover:text-white">
-                    <Icon as="close" />
-                </button>
+                {onClose && (
+                    <button onClick={onClose} className="text-slate-400 hover:text-white">
+                        <Icon as="close" />
+                    </button>
+                )}
             </header>
             <main className="flex-1 grid grid-cols-12 gap-4 overflow-hidden p-4">
                 <div className="col-span-3 overflow-y-auto pr-2">
@@ -202,6 +107,7 @@ const PresenterPreview: React.FC<PresenterPreviewProps> = ({ presentation, curre
                             </h2>
                             <div className="space-y-4">
                             {currentRoom.puzzles.map(puzzle => {
+                                // Fix: Corrected typo from `lockingPzzlesByPuzzleId` to `lockingPuzzlesByPuzzleId`.
                                 const lockingPuzzleName = lockingPuzzlesByPuzzleId.get(puzzle.id);
                                 return (
                                   <PuzzleItem 
@@ -311,18 +217,20 @@ const PresenterPreview: React.FC<PresenterPreviewProps> = ({ presentation, curre
                     {currentRoom.puzzles.length > 0 && (
                       <div className="mt-2 pt-2 border-t border-slate-700/50">
                         <h3 className="font-bold text-slate-400 text-[9px] mb-1">
-                          Puzzles <span className="font-normal text-slate-500">(Toggle to solve)</span>
+                          Puzzles <span className="font-normal text-slate-500">(Toggle)</span>
                         </h3>
                         {currentRoom.puzzles.map(puzzle => {
+                            // Fix: Corrected typo from `lockingPzzlesByPuzzleId` to `lockingPuzzlesByPuzzleId`.
                             const lockingPuzzleName = lockingPuzzlesByPuzzleId.get(puzzle.id);
                             return (
-                                <MiniPuzzleItem 
+                                <PuzzleItem 
                                     key={puzzle.id} 
                                     puzzle={puzzle} 
                                     onToggle={onTogglePuzzle} 
                                     onToggleImage={onTogglePuzzleImage} 
                                     isLocked={!!lockingPuzzleName}
                                     lockingPuzzleName={lockingPuzzleName}
+                                    variant="mini"
                                 />
                             );
                         })}
@@ -332,17 +240,18 @@ const PresenterPreview: React.FC<PresenterPreviewProps> = ({ presentation, curre
                     {availableObjects.length > 0 && (
                       <div className="mt-2 pt-2 border-t border-slate-700/50">
                         <h3 className="font-bold text-slate-400 text-[9px] mb-1">
-                          Available <span className="font-normal text-slate-500">(Toggle to add)</span>
+                          Available <span className="font-normal text-slate-500">(Toggle)</span>
                         </h3>
                         {availableObjects.map(obj => {
                             const lockingPuzzle = allUnsolvedPuzzles.find(p => p.lockedObjectIds?.includes(obj.id));
                             return (
-                                <MiniObjectItem 
+                                <ObjectItem
                                     key={obj.id} 
                                     obj={obj} 
                                     onToggle={onToggleObject} 
                                     lockingPuzzleName={lockingPuzzle?.name} 
-                                    isDescriptionVisible={true}
+                                    isDescriptionVisible={false}
+                                    variant="mini"
                                 />
                             );
                         })}
@@ -357,14 +266,15 @@ const PresenterPreview: React.FC<PresenterPreviewProps> = ({ presentation, curre
                     inventoryObjects.map(obj => {
                         const lockingPuzzle = allUnsolvedPuzzles.find(p => p.lockedObjectIds?.includes(obj.id));
                         return (
-                            <MiniObjectItem
+                            <ObjectItem
                                 key={obj.id}
                                 obj={obj}
                                 onToggle={onToggleObject}
                                 lockingPuzzleName={lockingPuzzle?.name}
-                                isInventoryItem={true}
+                                showVisibilityToggle={true}
                                 isDescriptionVisible={visibleDescriptionIds.has(obj.id)}
                                 onToggleDescription={handleToggleDescriptionVisibility}
+                                variant="mini"
                             />
                         );
                     })

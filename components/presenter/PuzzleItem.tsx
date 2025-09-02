@@ -15,7 +15,8 @@ const PuzzleItem: React.FC<{
     onToggleImage: (id: string, state: boolean) => void;
     isLocked?: boolean;
     lockingPuzzleName?: string;
-}> = ({ puzzle, onToggle, onToggleImage, isLocked, lockingPuzzleName }) => {
+    variant?: 'full' | 'mini';
+}> = ({ puzzle, onToggle, onToggleImage, isLocked, lockingPuzzleName, variant = 'full' }) => {
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [progress, setProgress] = useState(0);
@@ -79,6 +80,49 @@ const PuzzleItem: React.FC<{
         }
     }
 
+    if (variant === 'mini') {
+        return (
+             <div className={`mt-1 flex flex-col ${isLocked ? 'opacity-50' : ''}`}>
+                <div className="flex items-start gap-1">
+                    <label className={`flex items-center transform scale-75 origin-left ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                        <input
+                            type="checkbox"
+                            checked={puzzle.isSolved}
+                            onChange={(e) => onToggle(puzzle.id, e.target.checked)}
+                            className="sr-only peer"
+                            disabled={isLocked}
+                        />
+                        <div className="relative w-9 h-5 bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-600"></div>
+                    </label>
+                    <div className="flex-1 min-w-0">
+                        <h4 className="font-bold text-amber-400/80 text-[9px] truncate flex items-center gap-1">
+                            {isLocked && <Icon as="lock" className="w-2 h-2 text-slate-400"/>}
+                            {puzzle.name}
+                        </h4>
+                    </div>
+                </div>
+                {lockingPuzzleName && (
+                   <p className="text-red-500/80 text-[8px] leading-tight truncate mt-0.5 pl-1">Locked by: {lockingPuzzleName}</p>
+                )}
+                {puzzle.image && (
+                  <div className={`flex items-center gap-1 pl-1 mt-1 ${isLocked ? 'opacity-50' : ''}`}>
+                      <label className={`flex items-center transform scale-75 origin-left ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                          <input
+                              type="checkbox"
+                              checked={puzzle.showImageOverlay}
+                              onChange={(e) => onToggleImage(puzzle.id, e.target.checked)}
+                              className="sr-only peer"
+                              disabled={isLocked}
+                          />
+                          <div className="relative w-9 h-5 bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-sky-600"></div>
+                      </label>
+                      <span className="text-slate-400 text-[9px]">Show Image</span>
+                  </div>
+                )}
+            </div>
+        );
+    }
+
     return (
         <div className={`flex flex-col gap-3 p-4 bg-slate-800/50 rounded-lg transition-opacity ${isLocked ? 'opacity-50' : ''}`}>
             <div className="flex items-start gap-4">
@@ -123,7 +167,7 @@ const PuzzleItem: React.FC<{
                     <div className={`flex items-center gap-3 w-full bg-slate-700/50 p-2 rounded-lg transition-opacity ${isLocked ? 'opacity-60' : ''}`}>
                         <button onClick={handlePlayPause} disabled={isLocked} className="p-2 bg-slate-700 rounded-full hover:bg-slate-600 flex-shrink-0 disabled:cursor-not-allowed disabled:hover:bg-slate-700">
                             {isPlaying ? (
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0zM7 8a1 1 0 0 1 2 0v4a1 1 0 1 1-2 0V8zm4 0a1 1 0 0 1 2 0v4a1 1 0 1 1-2 0V8z" clipRule="evenodd" /></svg>
+                                <svg xmlns="http://www.w.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0zM7 8a1 1 0 0 1 2 0v4a1 1 0 1 1-2 0V8zm4 0a1 1 0 0 1 2 0v4a1 1 0 1 1-2 0V8z" clipRule="evenodd" /></svg>
                             ) : (
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM9.555 7.168A1 1 0 0 0 8 8v4a1 1 0 0 0 1.555.832l3-2a1 1 0 0 0 0-1.664l-3-2z" /></svg>
                             )}

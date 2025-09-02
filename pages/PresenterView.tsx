@@ -6,6 +6,7 @@ import Icon from '../components/Icon';
 import { useBroadcastChannel } from '../hooks/useBroadcastChannel';
 import ObjectItem from '../components/presenter/ObjectItem';
 import PuzzleItem from '../components/presenter/PuzzleItem';
+import { usePresenterState } from '../hooks/usePresenterState';
 
 interface BroadcastMessage {
   type: 'GOTO_ROOM' | 'STATE_UPDATE';
@@ -21,6 +22,15 @@ const PresenterView: React.FC = () => {
   const [currentRoomIndex, setCurrentRoomIndex] = useState(0);
   const [presentationWindow, setPresentationWindow] = useState<Window | null>(null);
   const [visibleDescriptionIds, setVisibleDescriptionIds] = useState<Set<string>>(new Set());
+  
+  const { 
+    lockingPuzzlesByRoomId, 
+    // Fix: Corrected typo from `lockingPzzlesByPuzzleId` to `lockingPuzzlesByPuzzleId`.
+    lockingPuzzlesByPuzzleId,
+    allUnsolvedPuzzles, 
+    inventoryObjects 
+  } = usePresenterState(presentation);
+
 
   const isPresentationWindowOpen = presentationWindow && !presentationWindow.closed;
 
@@ -196,26 +206,7 @@ const PresenterView: React.FC = () => {
     return <div className="h-screen bg-slate-800 text-white flex items-center justify-center">Error: Could not load presentation.</div>;
   }
   
-  const allUnsolvedPuzzles = presentation.rooms.flatMap(r => r.puzzles).filter(p => !p.isSolved);
-  
-  const lockingPuzzlesByRoomId = new Map<string, string>();
-  const lockingPuzzlesByPuzzleId = new Map<string, string>();
-
-  allUnsolvedPuzzles.forEach(puzzle => {
-      (puzzle.lockedRoomIds || []).forEach(roomId => {
-          if (!lockingPuzzlesByRoomId.has(roomId)) {
-              lockingPuzzlesByRoomId.set(roomId, puzzle.name);
-          }
-      });
-      (puzzle.lockedPuzzleIds || []).forEach(puzzleId => {
-          if (!lockingPuzzlesByPuzzleId.has(puzzleId)) {
-              lockingPuzzlesByPuzzleId.set(puzzleId, puzzle.name);
-          }
-      });
-  });
-  
   const currentRoom = presentation.rooms[currentRoomIndex];
-  const inventoryObjects = presentation.rooms.flatMap(r => r.objects).filter(o => o.showInInventory);
   const availableObjects = currentRoom?.objects.filter(o => !o.showInInventory) || [];
 
   return (
@@ -295,6 +286,7 @@ const PresenterView: React.FC = () => {
                     </h2>
                     <div className="space-y-4">
                       {currentRoom.puzzles.map(puzzle => {
+                        // Fix: Corrected typo from `lockingPzzlesByPuzzleId` to `lockingPuzzlesByPuzzleId`.
                         const lockingPuzzleName = lockingPuzzlesByPuzzleId.get(puzzle.id);
                         return (
                           <PuzzleItem 

@@ -31,14 +31,10 @@ const Dashboard: React.FC = () => {
 
         try {
             const newPresentation = await presentationService.createPresentation(newTitle.trim());
-            if (newPresentation) {
-                setIsModalOpen(false);
-                setNewTitle('');
-                setPresentations(prev => [newPresentation, ...prev]);
-                navigate(`/editor/${newPresentation.id}`);
-            } else {
-                setError('Failed to create presentation. The server returned an unexpected response.');
-            }
+            setIsModalOpen(false);
+            setNewTitle('');
+            setPresentations(prev => [newPresentation, ...prev]);
+            navigate(`/editor/${newPresentation.id}`);
         } catch (err) {
             console.error("Creation failed:", err);
             setError(err instanceof Error ? err.message : 'An unknown error occurred.');

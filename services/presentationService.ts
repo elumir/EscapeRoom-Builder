@@ -50,7 +50,7 @@ export const savePresentation = async (presentation: Presentation): Promise<void
     }
 };
 
-export const createPresentation = async (title: string): Promise<Presentation | null> => {
+export const createPresentation = async (title: string): Promise<Presentation> => {
     const newRoom: Room = {
         id: generateUUID(),
         name: 'First Room',
@@ -77,7 +77,7 @@ export const createPresentation = async (title: string): Promise<Presentation | 
         return await handleResponse(response);
     } catch (error) {
         console.error("Failed to create presentation:", error);
-        return null;
+        throw error;
     }
 };
 
