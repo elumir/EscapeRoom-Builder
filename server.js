@@ -1,4 +1,3 @@
-
 require('dotenv').config();
 const express = require('express');
 const mysql = require('mysql2/promise');
@@ -59,7 +58,7 @@ app.get('/api/presentations/:id', async (req, res) => {
     if (rows.length > 0) {
       res.json(rows[0].data);
     } else {
-      res.status(444).json({ error: 'Presentation not found' });
+      res.status(404).json({ error: 'Presentation not found' });
     }
   } catch (error) {
     console.error(`Failed to fetch presentation ${req.params.id}:`, error);

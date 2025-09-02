@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import * as presentationService from '../services/presentationService';
@@ -7,9 +6,12 @@ import Room from '../components/Slide';
 import Icon from '../components/Icon';
 import PresenterPreview from '../components/PresenterPreview';
 
+type Status = 'loading' | 'success' | 'error';
+
 const Editor: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [presentation, setPresentation] = useState<Presentation | null>(null);
+  const [status, setStatus] = useState<Status>('loading');
   const [selectedRoomIndex, setSelectedRoomIndex] = useState(0);
   const [editingPresentationTitle, setEditingPresentationTitle] = useState('');
   const [editingRoomName, setEditingRoomName] = useState('');
@@ -27,8 +29,8 @@ const Editor: React.FC = () => {
 
   useEffect(() => {
     if (id) {
-      // FIX: Await promise from presentationService
       const fetchPresentation = async () => {
+        setStatus('loading');
         const data = await presentationService.getPresentation(id);
         if (data) {
           setPresentation(data);
@@ -40,6 +42,9 @@ const Editor: React.FC = () => {
               setEditingRoomObjects(currentRoom.objects || []);
               setEditingRoomPuzzles(currentRoom.puzzles || []);
           }
+          setStatus('success');
+        } else {
+          setStatus('error');
         }
       };
       fetchPresentation();
@@ -282,7 +287,18 @@ const Editor: React.FC = () => {
 
   const COLORS = ['#ffffff', '#000000', '#f87171', '#fbbf24', '#34d399', '#60a5fa', '#a78bfa'];
 
-  if (!presentation) return <div className="flex items-center justify-center h-screen">Loading presentation...</div>;
+  if (status === 'loading') {
+    return <div className="flex items-center justify-center h-screen">Loading presentation...</div>;
+  }
+  
+  if (status === 'error') {
+     return <div className="flex items-center justify-center h-screen">Error: Presentation not found.</div>;
+  }
+
+  if (!presentation || !presentation.rooms[selectedRoomIndex]) {
+    // This handles the case where presentation is loaded but has no rooms.
+    return <div className="flex items-center justify-center h-screen">This presentation has no rooms.</div>;
+  }
 
   const currentRoom = presentation.rooms[selectedRoomIndex];
   const inventoryItems = presentation.rooms
@@ -351,33 +367,31 @@ const Editor: React.FC = () => {
         {/* Main Area - Editor */}
         <main className="flex-1 flex flex-col p-4 md:p-8 bg-slate-200 dark:bg-slate-900 overflow-y-auto">
             <div className='w-full max-w-4xl mx-auto'>
-              {currentRoom && (
-                <div className="relative w-full aspect-video">
-                  <Room room={currentRoom} inventoryItems={inventoryItems} visibleMapImages={allMapImages} />
-                  <div className="absolute inset-0 flex">
-                    <div className="w-[70%] h-full group relative">
-                        <label className="w-full h-full cursor-pointer flex items-center justify-center bg-black/0 hover:bg-black/30 transition-colors duration-300">
-                          <input type="file" accept="image/*" onChange={handleImageUpload} className="sr-only" />
-                            <div className="text-white text-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-                                <p className="font-bold text-lg">{currentRoom.image ? "Change Image" : "Upload Image"}</p>
-                                <p className="text-sm">Click or drag & drop</p>
-                            </div>
-                        </label>
-                    </div>
-                     <div className="w-[30%] h-full">
-                       <div className="h-1/2 relative group">
-                            <label className="w-full h-full cursor-pointer flex items-center justify-center bg-black/0 hover:bg-black/30 transition-colors duration-300">
-                                <input type="file" accept="image/*" onChange={handleMapImageUpload} className="sr-only" />
-                                <div className="text-white text-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none p-2">
-                                    <p className="font-bold text-sm">{currentRoom.mapImage ? "Change" : "Upload"}</p>
-                                    <p className="text-xs">Map Image</p>
-                                </div>
-                            </label>
-                       </div>
-                    </div>
+              <div className="relative w-full aspect-video">
+                <Room room={currentRoom} inventoryItems={inventoryItems} visibleMapImages={allMapImages} />
+                <div className="absolute inset-0 flex">
+                  <div className="w-[70%] h-full group relative">
+                      <label className="w-full h-full cursor-pointer flex items-center justify-center bg-black/0 hover:bg-black/30 transition-colors duration-300">
+                        <input type="file" accept="image/*" onChange={handleImageUpload} className="sr-only" />
+                          <div className="text-white text-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                              <p className="font-bold text-lg">{currentRoom.image ? "Change Image" : "Upload Image"}</p>
+                              <p className="text-sm">Click or drag & drop</p>
+                          </div>
+                      </label>
+                  </div>
+                   <div className="w-[30%] h-full">
+                     <div className="h-1/2 relative group">
+                          <label className="w-full h-full cursor-pointer flex items-center justify-center bg-black/0 hover:bg-black/30 transition-colors duration-300">
+                              <input type="file" accept="image/*" onChange={handleMapImageUpload} className="sr-only" />
+                              <div className="text-white text-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none p-2">
+                                  <p className="font-bold text-sm">{currentRoom.mapImage ? "Change" : "Upload"}</p>
+                                  <p className="text-xs">Map Image</p>
+                              </div>
+                          </label>
+                     </div>
                   </div>
                 </div>
-              )}
+              </div>
             </div>
             
             <div className="w-full max-w-4xl mx-auto mt-6 bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md">

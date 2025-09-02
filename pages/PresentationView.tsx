@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import * as presentationService from '../services/presentationService';
@@ -11,43 +10,47 @@ interface BroadcastMessage {
   roomIndex?: number;
 }
 
+type Status = 'loading' | 'success' | 'error';
+
 const PresentationView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [presentation, setPresentation] = useState<Presentation | null>(null);
+  const [status, setStatus] = useState<Status>('loading');
   const [currentRoomIndex, setCurrentRoomIndex] = useState(0);
 
   const channelName = `presentation-${id}`;
+
+  const fetchLatestState = async () => {
+    if (id) {
+      const data = await presentationService.getPresentation(id);
+      if (data) {
+        setPresentation(data);
+        setStatus('success');
+      } else {
+        setStatus('error');
+      }
+    }
+  };
 
   useBroadcastChannel<BroadcastMessage>(channelName, async (message) => {
     if (message.type === 'GOTO_ROOM' && message.roomIndex !== undefined) {
       setCurrentRoomIndex(message.roomIndex);
     }
     if (message.type === 'STATE_UPDATE') {
-        if(id) {
-            // FIX: Await promise from presentationService
-            const data = await presentationService.getPresentation(id);
-            if (data) {
-                setPresentation(data);
-            }
-        }
+      await fetchLatestState();
     }
   });
 
   useEffect(() => {
-    if (id) {
-      // FIX: Await promise from presentationService
-      const fetchPresentation = async () => {
-        const data = await presentationService.getPresentation(id);
-        if (data) {
-          setPresentation(data);
-        }
-      };
-      fetchPresentation();
-    }
+    fetchLatestState();
   }, [id]);
 
-  if (!presentation) {
+  if (status === 'loading') {
     return <div className="w-screen h-screen bg-black flex items-center justify-center text-white">Loading Presentation...</div>;
+  }
+
+  if (status === 'error' || !presentation) {
+     return <div className="w-screen h-screen bg-black flex items-center justify-center text-white">Could not load presentation.</div>;
   }
 
   const currentRoom = presentation.rooms[currentRoomIndex];

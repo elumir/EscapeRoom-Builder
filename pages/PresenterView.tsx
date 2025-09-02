@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import * as presentationService from '../services/presentationService';
@@ -13,9 +12,12 @@ interface BroadcastMessage {
   roomIndex?: number;
 }
 
+type Status = 'loading' | 'success' | 'error';
+
 const PresenterView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [presentation, setPresentation] = useState<Presentation | null>(null);
+  const [status, setStatus] = useState<Status>('loading');
   const [currentRoomIndex, setCurrentRoomIndex] = useState(0);
   const [presentationWindow, setPresentationWindow] = useState<Window | null>(null);
   const [visibleDescriptionIds, setVisibleDescriptionIds] = useState<Set<string>>(new Set());
@@ -35,25 +37,29 @@ const PresenterView: React.FC = () => {
   }, [presentationWindow]);
 
   useEffect(() => {
-    if (id) {
-      const fetchAndInitialize = async () => {
-        const data = await presentationService.getPresentation(id);
-        if (data) {
-          if (data.rooms.length > 0 && data.visitedRoomIds.length === 0) {
-            // On first load, mark the initial room as visited
-            const initialVisited: Presentation = {
-              ...data,
-              visitedRoomIds: [data.rooms[0].id],
-            };
-            setPresentation(initialVisited);
-            await presentationService.savePresentation(initialVisited);
-          } else {
-            setPresentation(data);
-          }
+    const fetchAndInitialize = async () => {
+      if (!id) return;
+      setStatus('loading');
+      const data = await presentationService.getPresentation(id);
+      if (data) {
+        if (data.rooms.length > 0 && data.visitedRoomIds.length === 0) {
+          // On first load, mark the initial room as visited
+          const initialVisited: Presentation = {
+            ...data,
+            visitedRoomIds: [data.rooms[0].id],
+          };
+          setPresentation(initialVisited);
+          await presentationService.savePresentation(initialVisited);
+        } else {
+          setPresentation(data);
         }
-      };
-      fetchAndInitialize();
-    }
+        setStatus('success');
+      } else {
+        setStatus('error');
+      }
+    };
+    fetchAndInitialize();
+
     const handleStorageChange = async (e: StorageEvent) => {
       if (e.key === 'presentations' && id) {
         const data = await presentationService.getPresentation(id);
@@ -182,9 +188,12 @@ const PresenterView: React.FC = () => {
       });
   };
 
-
-  if (!presentation) {
+  if (status === 'loading') {
     return <div className="h-screen bg-slate-800 text-white flex items-center justify-center">Loading Presenter View...</div>;
+  }
+  
+  if (status === 'error' || !presentation) {
+    return <div className="h-screen bg-slate-800 text-white flex items-center justify-center">Error: Could not load presentation.</div>;
   }
   
   const allUnsolvedPuzzles = presentation.rooms.flatMap(r => r.puzzles).filter(p => !p.isSolved);
@@ -269,7 +278,7 @@ const PresenterView: React.FC = () => {
 
         {/* Column 2: Room Details (Notes & Available Objects) */}
         <div className="col-span-5 bg-slate-900 rounded-lg p-6 overflow-y-auto flex flex-col">
-            {currentRoom && (
+            {currentRoom ? (
               <>
                 <div className="flex-shrink-0">
                     <h2 className="text-lg font-semibold mb-4 text-slate-300 sticky top-0 bg-slate-900 py-2">Room Description</h2>
@@ -321,6 +330,8 @@ const PresenterView: React.FC = () => {
                   </div>
                 )}
               </>
+            ) : (
+                 <p className="text-slate-400">Select a room to see details.</p>
             )}
         </div>
         
