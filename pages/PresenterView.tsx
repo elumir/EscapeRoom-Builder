@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import * as presentationService from '../services/presentationService';
-import type { Presentation, Room as RoomType, Puzzle } from '../types';
+import type { Presentation, Puzzle } from '../types';
 import Icon from '../components/Icon';
 import { useBroadcastChannel } from '../hooks/useBroadcastChannel';
 import ObjectItem from '../components/presenter/ObjectItem';
