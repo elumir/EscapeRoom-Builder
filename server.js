@@ -127,10 +127,20 @@ app.delete('/api/presentations/:id', async (req, res) => {
 // === FRONTEND SERVING (for production) ===
 
 const buildPath = path.join(__dirname, 'build');
-app.use(express.static(buildPath));
 
-// For any other route, serve the index.html from the build folder
-app.get('*', (req, res) => {
+// Serve static files from the 'build' directory, but only for requests to '/game'
+// This aligns with the `base: '/game/'` config in Vite.
+// For example, a request to /game/assets/index-123.js will correctly serve /build/assets/index-123.js
+app.use('/game', express.static(buildPath));
+
+// Redirect the root URL to the application's base path for a seamless user experience.
+app.get('/', (req, res) => {
+  res.redirect('/game');
+});
+
+// For any route under /game that is not a static file, serve the main index.html.
+// This is the fallback for client-side routing (e.g., when a user refreshes on /game/editor/xyz).
+app.get('/game/*', (req, res) => {
   res.sendFile(path.join(buildPath, 'index.html'));
 });
 

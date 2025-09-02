@@ -1,7 +1,7 @@
 {
   "name": "presentation-server",
   "version": "1.0.0",
-  "description": "Backend server for the AI Presentation Studio",
+  "description": "Backend server for Escape Builder",
   "main": "server.js",
   "scripts": {
     "dev": "vite",

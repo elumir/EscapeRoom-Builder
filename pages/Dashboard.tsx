@@ -63,7 +63,7 @@ const Dashboard: React.FC = () => {
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
             <header className="bg-white dark:bg-slate-800 shadow-md">
                 <div className="container mx-auto px-6 py-4 flex justify-between items-center">
-                    <h1 className="text-2xl font-bold text-brand-600 dark:text-brand-400">AI Presentation Studio</h1>
+                    <h1 className="text-2xl font-bold text-brand-600 dark:text-brand-400">Escape Builder</h1>
                     <button
                         onClick={() => setIsModalOpen(true)}
                         className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors duration-300 shadow"
