@@ -718,41 +718,6 @@ const Editor: React.FC = () => {
                                         </div>
                                     </div>
                                     <div>
-                                        <h4 className="font-semibold text-sm mb-1 text-slate-600 dark:text-slate-400">Locked Rooms</h4>
-                                        <div className="relative">
-                                            <button
-                                                type="button"
-                                                onClick={() => setOpenPuzzleRoomsDropdown(openPuzzleRoomsDropdown === puzzle.id ? null : puzzle.id)}
-                                                className="w-full text-left px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 flex justify-between items-center text-sm"
-                                            >
-                                                <span>{`${puzzle.lockedRoomIds?.length || 0} room(s) selected`}</span>
-                                                <svg className={`w-4 h-4 transition-transform ${openPuzzleRoomsDropdown === puzzle.id ? 'rotate-180' : ''}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
-                                            </button>
-                                            {openPuzzleRoomsDropdown === puzzle.id && (
-                                                <div ref={roomsDropdownRef} className="absolute z-20 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                                                    <div className="space-y-1 p-2">
-                                                        {game.rooms.filter(room => room.id !== currentRoom.id).map(room => (
-                                                            <label key={room.id} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 pl-2 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md p-1">
-                                                                <input
-                                                                    type="checkbox"
-                                                                    className="rounded border-slate-400 text-brand-600 focus:ring-brand-500"
-                                                                    checked={puzzle.lockedRoomIds?.includes(room.id)}
-                                                                    onChange={(e) => {
-                                                                        const newLockedIds = e.target.checked
-                                                                            ? [...(puzzle.lockedRoomIds || []), room.id]
-                                                                            : (puzzle.lockedRoomIds || []).filter(id => id !== room.id);
-                                                                        handlePuzzleChange(index, 'lockedRoomIds', newLockedIds);
-                                                                    }}
-                                                                />
-                                                                {room.name}
-                                                            </label>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div>
                                         <h4 className="font-semibold text-sm mb-1 text-slate-600 dark:text-slate-400">Locked Puzzles</h4>
                                         <div className="relative">
                                             <button
@@ -790,6 +755,41 @@ const Editor: React.FC = () => {
                                                                     <p className="text-xs text-slate-500 italic pl-2">No other puzzles in this room.</p>
                                                                 )}
                                                             </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h4 className="font-semibold text-sm mb-1 text-slate-600 dark:text-slate-400">Locked Rooms</h4>
+                                        <div className="relative">
+                                            <button
+                                                type="button"
+                                                onClick={() => setOpenPuzzleRoomsDropdown(openPuzzleRoomsDropdown === puzzle.id ? null : puzzle.id)}
+                                                className="w-full text-left px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 flex justify-between items-center text-sm"
+                                            >
+                                                <span>{`${puzzle.lockedRoomIds?.length || 0} room(s) selected`}</span>
+                                                <svg className={`w-4 h-4 transition-transform ${openPuzzleRoomsDropdown === puzzle.id ? 'rotate-180' : ''}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
+                                            </button>
+                                            {openPuzzleRoomsDropdown === puzzle.id && (
+                                                <div ref={roomsDropdownRef} className="absolute z-20 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                                                    <div className="space-y-1 p-2">
+                                                        {game.rooms.filter(room => room.id !== currentRoom.id).map(room => (
+                                                            <label key={room.id} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 pl-2 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md p-1">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    className="rounded border-slate-400 text-brand-600 focus:ring-brand-500"
+                                                                    checked={puzzle.lockedRoomIds?.includes(room.id)}
+                                                                    onChange={(e) => {
+                                                                        const newLockedIds = e.target.checked
+                                                                            ? [...(puzzle.lockedRoomIds || []), room.id]
+                                                                            : (puzzle.lockedRoomIds || []).filter(id => id !== room.id);
+                                                                        handlePuzzleChange(index, 'lockedRoomIds', newLockedIds);
+                                                                    }}
+                                                                />
+                                                                {room.name}
+                                                            </label>
                                                         ))}
                                                     </div>
                                                 </div>
