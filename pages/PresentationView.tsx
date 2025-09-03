@@ -4,7 +4,6 @@ import * as gameService from '../services/presentationService';
 import type { Game } from '../types';
 import Room from '../components/Slide';
 import { useBroadcastChannel } from '../hooks/useBroadcastChannel';
-import { useTimer } from '../hooks/useTimer';
 
 interface BroadcastMessage {
   type: 'GOTO_ROOM' | 'STATE_UPDATE';
@@ -20,7 +19,6 @@ const PresentationView: React.FC = () => {
   const [currentRoomIndex, setCurrentRoomIndex] = useState(0);
 
   const channelName = `game-${id}`;
-  const { displayTime, isTimeUp } = useTimer(game?.timer);
 
   const fetchLatestState = async () => {
     if (id) {
@@ -75,11 +73,6 @@ const PresentationView: React.FC = () => {
 
   return (
     <div className="w-screen h-screen bg-black flex items-center justify-center">
-      {game.timer && (game.timer.isRunning || isTimeUp) && (
-          <div className={`absolute top-4 right-4 z-30 bg-black/50 backdrop-blur-sm text-white px-4 py-2 rounded-lg font-mono text-3xl md:text-5xl font-bold transition-colors ${isTimeUp ? 'text-red-500 animate-pulse' : ''}`}>
-              {displayTime}
-          </div>
-      )}
       <div className="w-full max-w-[calc(100vh*16/9)] max-h-[calc(100vw*9/16)] aspect-video">
         <Room 
           room={currentRoom} 

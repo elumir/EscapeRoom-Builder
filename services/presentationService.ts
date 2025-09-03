@@ -2,8 +2,7 @@
 
 
 
-
-import type { Game, Room, Timer } from '../types';
+import type { Game, Room } from '../types';
 import { generateUUID } from '../utils/uuid';
 
 const API_BASE_URL = '/api';
@@ -71,12 +70,6 @@ export const createGame = async (title: string): Promise<Game> => {
         title,
         rooms: [newRoom],
         visitedRoomIds: [],
-        timer: {
-            duration: 3600, // Default 60 minutes
-            isRunning: false,
-            startTime: null,
-            remainingTime: 3600,
-        },
     };
 
     try {

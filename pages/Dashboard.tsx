@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import * as gameService from '../services/presentationService';
@@ -14,6 +12,7 @@ const Dashboard: React.FC = () => {
     const [isCreating, setIsCreating] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const navigate = useNavigate();
+    const [presentModalGame, setPresentModalGame] = useState<Game | null>(null);
 
     useEffect(() => {
         const fetchGames = async () => {
@@ -61,6 +60,43 @@ const Dashboard: React.FC = () => {
             }
         }
     };
+
+    const handlePresentClick = (game: Game) => {
+        setPresentModalGame(game);
+    };
+
+    const handleResetAndPresent = async () => {
+        if (!presentModalGame) return;
+
+        const resetGame: Game = {
+            ...presentModalGame,
+            rooms: presentModalGame.rooms.map(room => ({
+                ...room,
+                objects: room.objects.map(obj => ({
+                    ...obj,
+                    showInInventory: false,
+                })),
+                puzzles: room.puzzles.map(p => ({
+                    ...p,
+                    isSolved: false,
+                    showImageOverlay: false,
+                })),
+            })),
+            visitedRoomIds: presentModalGame.rooms.length > 0 ? [presentModalGame.rooms[0].id] : [],
+        };
+
+        try {
+            await gameService.saveGame(resetGame);
+            setGames(prevGames => prevGames.map(g => g.id === resetGame.id ? resetGame : g));
+            
+            window.open(`/game/presenter/${presentModalGame.id}`, '_blank', 'noopener,noreferrer');
+            
+            setPresentModalGame(null); // Close modal
+        } catch (err) {
+            console.error("Failed to reset and save game:", err);
+            alert("Failed to reset game state. Please try again.");
+        }
+    };
     
     // FIX: Added missing isFullScreenImage property to satisfy RoomType interface.
     const fallbackRoom: RoomType = {
@@ -103,18 +139,29 @@ const Dashboard: React.FC = () => {
                            const allMapImages = g.rooms.map(r => r.mapImage).filter(Boolean);
 
                             return (
-                                <div key={g.id} className="group relative bg-white dark:bg-slate-800 rounded-lg shadow-md overflow-hidden border border-slate-200 dark:border-slate-700 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-                                    <Link to={`/editor/${g.id}`} className="block">
-                                        <div className="p-2">
-                                          <Room 
-                                            room={g.rooms[0] || fallbackRoom}
-                                            inventoryItems={inventoryItems}
-                                            visibleMapImages={allMapImages}
-                                          />
-                                        </div>
-                                        <h3 className="text-lg font-semibold px-4 pt-2 truncate text-slate-800 dark:text-slate-200">{g.title}</h3>
-                                        <p className="text-sm text-slate-500 dark:text-slate-400 px-4 pb-4">{g.rooms.length} room(s)</p>
-                                    </Link>
+                                <div key={g.id} className="group relative bg-white dark:bg-slate-800 rounded-lg shadow-md overflow-hidden border border-slate-200 dark:border-slate-700 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col justify-between">
+                                    <div>
+                                        <Link to={`/editor/${g.id}`} className="block hover:opacity-90 transition-opacity">
+                                            <div className="p-2">
+                                              <Room 
+                                                room={g.rooms[0] || fallbackRoom}
+                                                inventoryItems={inventoryItems}
+                                                visibleMapImages={allMapImages}
+                                              />
+                                            </div>
+                                            <h3 className="text-lg font-semibold px-4 pt-2 truncate text-slate-800 dark:text-slate-200 group-hover:text-brand-600 dark:group-hover:text-brand-400">{g.title}</h3>
+                                        </Link>
+                                        <p className="text-sm text-slate-500 dark:text-slate-400 px-4 pb-2">{g.rooms.length} room(s)</p>
+                                    </div>
+                                    <div className="p-4">
+                                        <button
+                                            onClick={() => handlePresentClick(g)}
+                                            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors duration-300 shadow"
+                                        >
+                                            <Icon as="present" className="w-5 h-5" />
+                                            Present
+                                        </button>
+                                    </div>
                                     <button
                                         onClick={() => handleDelete(g.id)}
                                         className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-red-600"
@@ -160,6 +207,42 @@ const Dashboard: React.FC = () => {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {presentModalGame && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white dark:bg-slate-800 p-8 rounded-lg shadow-2xl w-full max-w-lg">
+                        <h2 className="text-2xl font-bold mb-4 text-slate-800 dark:text-slate-200">Start Presentation: {presentModalGame.title}</h2>
+                        <p className="text-slate-600 dark:text-slate-400 mb-6">
+                            Do you want to reset all puzzles, inventory, and visited rooms to their default state before starting?
+                        </p>
+                        <div className="mt-6 flex justify-end gap-4">
+                            <button 
+                                type="button" 
+                                onClick={() => setPresentModalGame(null)} 
+                                className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <a 
+                                href={`/game/presenter/${presentModalGame.id}`} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                onClick={() => setPresentModalGame(null)}
+                                className="px-4 py-2 text-center bg-slate-500 text-white rounded-lg hover:bg-slate-600 transition-colors"
+                            >
+                                Present with Current State
+                            </a>
+                            <button 
+                                type="button" 
+                                onClick={handleResetAndPresent} 
+                                className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors"
+                            >
+                                Reset and Present
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

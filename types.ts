@@ -32,17 +32,9 @@ export interface Room {
   puzzles: Puzzle[];
 }
 
-export interface Timer {
-  duration: number; // in seconds
-  isRunning: boolean;
-  startTime: number | null; // timestamp
-  remainingTime: number; // in seconds
-}
-
 export interface Game {
   id:string;
   title: string;
   rooms: Room[];
   visitedRoomIds: string[];
-  timer: Timer;
 }

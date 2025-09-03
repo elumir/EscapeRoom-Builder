@@ -7,7 +7,6 @@ import { useBroadcastChannel } from '../hooks/useBroadcastChannel';
 import ObjectItem from '../components/presenter/ObjectItem';
 import PuzzleItem from '../components/presenter/PuzzleItem';
 import { usePresenterState } from '../hooks/usePresenterState';
-import { useTimer } from '../hooks/useTimer';
 
 interface BroadcastMessage {
   type: 'GOTO_ROOM' | 'STATE_UPDATE';
@@ -30,8 +29,6 @@ const PresenterView: React.FC = () => {
     allUnsolvedPuzzles, 
     inventoryObjects 
   } = usePresenterState(game);
-
-  const { displayTime, isTimeUp } = useTimer(game?.timer);
 
 
   const isPresentationWindowOpen = presentationWindow && !presentationWindow.closed;
@@ -200,48 +197,6 @@ const PresenterView: React.FC = () => {
       });
   };
 
-  const handleTimerStart = () => {
-    if (!game) return;
-    const currentTimer = game.timer || { duration: 3600, remainingTime: 3600, isRunning: false, startTime: null };
-    if (currentTimer.isRunning) return;
-
-    const updatedTimer = {
-        ...currentTimer,
-        isRunning: true,
-        startTime: Date.now(),
-    };
-    updateAndBroadcast({ ...game, timer: updatedTimer });
-  };
-
-  const handleTimerPause = () => {
-    if (!game) return;
-    const currentTimer = game.timer;
-    if (!currentTimer || !currentTimer.isRunning || !currentTimer.startTime) return;
-
-    const elapsed = (Date.now() - currentTimer.startTime) / 1000;
-    const newRemainingTime = Math.max(0, currentTimer.remainingTime - elapsed);
-    const updatedTimer = {
-        ...currentTimer,
-        isRunning: false,
-        startTime: null,
-        remainingTime: newRemainingTime,
-    };
-    updateAndBroadcast({ ...game, timer: updatedTimer });
-  };
-    
-  const handleTimerReset = () => {
-    if (!game) return;
-    const currentTimer = game.timer || { duration: 3600, remainingTime: 3600, isRunning: false, startTime: null };
-
-    const updatedTimer = {
-        ...currentTimer,
-        isRunning: false,
-        startTime: null,
-        remainingTime: currentTimer.duration,
-    };
-    updateAndBroadcast({ ...game, timer: updatedTimer });
-  };
-
   if (status === 'loading') {
     return <div className="h-screen bg-slate-800 text-white flex items-center justify-center">Loading Presenter View...</div>;
   }
@@ -257,27 +212,6 @@ const PresenterView: React.FC = () => {
     <div className="h-screen bg-slate-800 text-white flex flex-col">
       <header className="p-4 bg-slate-900 flex justify-between items-center flex-shrink-0">
         <h1 className="text-xl font-bold">{game.title} - Presenter View</h1>
-        
-        {game.timer && (
-            <div className="flex items-center gap-4 bg-slate-800 px-4 py-2 rounded-lg">
-                <span className={`text-2xl font-mono font-bold ${isTimeUp ? 'text-red-500' : 'text-slate-200'}`}>{displayTime}</span>
-                <div className="flex items-center gap-2">
-                    {game.timer.isRunning ? (
-                         <button onClick={handleTimerPause} title="Pause Timer" className="p-2 bg-slate-700 text-yellow-400 rounded-full hover:bg-slate-600 transition-colors">
-                            <Icon as="pause" className="w-5 h-5" />
-                        </button>
-                    ) : (
-                        <button onClick={handleTimerStart} title="Start Timer" disabled={isTimeUp} className="p-2 bg-slate-700 text-green-400 rounded-full hover:bg-slate-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                            <Icon as="play" className="w-5 h-5" />
-                        </button>
-                    )}
-                    <button onClick={handleTimerReset} title="Reset Timer" className="p-2 bg-slate-700 text-sky-400 rounded-full hover:bg-slate-600 transition-colors">
-                        <Icon as="refresh" className="w-5 h-5" />
-                    </button>
-                </div>
-            </div>
-        )}
-
         {isPresentationWindowOpen ? (
           <span className="flex items-center gap-2 px-4 py-2 bg-slate-600 text-white rounded-lg cursor-not-allowed">
             <Icon as="present" className="w-5 h-5" />
