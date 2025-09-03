@@ -3,54 +3,49 @@ import React from 'react';
 const parseMarkdown = (text: string): string => {
   if (!text) return '';
 
-  let html = text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+  const escapeHtml = (unsafe: string) =>
+    unsafe
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
 
-  // Process lists first to avoid conflicts with other syntax
-  const lines = html.split('\n');
-  let inList = false;
-  const processedLines = lines.map(line => {
-    const trimmedLine = line.trim();
-    if (trimmedLine.startsWith('- ') || trimmedLine.startsWith('* ')) {
-      const content = trimmedLine.substring(2);
-      const listItem = `<li>${content}</li>`;
-      if (!inList) {
-        inList = true;
-        return `<ul>${listItem}`;
-      }
-      return listItem;
+  const processInlines = (str: string) => {
+    // Escape the raw string content first to prevent XSS.
+    const escaped = escapeHtml(str);
+    // Then apply markdown formatting to the safe string.
+    return escaped
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>');
+  };
+
+  // Process blocks (paragraphs, lists) which are separated by one or more empty lines.
+  const blocks = text.split(/\n\s*\n/);
+
+  const htmlBlocks = blocks.map(block => {
+    const trimmedBlock = block.trim();
+    if (!trimmedBlock) return '';
+    
+    // Check if the block is a list by inspecting the first line.
+    if (trimmedBlock.startsWith('- ') || trimmedBlock.startsWith('* ')) {
+      const listItems = trimmedBlock.split('\n').map(item => {
+        const content = item.trim().substring(2); // Remove the list marker ("- " or "* ")
+        return `<li>${processInlines(content)}</li>`;
+      }).join('');
+      return `<ul>${listItems}</ul>`;
     } else {
-      if (inList) {
-        inList = false;
-        return `</ul>${line}`;
-      }
-      return line;
+      // It's a paragraph. Paragraphs can have soft line breaks.
+      // We process each line for inline formatting and then join them with <br />.
+      const lines = trimmedBlock.split('\n');
+      const processedLines = lines.map(line => processInlines(line));
+      return `<p>${processedLines.join('<br />')}</p>`;
     }
   });
 
-  if (inList) {
-    processedLines.push('</ul>');
-  }
-
-  html = processedLines.join('\n');
-  
-  // Bold (**text**) - after list processing
-  html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-
-  // Italic (*text*)
-  html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
-  
-  // Convert remaining newlines to <br>, but not if they are next to a list tag
-  html = html.replace(/<\/ul>\n/g, '</ul>');
-  html = html.replace(/\n<ul>/g, '<ul>');
-  html = html.replace(/\n/g, '<br />');
-
-  return html;
+  return htmlBlocks.join('');
 };
+
 
 interface MarkdownRendererProps {
   content: string;
