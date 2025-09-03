@@ -7,6 +7,7 @@ import { useBroadcastChannel } from '../hooks/useBroadcastChannel';
 import ObjectItem from '../components/presenter/ObjectItem';
 import PuzzleItem from '../components/presenter/PuzzleItem';
 import { usePresenterState } from '../hooks/usePresenterState';
+import MarkdownRenderer from '../components/MarkdownRenderer';
 
 interface BroadcastMessage {
   type: 'GOTO_ROOM' | 'STATE_UPDATE';
@@ -297,8 +298,12 @@ const PresenterView: React.FC = () => {
               <>
                 <div className="flex-shrink-0">
                     <h2 className="text-lg font-semibold mb-4 text-slate-300 sticky top-0 bg-slate-900 py-2">Room Description</h2>
-                    <div className="prose prose-invert prose-lg max-w-none whitespace-pre-wrap text-slate-200">
-                        {currentRoom.notes || <span className="text-slate-400">No description for this room.</span>}
+                    <div className="prose prose-invert prose-lg max-w-none text-slate-200">
+                        {currentRoom.notes ? (
+                           <MarkdownRenderer content={currentRoom.notes} />
+                        ) : (
+                           <span className="text-slate-400 italic">No description for this room.</span>
+                        )}
                     </div>
                 </div>
                 

@@ -35,6 +35,7 @@ const Editor: React.FC = () => {
   const roomsContainerRef = useRef<HTMLDivElement>(null);
   const objectsContainerRef = useRef<HTMLDivElement>(null);
   const puzzlesContainerRef = useRef<HTMLDivElement>(null);
+  const descriptionTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (id) {
@@ -374,6 +375,50 @@ const Editor: React.FC = () => {
   const handleDragEnd = () => {
     setDraggedRoomIndex(null);
     setDropTargetIndex(null);
+  };
+
+  const applyFormatting = (format: 'bold' | 'italic' | 'list') => {
+    const textarea = descriptionTextareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = editingRoomNotes.substring(start, end);
+    let newText;
+
+    switch (format) {
+      case 'bold':
+        newText = `**${selectedText}**`;
+        break;
+      case 'italic':
+        newText = `*${selectedText}*`;
+        break;
+      case 'list':
+        const lines = selectedText.split('\n');
+        const listItems = lines.map(line => line.trim() === '' ? '' : `- ${line}`).join('\n');
+        // If the selection is at the start of the line, or the previous character is a newline
+        const prefix = (start === 0 || editingRoomNotes[start - 1] === '\n') ? '' : '\n';
+        newText = prefix + listItems;
+        break;
+    }
+    
+    const updatedNotes = editingRoomNotes.substring(0, start) + newText + editingRoomNotes.substring(end);
+    setEditingRoomNotes(updatedNotes);
+
+    // Focus and update cursor position
+    textarea.focus();
+    setTimeout(() => {
+      if (format === 'list' && selectedText.length === 0) {
+         textarea.selectionStart = textarea.selectionEnd = start + newText.length;
+      } else if (format === 'list') {
+         textarea.selectionStart = start + newText.length;
+         textarea.selectionEnd = start + newText.length;
+      }
+      else {
+        textarea.selectionStart = start + 2;
+        textarea.selectionEnd = end + 2;
+      }
+    }, 0);
   };
 
 
@@ -813,22 +858,30 @@ const Editor: React.FC = () => {
                         </div>
                     </div>
                 </Accordion>
-                <Accordion title="Room Description">
-                    <div className="space-y-3">
-                        <textarea
-                            value={editingRoomNotes}
-                            onChange={e => setEditingRoomNotes(e.target.value)}
-                            placeholder="Add room description here..."
-                            className="w-full h-40 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
-                        />
+                <Accordion title="Room Description" defaultOpen={true}>
+                    <div className="flex items-center gap-1 border border-slate-300 dark:border-slate-600 rounded-t-lg bg-slate-50 dark:bg-slate-700/50 p-1">
+                        <button onClick={() => applyFormatting('bold')} title="Bold" className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded font-bold">B</button>
+                        <button onClick={() => applyFormatting('italic')} title="Italic" className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded italic">I</button>
+                        <button onClick={() => applyFormatting('list')} title="List" className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h7" />
+                            </svg>
+                        </button>
                     </div>
+                    <textarea
+                        ref={descriptionTextareaRef}
+                        value={editingRoomNotes}
+                        onChange={e => setEditingRoomNotes(e.target.value)}
+                        placeholder="Add room description here... You can use **bold**, *italic*, and lists starting with -."
+                        className="w-full h-40 px-3 py-2 border border-t-0 border-slate-300 dark:border-slate-600 rounded-b-lg bg-slate-50 dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
+                    />
                 </Accordion>
                  <Accordion title="Actions">
                      <button onClick={deleteRoom} className="w-full flex items-center gap-2 p-2 bg-red-50 dark:bg-red-900/50 text-red-600 dark:text-red-300 rounded-md hover:bg-red-100 dark:hover:bg-red-900 transition text-sm">
                         <Icon as="trash" className="w-4 h-4" /> Delete Current Room
                       </button>
                  </Accordion>
-                 <Accordion title="Presenter Preview" defaultOpen={true}>
+                 <Accordion title="Presenter Preview" defaultOpen={false}>
                     <div className="flex justify-end mb-2">
                         <button onClick={() => setIsPreviewExpanded(true)} className="text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 flex items-center gap-1 text-xs">
                             <Icon as="expand" className="w-3 h-3" />
