@@ -25,7 +25,7 @@ const parseMarkdown = (text: string): string => {
     return str
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      .replace(/\|\|([ycml])\|(.*?)\|\|/g, (match, colorCode, content) => {
+      .replace(/\|\|([ycml])\|(.*?)\|\|/g, (_match, colorCode, content) => {
           const className = HIGHLIGHT_CLASSES[colorCode] || '';
           // The 'content' part might already contain <strong> or <em> tags. This is safe.
           return `<span class="${className}">${content}</span>`;
