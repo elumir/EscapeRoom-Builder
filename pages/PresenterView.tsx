@@ -293,7 +293,7 @@ const PresenterView: React.FC = () => {
         </div>
 
         {/* Column 2: Room Details (Notes & Available Objects) */}
-        <div className="col-span-5 bg-slate-900 rounded-lg p-6 overflow-y-auto flex flex-col">
+        <div className="col-span-7 bg-slate-900 rounded-lg p-6 overflow-y-auto flex flex-col">
             {currentRoom ? (
               <>
                 <div className="flex-shrink-0">
@@ -356,7 +356,7 @@ const PresenterView: React.FC = () => {
         </div>
         
         {/* Column 3: Live Inventory */}
-        <div className="col-span-4 bg-slate-900/50 rounded-lg p-6 overflow-y-auto">
+        <div className="col-span-2 bg-slate-900/50 rounded-lg p-6 overflow-y-auto">
             <h2 className="text-lg font-semibold mb-4 text-slate-300 sticky top-0 bg-slate-900/50 backdrop-blur-sm py-2">Live Inventory</h2>
             <div className="space-y-4">
                 {inventoryObjects.length > 0 ? (
