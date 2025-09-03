@@ -59,7 +59,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, className 
   const htmlContent = parseMarkdown(content);
   return (
     <div
-      className={className}
+      className={`${className || ''} space-y-4`}
       dangerouslySetInnerHTML={{ __html: htmlContent }}
     />
   );
