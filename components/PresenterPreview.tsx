@@ -3,6 +3,7 @@ import type { Game } from '../types';
 import Icon from './Icon';
 import ObjectItem from './presenter/ObjectItem';
 import PuzzleItem from './presenter/PuzzleItem';
+import ActionItem from './presenter/ActionItem';
 import { usePresenterState } from '../hooks/usePresenterState';
 import MarkdownRenderer from './MarkdownRenderer';
 
@@ -12,11 +13,12 @@ interface PresenterPreviewProps {
   onToggleObject: (objectId: string, newState: boolean) => void;
   onTogglePuzzle: (puzzleId: string, newState: boolean) => void;
   onTogglePuzzleImage: (puzzleId: string, newState: boolean) => void;
+  onToggleActionImage: (actionId: string, newState: boolean) => void;
   isExpanded: boolean;
   onClose?: () => void;
 }
 
-const PresenterPreview: React.FC<PresenterPreviewProps> = ({ game, currentRoomIndex: initialRoomIndex, onToggleObject, onTogglePuzzle, onTogglePuzzleImage, isExpanded, onClose }) => {
+const PresenterPreview: React.FC<PresenterPreviewProps> = ({ game, currentRoomIndex: initialRoomIndex, onToggleObject, onTogglePuzzle, onTogglePuzzleImage, onToggleActionImage, isExpanded, onClose }) => {
   const [currentRoomIndex, setCurrentRoomIndex] = useState(initialRoomIndex);
   const [visibleDescriptionIds, setVisibleDescriptionIds] = useState<Set<string>>(new Set());
 
@@ -102,6 +104,22 @@ const PresenterPreview: React.FC<PresenterPreviewProps> = ({ game, currentRoomIn
                                  )}
                             </div>
                         </div>
+                        {currentRoom.actions && currentRoom.actions.length > 0 && (
+                          <div className="mt-8 pt-6 border-t border-slate-700 flex-shrink-0">
+                            <h2 className="text-lg font-semibold mb-4 text-slate-300 sticky top-0 bg-slate-900 py-2">
+                              Actions
+                            </h2>
+                            <div className="space-y-4">
+                              {(currentRoom.actions || []).map(action => (
+                                <ActionItem 
+                                  key={action.id} 
+                                  action={action} 
+                                  onToggleImage={onToggleActionImage}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        )}
                         {currentRoom.puzzles && currentRoom.puzzles.length > 0 && (
                         <div className="mt-8 pt-6 border-t border-slate-700 flex-shrink-0">
                             <h2 className="text-lg font-semibold mb-4 text-slate-300 sticky top-0 bg-slate-900 py-2 flex items-baseline gap-2">
@@ -219,6 +237,22 @@ const PresenterPreview: React.FC<PresenterPreviewProps> = ({ game, currentRoomIn
                             <span className="italic opacity-50">No description.</span>
                         )}
                     </div>
+
+                    {currentRoom.actions && currentRoom.actions.length > 0 && (
+                      <div className="mt-2 pt-2 border-t border-slate-700/50">
+                        <h3 className="font-bold text-slate-400 text-[9px] mb-1">
+                          Actions
+                        </h3>
+                        {currentRoom.actions.map(action => (
+                           <ActionItem 
+                              key={action.id} 
+                              action={action} 
+                              onToggleImage={onToggleActionImage} 
+                              variant="mini"
+                           />
+                        ))}
+                      </div>
+                    )}
 
                     {currentRoom.puzzles.length > 0 && (
                       <div className="mt-2 pt-2 border-t border-slate-700/50">

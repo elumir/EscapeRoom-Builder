@@ -64,6 +64,7 @@ export const createGame = async (title: string): Promise<Game> => {
         isFullScreenImage: false,
         objects: [],
         puzzles: [],
+        actions: [],
     };
     const newGame: Game = {
         id: generateUUID(),

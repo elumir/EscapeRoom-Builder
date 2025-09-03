@@ -81,6 +81,10 @@ const Dashboard: React.FC = () => {
                     isSolved: false,
                     showImageOverlay: false,
                 })),
+                actions: (room.actions || []).map(a => ({
+                    ...a,
+                    showImageOverlay: false,
+                })),
             })),
             visitedRoomIds: presentModalGame.rooms.length > 0 ? [presentModalGame.rooms[0].id] : [],
         };
@@ -109,6 +113,7 @@ const Dashboard: React.FC = () => {
         isFullScreenImage: false,
         objects: [],
         puzzles: [],
+        actions: [],
     };
 
     return (

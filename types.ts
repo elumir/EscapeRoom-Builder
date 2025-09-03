@@ -5,6 +5,14 @@ export interface InventoryObject {
   showInInventory: boolean;
 }
 
+export interface Action {
+  id: string;
+  name: string;
+  description: string;
+  image: string | null; // Asset ID
+  showImageOverlay: boolean;
+}
+
 export interface Puzzle {
   id: string;
   name: string;
@@ -30,6 +38,7 @@ export interface Room {
   isFullScreenImage: boolean;
   objects: InventoryObject[];
   puzzles: Puzzle[];
+  actions: Action[];
 }
 
 export interface Game {

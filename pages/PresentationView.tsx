@@ -64,7 +64,10 @@ const PresentationView: React.FC = () => {
     .filter(t => t.showInInventory)
     .map(t => t.name);
 
-  const overlayImageUrl = currentRoom.puzzles.find(p => p.showImageOverlay)?.image || null;
+  const overlayImageUrl = 
+    currentRoom.puzzles.find(p => p.showImageOverlay)?.image ||
+    (currentRoom.actions || []).find(a => a.showImageOverlay)?.image ||
+    null;
   
   const visibleMapImages = game.rooms
     .filter(r => game.visitedRoomIds.includes(r.id))

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import * as gameService from '../services/presentationService';
-import type { Game, Room as RoomType, InventoryObject, Puzzle } from '../types';
+import type { Game, Room as RoomType, InventoryObject, Puzzle, Action } from '../types';
 import Room from '../components/Slide';
 import Icon from '../components/Icon';
 import PresenterPreview from '../components/PresenterPreview';
@@ -20,6 +20,7 @@ const Editor: React.FC = () => {
   const [editingRoomNotes, setEditingRoomNotes] = useState('');
   const [editingRoomObjects, setEditingRoomObjects] = useState<InventoryObject[]>([]);
   const [editingRoomPuzzles, setEditingRoomPuzzles] = useState<Puzzle[]>([]);
+  const [editingRoomActions, setEditingRoomActions] = useState<Action[]>([]);
   const [isPreviewExpanded, setIsPreviewExpanded] = useState(false);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [openPuzzleObjectsDropdown, setOpenPuzzleObjectsDropdown] = useState<string | null>(null);
@@ -35,6 +36,7 @@ const Editor: React.FC = () => {
   const roomsContainerRef = useRef<HTMLDivElement>(null);
   const objectsContainerRef = useRef<HTMLDivElement>(null);
   const puzzlesContainerRef = useRef<HTMLDivElement>(null);
+  const actionsContainerRef = useRef<HTMLDivElement>(null);
   const descriptionTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -51,6 +53,7 @@ const Editor: React.FC = () => {
               setEditingRoomNotes(currentRoom.notes);
               setEditingRoomObjects(currentRoom.objects || []);
               setEditingRoomPuzzles(currentRoom.puzzles || []);
+              setEditingRoomActions(currentRoom.actions || []);
           }
           setStatus('success');
         } else {
@@ -113,6 +116,7 @@ const Editor: React.FC = () => {
   useDebouncedUpdater(editingRoomNotes, 'notes');
   useDebouncedUpdater(editingRoomObjects, 'objects');
   useDebouncedUpdater(editingRoomPuzzles, 'puzzles');
+  useDebouncedUpdater(editingRoomActions, 'actions');
 
   const selectRoom = (index: number) => {
     setSelectedRoomIndex(index);
@@ -121,11 +125,12 @@ const Editor: React.FC = () => {
     setEditingRoomNotes(room?.notes || '');
     setEditingRoomObjects(room?.objects || []);
     setEditingRoomPuzzles(room?.puzzles || []);
+    setEditingRoomActions(room?.actions || []);
   };
 
   const addRoom = () => {
     if (!game) return;
-    const newRoom: RoomType = { id: generateUUID(), name: `Room ${game.rooms.length + 1}`, image: null, mapImage: null, notes: '', backgroundColor: '#000000', isFullScreenImage: false, objects: [], puzzles: [] };
+    const newRoom: RoomType = { id: generateUUID(), name: `Room ${game.rooms.length + 1}`, image: null, mapImage: null, notes: '', backgroundColor: '#000000', isFullScreenImage: false, objects: [], puzzles: [], actions: [] };
     const newRooms = [...game.rooms, newRoom];
     updateGame({ ...game, rooms: newRooms });
     selectRoom(newRooms.length - 1);
@@ -222,6 +227,41 @@ const Editor: React.FC = () => {
     setEditingRoomPuzzles(editingRoomPuzzles.filter((_, i) => i !== index));
   }
 
+  const addAction = () => {
+    const newAction: Action = { id: generateUUID(), name: 'New Action', description: 'Description...', image: null, showImageOverlay: false };
+    setEditingRoomActions([...editingRoomActions, newAction]);
+    setTimeout(() => {
+        actionsContainerRef.current?.lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }, 100);
+  };
+
+  const handleActionChange = (index: number, field: keyof Action, value: string | boolean | null) => {
+      const newActions = [...editingRoomActions];
+      newActions[index] = { ...newActions[index], [field]: value };
+      setEditingRoomActions(newActions);
+  };
+
+  const handleActionFileChange = async (index: number, file: File | null) => {
+      if (!file) {
+          handleActionChange(index, 'image', null);
+          return;
+      }
+      if (game) {
+          try {
+              const { assetId } = await gameService.uploadAsset(game.id, file);
+              handleActionChange(index, 'image', assetId);
+          } catch (error) {
+              console.error(`Action image upload failed:`, error);
+              alert(`Failed to upload action image. Please try again.`);
+          }
+      }
+  };
+
+  const deleteAction = (index: number) => {
+      setEditingRoomActions(editingRoomActions.filter((_, i) => i !== index));
+  };
+
+
   const handleToggleObject = (objectId: string, newState: boolean) => {
     if (!game) return;
     const newRooms = game.rooms.map(room => ({
@@ -289,12 +329,28 @@ const Editor: React.FC = () => {
         if (p.id === puzzleId) {
             return { ...p, showImageOverlay: newState };
         }
-        // If turning one ON, turn all others OFF.
         if (newState) {
             return { ...p, showImageOverlay: false };
         }
         return p;
     });
+    const newActions = editingRoomActions.map(a => ({ ...a, showImageOverlay: false }));
+    setEditingRoomPuzzles(newPuzzles);
+    setEditingRoomActions(newActions);
+  };
+
+  const handleToggleActionImage = (actionId: string, newState: boolean) => {
+    const newActions = editingRoomActions.map(a => {
+        if (a.id === actionId) {
+            return { ...a, showImageOverlay: newState };
+        }
+        if (newState) {
+            return { ...a, showImageOverlay: false };
+        }
+        return a;
+    });
+    const newPuzzles = editingRoomPuzzles.map(p => ({ ...p, showImageOverlay: false }));
+    setEditingRoomActions(newActions);
     setEditingRoomPuzzles(newPuzzles);
   };
 
@@ -314,6 +370,10 @@ const Editor: React.FC = () => {
                 isSolved: false,
                 showImageOverlay: false,
             })),
+            actions: (room.actions || []).map(a => ({
+                ...a,
+                showImageOverlay: false,
+            })),
         })),
         visitedRoomIds: game.rooms.length > 0 ? [game.rooms[0].id] : [],
     };
@@ -325,6 +385,7 @@ const Editor: React.FC = () => {
     if (newCurrentRoom) {
       setEditingRoomObjects(newCurrentRoom.objects);
       setEditingRoomPuzzles(newCurrentRoom.puzzles);
+      setEditingRoomActions(newCurrentRoom.actions || []);
     }
 
     window.open(`/game/presenter/${id}`, '_blank', 'noopener,noreferrer');
@@ -490,6 +551,7 @@ const Editor: React.FC = () => {
                     onToggleObject={handleToggleObject}
                     onTogglePuzzle={handleTogglePuzzle}
                     onTogglePuzzleImage={handleTogglePuzzleImage}
+                    onToggleActionImage={handleToggleActionImage}
                     isExpanded={true}
                     onClose={() => setIsPreviewExpanded(false)}
                 />
@@ -818,6 +880,52 @@ const Editor: React.FC = () => {
                   <Icon as="plus" className="w-4 h-4"/> Add Puzzle
                 </button>
             </div>
+            
+            <div className="w-full max-w-4xl mx-auto mt-6 bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md">
+                <h3 className="font-semibold mb-1 text-slate-700 dark:text-slate-300">Actions</h3>
+                <p className="text-xs italic text-slate-500 dark:text-slate-400 mb-3">Provide host expected responses for players who do intended Action.</p>
+                <div className="space-y-4 max-h-96 overflow-y-auto pr-2" ref={actionsContainerRef}>
+                    {editingRoomActions.length > 0 ? editingRoomActions.map((action, index) => (
+                        <div key={action.id} className="p-3 border border-slate-200 dark:border-slate-700 rounded-lg">
+                            <div className="flex items-center justify-between mb-2">
+                                <input 
+                                    type="text" 
+                                    value={action.name}
+                                    onChange={(e) => handleActionChange(index, 'name', e.target.value)}
+                                    placeholder="Action Name"
+                                    className="font-semibold px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm w-1/3"
+                                />
+                                <button onClick={() => deleteAction(index)} className="text-red-500 hover:text-red-700 dark:hover:text-red-400 p-1 rounded-full flex items-center justify-center">
+                                    <Icon as="trash" className="w-4 h-4" />
+                                </button>
+                            </div>
+                            <textarea 
+                                value={action.description}
+                                onChange={(e) => handleActionChange(index, 'description', e.target.value)}
+                                placeholder="Description / Host Response"
+                                rows={3}
+                                className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm resize-none"
+                            />
+                            <div className="mt-2 text-sm">
+                                <label className="block mb-1 text-slate-600 dark:text-slate-400">Image (Full Screen Overlay)</label>
+                                {action.image ? (
+                                    <div className="flex items-center gap-2">
+                                        <img src={`/api/assets/${action.image}`} alt="Action preview" className="w-16 h-16 object-cover rounded-md border border-slate-300 dark:border-slate-600" />
+                                        <button onClick={() => handleActionFileChange(index, null)} className="text-red-500 hover:text-red-700 text-xs">Clear</button>
+                                    </div>
+                                ) : (
+                                    <input type="file" accept="image/*" onChange={(e) => handleActionFileChange(index, e.target.files?.[0] || null)} className="text-xs w-full" />
+                                )}
+                            </div>
+                        </div>
+                    )) : (
+                        <p className="text-slate-500 dark:text-slate-400 text-sm">No actions for this room.</p>
+                    )}
+                </div>
+                <button onClick={addAction} className="mt-3 flex items-center gap-2 text-sm px-3 py-1 bg-brand-100 text-brand-700 dark:bg-brand-900/50 dark:text-brand-300 rounded-md hover:bg-brand-200 dark:hover:bg-brand-900">
+                    <Icon as="plus" className="w-4 h-4"/> Add Action
+                </button>
+            </div>
         </main>
         
         {/* Right Sidebar - Controls */}
@@ -900,6 +1008,7 @@ const Editor: React.FC = () => {
                         onToggleObject={handleToggleObject}
                         onTogglePuzzle={handleTogglePuzzle}
                         onTogglePuzzleImage={handleTogglePuzzleImage}
+                        onToggleActionImage={handleToggleActionImage}
                         isExpanded={false}
                     />
                  </Accordion>

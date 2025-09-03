@@ -6,6 +6,7 @@ import Icon from '../components/Icon';
 import { useBroadcastChannel } from '../hooks/useBroadcastChannel';
 import ObjectItem from '../components/presenter/ObjectItem';
 import PuzzleItem from '../components/presenter/PuzzleItem';
+import ActionItem from '../components/presenter/ActionItem';
 import { usePresenterState } from '../hooks/usePresenterState';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 
@@ -172,14 +173,44 @@ const PresenterView: React.FC = () => {
         ...game,
         rooms: game.rooms.map(room => {
             if (room.id !== currentRoomId) return room;
+            
+            const newActions = (room.actions || []).map(a => ({ ...a, showImageOverlay: false }));
+            const newPuzzles = room.puzzles.map(p => {
+                if (p.id === puzzleId) return { ...p, showImageOverlay: newState };
+                if (newState) return { ...p, showImageOverlay: false };
+                return p;
+            });
+            
             return {
                 ...room,
-                puzzles: room.puzzles.map(p => {
-                    if (p.id === puzzleId) return { ...p, showImageOverlay: newState };
-                    // If turning one on, turn others in the same room off.
-                    if (newState) return { ...p, showImageOverlay: false };
-                    return p;
-                })
+                puzzles: newPuzzles,
+                actions: newActions
+            };
+        })
+    };
+    updateAndBroadcast(updatedGame);
+  };
+
+  const handleToggleActionImage = (actionId: string, newState: boolean) => {
+    if (!game || !game.rooms[currentRoomIndex]) return;
+    const currentRoomId = game.rooms[currentRoomIndex].id;
+
+    const updatedGame = {
+        ...game,
+        rooms: game.rooms.map(room => {
+            if (room.id !== currentRoomId) return room;
+
+            const newPuzzles = room.puzzles.map(p => ({ ...p, showImageOverlay: false }));
+            const newActions = (room.actions || []).map(a => {
+                if (a.id === actionId) return { ...a, showImageOverlay: newState };
+                if (newState) return { ...a, showImageOverlay: false };
+                return a;
+            });
+
+            return {
+                ...room,
+                puzzles: newPuzzles,
+                actions: newActions,
             };
         })
     };
@@ -306,6 +337,23 @@ const PresenterView: React.FC = () => {
                         )}
                     </div>
                 </div>
+                
+                {currentRoom.actions && currentRoom.actions.length > 0 && (
+                  <div className="mt-8 pt-6 border-t border-slate-700 flex-shrink-0">
+                    <h2 className="text-lg font-semibold mb-4 text-slate-300 sticky top-0 bg-slate-900 py-2">
+                      Actions
+                    </h2>
+                    <div className="space-y-4">
+                      {(currentRoom.actions || []).map(action => (
+                        <ActionItem 
+                          key={action.id} 
+                          action={action} 
+                          onToggleImage={handleToggleActionImage}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
                 
                 {currentRoom.puzzles && currentRoom.puzzles.length > 0 && (
                   <div className="mt-8 pt-6 border-t border-slate-700 flex-shrink-0">
