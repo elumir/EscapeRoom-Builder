@@ -1,6 +1,5 @@
 import React from 'react';
 import type { Action } from '../../types';
-import Icon from '../Icon';
 
 const ActionItem: React.FC<{
     action: Action;
