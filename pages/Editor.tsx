@@ -377,47 +377,45 @@ const Editor: React.FC = () => {
     setDropTargetIndex(null);
   };
 
-  const applyFormatting = (format: 'bold' | 'italic' | 'list') => {
+  const applyFormatting = (format: 'bold' | 'italic' | 'highlight', colorCode?: 'y' | 'c' | 'm' | 'l') => {
     const textarea = descriptionTextareaRef.current;
     if (!textarea) return;
 
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
     const selectedText = editingRoomNotes.substring(start, end);
-    let newText;
+
+    let prefix = '';
+    let suffix = '';
 
     switch (format) {
-      case 'bold':
-        newText = `**${selectedText}**`;
-        break;
-      case 'italic':
-        newText = `*${selectedText}*`;
-        break;
-      case 'list':
-        const lines = selectedText.split('\n');
-        const listItems = lines.map(line => line.trim() === '' ? '' : `- ${line}`).join('\n');
-        // If the selection is at the start of the line, or the previous character is a newline
-        const prefix = (start === 0 || editingRoomNotes[start - 1] === '\n') ? '' : '\n';
-        newText = prefix + listItems;
-        break;
+        case 'bold':
+            prefix = '**';
+            suffix = '**';
+            break;
+        case 'italic':
+            prefix = '*';
+            suffix = '*';
+            break;
+        case 'highlight':
+            if (colorCode) {
+                prefix = `||${colorCode}|`;
+                suffix = `||`;
+            }
+            break;
     }
     
+    if (!prefix && format !== 'highlight') return;
+    if (format === 'highlight' && (!selectedText || !colorCode)) return;
+
+    const newText = `${prefix}${selectedText}${suffix}`;
     const updatedNotes = editingRoomNotes.substring(0, start) + newText + editingRoomNotes.substring(end);
     setEditingRoomNotes(updatedNotes);
 
-    // Focus and update cursor position
     textarea.focus();
     setTimeout(() => {
-      if (format === 'list' && selectedText.length === 0) {
-         textarea.selectionStart = textarea.selectionEnd = start + newText.length;
-      } else if (format === 'list') {
-         textarea.selectionStart = start + newText.length;
-         textarea.selectionEnd = start + newText.length;
-      }
-      else {
-        textarea.selectionStart = start + 2;
-        textarea.selectionEnd = end + 2;
-      }
+        textarea.selectionStart = start + prefix.length;
+        textarea.selectionEnd = end + prefix.length;
     }, 0);
   };
 
@@ -862,17 +860,25 @@ const Editor: React.FC = () => {
                     <div className="flex items-center gap-1 border border-slate-300 dark:border-slate-600 rounded-t-lg bg-slate-50 dark:bg-slate-700/50 p-1">
                         <button onClick={() => applyFormatting('bold')} title="Bold" className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded font-bold">B</button>
                         <button onClick={() => applyFormatting('italic')} title="Italic" className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded italic">I</button>
-                        <button onClick={() => applyFormatting('list')} title="List" className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h7" />
-                            </svg>
+                        <div className="h-5 w-px bg-slate-300 dark:bg-slate-600 mx-1"></div>
+                        <button onClick={() => applyFormatting('highlight', 'y')} title="Highlight Yellow" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
+                            <div className="w-4 h-4 rounded-sm bg-yellow-400 border border-yellow-500"></div>
+                        </button>
+                        <button onClick={() => applyFormatting('highlight', 'c')} title="Highlight Cyan" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
+                            <div className="w-4 h-4 rounded-sm bg-cyan-400 border border-cyan-500"></div>
+                        </button>
+                        <button onClick={() => applyFormatting('highlight', 'm')} title="Highlight Pink" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
+                            <div className="w-4 h-4 rounded-sm bg-pink-400 border border-pink-500"></div>
+                        </button>
+                        <button onClick={() => applyFormatting('highlight', 'l')} title="Highlight Lime" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
+                            <div className="w-4 h-4 rounded-sm bg-lime-400 border border-lime-500"></div>
                         </button>
                     </div>
                     <textarea
                         ref={descriptionTextareaRef}
                         value={editingRoomNotes}
                         onChange={e => setEditingRoomNotes(e.target.value)}
-                        placeholder="Add room description here... You can use **bold**, *italic*, and lists starting with -."
+                        placeholder="Add room description here..."
                         className="w-full h-40 px-3 py-2 border border-t-0 border-slate-300 dark:border-slate-600 rounded-b-lg bg-slate-50 dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
                     />
                 </Accordion>
