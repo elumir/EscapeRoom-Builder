@@ -311,9 +311,13 @@ const Editor: React.FC = () => {
             );
         }
 
-        const newPuzzles = room.puzzles.map(p => 
-            p.id === puzzleId ? { ...p, isSolved: newState } : p
-        );
+        const newPuzzles = room.puzzles.map(p => {
+            if (p.id === puzzleId) {
+                 // If the puzzle is being solved, also set its showImageOverlay to false.
+                return { ...p, isSolved: newState, showImageOverlay: newState ? false : p.showImageOverlay };
+            }
+            return p;
+        });
         
         return { ...room, objects: newObjects, puzzles: newPuzzles };
     });
