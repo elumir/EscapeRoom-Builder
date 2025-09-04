@@ -16,6 +16,7 @@ export interface Action {
 export interface Puzzle {
   id: string;
   name: string;
+  answer: string;
   isSolved: boolean;
   unsolvedText: string;
   solvedText: string;

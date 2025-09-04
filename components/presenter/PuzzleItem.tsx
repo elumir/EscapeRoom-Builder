@@ -99,6 +99,11 @@ const PuzzleItem: React.FC<{
                             {isLocked && <Icon as="lock" className="w-2 h-2 text-slate-400"/>}
                             {puzzle.name}
                         </h4>
+                         {puzzle.answer && (
+                            <div className="text-[8px] text-slate-400 mt-0.5">
+                                Ans: <span className="font-mono bg-slate-700/50 px-1 rounded-sm">{puzzle.answer}</span>
+                            </div>
+                        )}
                     </div>
                 </div>
                 {lockingPuzzleName && (
@@ -141,6 +146,12 @@ const PuzzleItem: React.FC<{
                         {isLocked && <Icon as="lock" className="w-4 h-4 text-slate-400"/>}
                         {puzzle.name}
                     </h3>
+                    {puzzle.answer && (
+                        <div className="text-sm mt-1">
+                            <span className="font-semibold text-slate-400">Answer: </span>
+                            <span className="font-mono bg-slate-700 text-slate-200 px-2 py-1 rounded-md tracking-wider">{puzzle.answer}</span>
+                        </div>
+                    )}
                 </div>
                 {puzzle.image && (
                     <label className={`flex items-center gap-2 text-sm text-sky-300 ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}>

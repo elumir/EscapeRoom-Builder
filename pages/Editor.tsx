@@ -192,7 +192,7 @@ const Editor: React.FC = () => {
   }
 
   const addPuzzle = () => {
-    const newPuzzle: Puzzle = { id: generateUUID(), name: 'New Puzzle', isSolved: false, unsolvedText: '', solvedText: '', image: null, sound: null, showImageOverlay: false, lockedObjectIds: [], lockedRoomIds: [], lockedPuzzleIds: [], autoAddLockedObjects: false };
+    const newPuzzle: Puzzle = { id: generateUUID(), name: 'New Puzzle', answer: '', isSolved: false, unsolvedText: '', solvedText: '', image: null, sound: null, showImageOverlay: false, lockedObjectIds: [], lockedRoomIds: [], lockedPuzzleIds: [], autoAddLockedObjects: false };
     setEditingRoomPuzzles([...editingRoomPuzzles, newPuzzle]);
     setTimeout(() => {
         puzzlesContainerRef.current?.lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'end' });
@@ -201,8 +201,11 @@ const Editor: React.FC = () => {
 
   const handlePuzzleChange = (index: number, field: keyof Puzzle, value: string | boolean | string[] | null) => {
     const newPuzzles = [...editingRoomPuzzles];
-    // FIX: Corrected typo from `newPzzles` to `newPuzzles`.
-    newPuzzles[index] = { ...newPuzzles[index], [field]: value };
+    let processedValue = value;
+    if (field === 'answer' && typeof value === 'string') {
+        processedValue = value.toLowerCase().replace(/[^a-z0-9]/g, '');
+    }
+    newPuzzles[index] = { ...newPuzzles[index], [field]: processedValue };
     setEditingRoomPuzzles(newPuzzles);
   }
   
@@ -679,14 +682,23 @@ const Editor: React.FC = () => {
                  <div className="space-y-4 max-h-96 overflow-y-auto pr-2" ref={puzzlesContainerRef}>
                     {editingRoomPuzzles.length > 0 ? editingRoomPuzzles.map((puzzle, index) => (
                         <div key={puzzle.id} className="p-3 border border-slate-200 dark:border-slate-700 rounded-lg">
-                            <div className="flex items-center justify-between mb-2">
-                                <input 
-                                    type="text" 
-                                    value={puzzle.name}
-                                    onChange={(e) => handlePuzzleChange(index, 'name', e.target.value)}
-                                    placeholder="Puzzle Name"
-                                    className="font-semibold px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm w-1/3"
-                                />
+                            <div className="flex items-center justify-between mb-2 gap-2">
+                                <div className="flex items-center gap-2 flex-grow">
+                                    <input 
+                                        type="text" 
+                                        value={puzzle.name}
+                                        onChange={(e) => handlePuzzleChange(index, 'name', e.target.value)}
+                                        placeholder="Puzzle Name"
+                                        className="font-semibold px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm w-1/2"
+                                    />
+                                    <input
+                                        type="text"
+                                        value={puzzle.answer}
+                                        onChange={(e) => handlePuzzleChange(index, 'answer', e.target.value)}
+                                        placeholder="Answer (optional)"
+                                        className="font-mono px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm w-1/2"
+                                    />
+                                </div>
                                 <div className="flex items-center gap-2">
                                     <button onClick={() => deletePuzzle(index)} className="text-red-500 hover:text-red-700 dark:hover:text-red-400 p-1 rounded-full flex items-center justify-center">
                                         <Icon as="trash" className="w-4 h-4" />
