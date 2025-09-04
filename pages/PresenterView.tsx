@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import * as gameService from '../services/presentationService';
 import type { Game, Puzzle } from '../types';
@@ -36,6 +36,17 @@ const PresenterView: React.FC = () => {
     allUnsolvedPuzzles, 
     inventoryObjects 
   } = usePresenterState(game);
+
+  const prevInventoryCountRef = useRef(inventoryObjects.length);
+  
+  useEffect(() => {
+    // If an item was added and the inventory tab is not active, show notification.
+    if (inventoryObjects.length > prevInventoryCountRef.current && activeTab !== 'inventory') {
+        setShowInventoryNotification(true);
+    }
+    // Update the ref to the current count for the next render.
+    prevInventoryCountRef.current = inventoryObjects.length;
+  }, [inventoryObjects.length, activeTab]);
 
 
   const isPresentationWindowOpen = presentationWindow && !presentationWindow.closed;
@@ -119,10 +130,6 @@ const PresenterView: React.FC = () => {
 
   const handleToggleObject = (objectId: string, newState: boolean) => {
     if (!game) return;
-
-    if (newState && activeTab !== 'inventory') {
-        setShowInventoryNotification(true);
-    }
 
     const updatedGame = {
         ...game,
