@@ -27,6 +27,7 @@ const PresenterView: React.FC = () => {
   const [puzzleToSolve, setPuzzleToSolve] = useState<Puzzle | null>(null);
   const [submittedAnswer, setSubmittedAnswer] = useState('');
   const [solveError, setSolveError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'rooms' | 'inventory'>('rooms');
   
   const { 
     lockingPuzzlesByRoomId, 
@@ -357,40 +358,88 @@ const PresenterView: React.FC = () => {
         )}
       </header>
       <main className="flex-1 grid grid-cols-12 gap-4 overflow-hidden p-4">
-        {/* Column 1: Room Navigation */}
-        <div className="col-span-3 overflow-y-auto pr-2">
-            <h2 className="text-lg font-semibold mb-4 text-slate-300">Rooms</h2>
-            <div className="space-y-2">
-                {game.rooms.map((room, index) => {
-                    const isLocked = lockingPuzzlesByRoomId.has(room.id);
-                    const lockingPuzzleName = lockingPuzzlesByRoomId.get(room.id);
-                    return (
-                        <button
-                            key={room.id}
-                            onClick={() => goToRoom(index)}
-                            disabled={isLocked}
-                            title={isLocked ? `Locked by: ${lockingPuzzleName}` : ''}
-                            className={`w-full text-left p-3 rounded-lg transition-colors flex flex-col items-start ${
-                                currentRoomIndex === index
-                                    ? 'bg-brand-600 text-white font-bold shadow-lg'
-                                    : 'bg-slate-700'
-                            } ${isLocked ? 'opacity-50 cursor-not-allowed hover:bg-slate-700' : 'hover:bg-slate-600'}`}
-                        >
-                            <div className="w-full flex items-center justify-between">
-                                <span className="text-lg truncate">{room.name}</span>
-                                {isLocked && <Icon as="lock" className="w-4 h-4 text-slate-400 flex-shrink-0 ml-2" />}
-                            </div>
-                            {isLocked && (
-                                <span className="text-xs text-red-400 mt-1 truncate">Locked by: {lockingPuzzleName}</span>
-                            )}
-                        </button>
-                    );
-                })}
+        {/* Column 1: TABS (Rooms & Inventory) */}
+        <div className="col-span-3 flex flex-col overflow-hidden">
+            <div className="flex-shrink-0 mb-4 border-b border-slate-700">
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => setActiveTab('rooms')}
+                        className={`px-4 py-2 text-sm font-semibold rounded-t-md transition-colors ${
+                            activeTab === 'rooms' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-300'
+                        }`}
+                        aria-pressed={activeTab === 'rooms'}
+                    >
+                        Rooms
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('inventory')}
+                        className={`px-4 py-2 text-sm font-semibold rounded-t-md transition-colors ${
+                            activeTab === 'inventory' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-300'
+                        }`}
+                        aria-pressed={activeTab === 'inventory'}
+                    >
+                        Live Inventory
+                    </button>
+                </div>
+            </div>
+            
+            <div className="flex-grow overflow-y-auto pr-2">
+                {activeTab === 'rooms' && (
+                    <div className="space-y-2">
+                        {game.rooms.map((room, index) => {
+                            const isLocked = lockingPuzzlesByRoomId.has(room.id);
+                            const lockingPuzzleName = lockingPuzzlesByRoomId.get(room.id);
+                            return (
+                                <button
+                                    key={room.id}
+                                    onClick={() => goToRoom(index)}
+                                    disabled={isLocked}
+                                    title={isLocked ? `Locked by: ${lockingPuzzleName}` : ''}
+                                    className={`w-full text-left p-3 rounded-lg transition-colors flex flex-col items-start ${
+                                        currentRoomIndex === index
+                                            ? 'bg-brand-600 text-white font-bold shadow-lg'
+                                            : 'bg-slate-700'
+                                    } ${isLocked ? 'opacity-50 cursor-not-allowed hover:bg-slate-700' : 'hover:bg-slate-600'}`}
+                                >
+                                    <div className="w-full flex items-center justify-between">
+                                        <span className="text-lg truncate">{room.name}</span>
+                                        {isLocked && <Icon as="lock" className="w-4 h-4 text-slate-400 flex-shrink-0 ml-2" />}
+                                    </div>
+                                    {isLocked && (
+                                        <span className="text-xs text-red-400 mt-1 truncate">Locked by: {lockingPuzzleName}</span>
+                                    )}
+                                </button>
+                            );
+                        })}
+                    </div>
+                )}
+                {activeTab === 'inventory' && (
+                    <div className="space-y-4">
+                        {inventoryObjects.length > 0 ? (
+                            inventoryObjects.map(obj => {
+                                const lockingPuzzle = allUnsolvedPuzzles.find(p => p.lockedObjectIds?.includes(obj.id));
+                                return (
+                                    <ObjectItem 
+                                        key={obj.id} 
+                                        obj={obj} 
+                                        onToggle={handleToggleObject} 
+                                        lockingPuzzleName={lockingPuzzle?.name} 
+                                        showVisibilityToggle={true}
+                                        isDescriptionVisible={visibleDescriptionIds.has(obj.id)}
+                                        onToggleDescription={handleToggleDescriptionVisibility}
+                                    />
+                                );
+                            })
+                        ) : (
+                            <p className="text-slate-400">Inventory is empty. Toggle objects to add them.</p>
+                        )}
+                    </div>
+                )}
             </div>
         </div>
 
-        {/* Column 2: Room Details (Notes & Available Objects) */}
-        <div className="col-span-7 bg-slate-900 rounded-lg p-6 overflow-y-auto flex flex-col">
+        {/* Column 2: Room Details */}
+        <div className="col-span-9 bg-slate-900 rounded-lg p-6 overflow-y-auto flex flex-col">
             {currentRoom ? (
               <>
                 <div className="flex-shrink-0">
@@ -468,31 +517,6 @@ const PresenterView: React.FC = () => {
             ) : (
                  <p className="text-slate-400">Select a room to see details.</p>
             )}
-        </div>
-        
-        {/* Column 3: Live Inventory */}
-        <div className="col-span-2 bg-slate-900/50 rounded-lg p-6 overflow-y-auto">
-            <h2 className="text-lg font-semibold mb-4 text-slate-300">Live Inventory</h2>
-            <div className="space-y-4">
-                {inventoryObjects.length > 0 ? (
-                    inventoryObjects.map(obj => {
-                        const lockingPuzzle = allUnsolvedPuzzles.find(p => p.lockedObjectIds?.includes(obj.id));
-                        return (
-                            <ObjectItem 
-                                key={obj.id} 
-                                obj={obj} 
-                                onToggle={handleToggleObject} 
-                                lockingPuzzleName={lockingPuzzle?.name} 
-                                showVisibilityToggle={true}
-                                isDescriptionVisible={visibleDescriptionIds.has(obj.id)}
-                                onToggleDescription={handleToggleDescriptionVisibility}
-                            />
-                        );
-                    })
-                ) : (
-                    <p className="text-slate-400">Inventory is empty. Toggle objects to add them.</p>
-                )}
-            </div>
         </div>
       </main>
     </div>

@@ -24,6 +24,7 @@ const PresenterPreview: React.FC<PresenterPreviewProps> = ({ game, currentRoomIn
   const [puzzleToSolve, setPuzzleToSolve] = useState<Puzzle | null>(null);
   const [submittedAnswer, setSubmittedAnswer] = useState('');
   const [solveError, setSolveError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'rooms' | 'inventory'>('rooms');
 
   useEffect(() => {
     setCurrentRoomIndex(initialRoomIndex);
@@ -128,37 +129,84 @@ const PresenterPreview: React.FC<PresenterPreviewProps> = ({ game, currentRoomIn
                 )}
             </header>
             <main className="flex-1 grid grid-cols-12 gap-4 overflow-hidden p-4">
-                <div className="col-span-3 overflow-y-auto pr-2">
-                    <h2 className="text-lg font-semibold mb-4 text-slate-300">Rooms</h2>
-                    <div className="space-y-2">
-                        {game.rooms.map((room, index) => {
-                            const isLocked = lockingPuzzlesByRoomId.has(room.id);
-                            const lockingPuzzleName = lockingPuzzlesByRoomId.get(room.id);
-                            return (
-                                <button
-                                    key={room.id}
-                                    onClick={() => setCurrentRoomIndex(index)}
-                                    disabled={isLocked}
-                                    title={isLocked ? `Locked by: ${lockingPuzzleName}` : ''}
-                                    className={`w-full text-left p-3 rounded-lg transition-colors flex flex-col items-start ${
-                                        currentRoomIndex === index
-                                            ? 'bg-brand-600 text-white font-bold shadow-lg'
-                                            : 'bg-slate-700'
-                                    } ${isLocked ? 'opacity-50 cursor-not-allowed hover:bg-slate-700' : 'hover:bg-slate-600'}`}
-                                >
-                                    <div className="w-full flex items-center justify-between">
-                                        <span className="text-lg truncate">{room.name}</span>
-                                        {isLocked && <Icon as="lock" className="w-4 h-4 text-slate-400 flex-shrink-0 ml-2" />}
-                                    </div>
-                                    {isLocked && (
-                                        <span className="text-xs text-red-400 mt-1 truncate">Locked by: {lockingPuzzleName}</span>
-                                    )}
-                                </button>
-                            );
-                        })}
+                <div className="col-span-3 flex flex-col overflow-hidden">
+                    <div className="flex-shrink-0 mb-4 border-b border-slate-700">
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setActiveTab('rooms')}
+                                className={`px-4 py-2 text-sm font-semibold rounded-t-md transition-colors ${
+                                    activeTab === 'rooms' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:bg-slate-800'
+                                }`}
+                                aria-pressed={activeTab === 'rooms'}
+                            >
+                                Rooms
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('inventory')}
+                                className={`px-4 py-2 text-sm font-semibold rounded-t-md transition-colors ${
+                                    activeTab === 'inventory' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:bg-slate-800'
+                                }`}
+                                aria-pressed={activeTab === 'inventory'}
+                            >
+                                Live Inventory
+                            </button>
+                        </div>
+                    </div>
+                    <div className="flex-grow overflow-y-auto pr-2">
+                        {activeTab === 'rooms' && (
+                            <div className="space-y-2">
+                                {game.rooms.map((room, index) => {
+                                    const isLocked = lockingPuzzlesByRoomId.has(room.id);
+                                    const lockingPuzzleName = lockingPuzzlesByRoomId.get(room.id);
+                                    return (
+                                        <button
+                                            key={room.id}
+                                            onClick={() => setCurrentRoomIndex(index)}
+                                            disabled={isLocked}
+                                            title={isLocked ? `Locked by: ${lockingPuzzleName}` : ''}
+                                            className={`w-full text-left p-3 rounded-lg transition-colors flex flex-col items-start ${
+                                                currentRoomIndex === index
+                                                    ? 'bg-brand-600 text-white font-bold shadow-lg'
+                                                    : 'bg-slate-700'
+                                            } ${isLocked ? 'opacity-50 cursor-not-allowed hover:bg-slate-700' : 'hover:bg-slate-600'}`}
+                                        >
+                                            <div className="w-full flex items-center justify-between">
+                                                <span className="text-lg truncate">{room.name}</span>
+                                                {isLocked && <Icon as="lock" className="w-4 h-4 text-slate-400 flex-shrink-0 ml-2" />}
+                                            </div>
+                                            {isLocked && (
+                                                <span className="text-xs text-red-400 mt-1 truncate">Locked by: {lockingPuzzleName}</span>
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
+                        {activeTab === 'inventory' && (
+                            <div className="space-y-4">
+                                {inventoryObjects.length > 0 ? (
+                                    inventoryObjects.map(obj => {
+                                        const lockingPuzzle = allUnsolvedPuzzles.find(p => p.lockedObjectIds?.includes(obj.id));
+                                        return (
+                                            <ObjectItem
+                                                key={obj.id}
+                                                obj={obj}
+                                                onToggle={onToggleObject}
+                                                lockingPuzzleName={lockingPuzzle?.name}
+                                                showVisibilityToggle={true}
+                                                isDescriptionVisible={visibleDescriptionIds.has(obj.id)}
+                                                onToggleDescription={handleToggleDescriptionVisibility}
+                                            />
+                                        );
+                                    })
+                                ) : (
+                                    <p className="text-slate-400">Inventory is empty. Toggle objects to add them.</p>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
-                <div className="col-span-7 bg-slate-900 rounded-lg p-6 overflow-y-auto flex flex-col">
+                <div className="col-span-9 bg-slate-900 rounded-lg p-6 overflow-y-auto flex flex-col">
                     {currentRoom && (
                     <>
                         <div className="flex-shrink-0">
@@ -232,29 +280,6 @@ const PresenterPreview: React.FC<PresenterPreviewProps> = ({ game, currentRoomIn
                     </>
                     )}
                 </div>
-                <div className="col-span-2 bg-slate-900/50 rounded-lg p-6 overflow-y-auto">
-                    <h2 className="text-lg font-semibold mb-4 text-slate-300">Live Inventory</h2>
-                    <div className="space-y-4">
-                        {inventoryObjects.length > 0 ? (
-                            inventoryObjects.map(obj => {
-                                const lockingPuzzle = allUnsolvedPuzzles.find(p => p.lockedObjectIds?.includes(obj.id));
-                                return (
-                                    <ObjectItem
-                                        key={obj.id}
-                                        obj={obj}
-                                        onToggle={onToggleObject}
-                                        lockingPuzzleName={lockingPuzzle?.name}
-                                        showVisibilityToggle={true}
-                                        isDescriptionVisible={visibleDescriptionIds.has(obj.id)}
-                                        onToggleDescription={handleToggleDescriptionVisibility}
-                                    />
-                                );
-                            })
-                        ) : (
-                            <p className="text-slate-400">Inventory is empty. Toggle objects to add them.</p>
-                        )}
-                    </div>
-                </div>
             </main>
         </div>
     );
@@ -268,38 +293,82 @@ const PresenterPreview: React.FC<PresenterPreviewProps> = ({ game, currentRoomIn
           <h1 className="font-bold truncate text-white/80 text-[10px]">Presenter Controls</h1>
         </header>
         <div className="flex flex-1 overflow-hidden">
-            <div className="w-1/3 overflow-y-auto p-2 space-y-1 border-r border-slate-700">
-              <h2 className="font-bold text-slate-400 text-[9px] mb-1">Rooms</h2>
-              {game.rooms.map((room, index) => {
-                  const isLocked = lockingPuzzlesByRoomId.has(room.id);
-                  const lockingPuzzleName = lockingPuzzlesByRoomId.get(room.id);
-                  return (
-                      <div
-                          key={room.id}
-                          onClick={() => !isLocked && setCurrentRoomIndex(index)}
-                          title={isLocked ? `Locked by: ${lockingPuzzleName}` : ''}
-                          className={`w-full text-left p-1 rounded-sm flex flex-col items-start ${
-                              currentRoomIndex === index
-                                  ? 'bg-brand-600 text-white font-bold'
-                                  : 'bg-slate-700'
-                          } ${isLocked ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                      >
-                          <div className="w-full flex items-center justify-between">
-                            <span className="text-[10px] truncate">{room.name}</span>
-                            {isLocked && <Icon as="lock" className="w-2 h-2 text-slate-400 flex-shrink-0" />}
-                          </div>
-                          {isLocked && (
-                            <span className="text-[8px] text-red-400/90 truncate">Locked by: {lockingPuzzleName}</span>
-                          )}
-                      </div>
-                  );
-              })}
+            <div className="w-1/3 flex flex-col border-r border-slate-700">
+                <div className="flex-shrink-0 p-1 border-b border-slate-700 flex items-stretch">
+                    <button 
+                        onClick={() => setActiveTab('rooms')} 
+                        className={`flex-1 text-center text-[9px] font-bold p-1 rounded-sm transition-colors ${activeTab === 'rooms' ? 'bg-slate-700 text-slate-200' : 'text-slate-400 hover:bg-slate-600'}`}
+                        aria-pressed={activeTab === 'rooms'}
+                    >
+                        Rooms
+                    </button>
+                    <button 
+                        onClick={() => setActiveTab('inventory')} 
+                        className={`flex-1 text-center text-[9px] font-bold p-1 rounded-sm transition-colors ${activeTab === 'inventory' ? 'bg-slate-700 text-slate-200' : 'text-slate-400 hover:bg-slate-600'}`}
+                        aria-pressed={activeTab === 'inventory'}
+                    >
+                        Inventory
+                    </button>
+                </div>
+                <div className="flex-grow overflow-y-auto p-2">
+                    {activeTab === 'rooms' && (
+                        <div className="space-y-1">
+                          {game.rooms.map((room, index) => {
+                              const isLocked = lockingPuzzlesByRoomId.has(room.id);
+                              const lockingPuzzleName = lockingPuzzlesByRoomId.get(room.id);
+                              return (
+                                  <div
+                                      key={room.id}
+                                      onClick={() => !isLocked && setCurrentRoomIndex(index)}
+                                      title={isLocked ? `Locked by: ${lockingPuzzleName}` : ''}
+                                      className={`w-full text-left p-1 rounded-sm flex flex-col items-start ${
+                                          currentRoomIndex === index
+                                              ? 'bg-brand-600 text-white font-bold'
+                                              : 'bg-slate-700'
+                                      } ${isLocked ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                                  >
+                                      <div className="w-full flex items-center justify-between">
+                                        <span className="text-[10px] truncate">{room.name}</span>
+                                        {isLocked && <Icon as="lock" className="w-2 h-2 text-slate-400 flex-shrink-0" />}
+                                      </div>
+                                      {isLocked && (
+                                        <span className="text-[8px] text-red-400/90 truncate">Locked by: {lockingPuzzleName}</span>
+                                      )}
+                                  </div>
+                              );
+                          })}
+                        </div>
+                    )}
+                    {activeTab === 'inventory' && (
+                        <div>
+                            {inventoryObjects.length > 0 ? (
+                                inventoryObjects.map(obj => {
+                                    const lockingPuzzle = allUnsolvedPuzzles.find(p => p.lockedObjectIds?.includes(obj.id));
+                                    return (
+                                        <ObjectItem
+                                            key={obj.id}
+                                            obj={obj}
+                                            onToggle={onToggleObject}
+                                            lockingPuzzleName={lockingPuzzle?.name}
+                                            showVisibilityToggle={true}
+                                            isDescriptionVisible={visibleDescriptionIds.has(obj.id)}
+                                            onToggleDescription={handleToggleDescriptionVisibility}
+                                            variant="mini"
+                                        />
+                                    );
+                                })
+                             ) : (
+                                <p className="text-slate-500 text-[9px] italic">Empty.</p>
+                             )}
+                        </div>
+                    )}
+                </div>
             </div>
-            <div className="w-1/3 overflow-y-auto p-2 border-r border-slate-700">
+            <div className="w-2/3 overflow-y-auto p-2">
                 {currentRoom && (
                   <>
                     <h2 className="font-bold text-slate-400 text-[9px] mb-1">Description</h2>
-                    <div className="text-slate-300 text-[9px] leading-snug break-words max-h-16 overflow-y-hidden">
+                    <div className="text-slate-300 text-[9px] leading-snug break-words max-h-16 overflow-y-auto">
                         {currentRoom.notes ? (
                             <MarkdownRenderer content={currentRoom.notes} />
                         ) : (
@@ -368,28 +437,6 @@ const PresenterPreview: React.FC<PresenterPreviewProps> = ({ game, currentRoomIn
                     )}
                   </>
                 )}
-            </div>
-            <div className="w-1/3 overflow-y-auto p-2">
-                <h2 className="font-bold text-slate-400 text-[9px] mb-1">Inventory</h2>
-                 {inventoryObjects.length > 0 ? (
-                    inventoryObjects.map(obj => {
-                        const lockingPuzzle = allUnsolvedPuzzles.find(p => p.lockedObjectIds?.includes(obj.id));
-                        return (
-                            <ObjectItem
-                                key={obj.id}
-                                obj={obj}
-                                onToggle={onToggleObject}
-                                lockingPuzzleName={lockingPuzzle?.name}
-                                showVisibilityToggle={true}
-                                isDescriptionVisible={visibleDescriptionIds.has(obj.id)}
-                                onToggleDescription={handleToggleDescriptionVisibility}
-                                variant="mini"
-                            />
-                        );
-                    })
-                 ) : (
-                    <p className="text-slate-500 text-[9px] italic">Empty.</p>
-                 )}
             </div>
         </div>
       </div>
