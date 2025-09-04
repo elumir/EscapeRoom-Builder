@@ -17,9 +17,15 @@ const PuzzleItem: React.FC<{
     lockingPuzzleName?: string;
     variant?: 'full' | 'mini';
 }> = ({ puzzle, onToggle, onToggleImage, onAttemptSolve, isLocked, lockingPuzzleName, variant = 'full' }) => {
+    // --- All Hooks must be at the top level ---
     const [isFlashing, setIsFlashing] = useState(false);
     const prevIsSolved = useRef(puzzle.isSolved);
+    const audioRef = useRef<HTMLAudioElement | null>(null);
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [progress, setProgress] = useState(0);
+    const [duration, setDuration] = useState(0);
 
+    // --- All Effects ---
     useEffect(() => {
         // Check if the puzzle was just solved to trigger a flash effect
         if (puzzle.isSolved && !prevIsSolved.current) {
@@ -33,6 +39,85 @@ const PuzzleItem: React.FC<{
         prevIsSolved.current = puzzle.isSolved;
     }, [puzzle.isSolved]);
 
+    useEffect(() => {
+        // No sound or puzzle is solved, do not set up audio.
+        if (!puzzle.sound || puzzle.isSolved) {
+            return;
+        }
+
+        const audio = new Audio(`/api/assets/${puzzle.sound}`);
+        audioRef.current = audio;
+
+        const setAudioData = () => setDuration(audio.duration);
+        const setAudioTime = () => setProgress(audio.currentTime);
+        const handleAudioEnd = () => setIsPlaying(false);
+
+        audio.addEventListener('loadedmetadata', setAudioData);
+        audio.addEventListener('timeupdate', setAudioTime);
+        audio.addEventListener('ended', handleAudioEnd);
+
+        // Cleanup function for when sound changes, puzzle is solved, or component unmounts.
+        return () => {
+            audio.pause();
+            audio.removeEventListener('loadedmetadata', setAudioData);
+            audio.removeEventListener('timeupdate', setAudioTime);
+            audio.removeEventListener('ended', handleAudioEnd);
+            audioRef.current = null;
+            setIsPlaying(false);
+            setProgress(0);
+        }
+    }, [puzzle.sound, puzzle.isSolved]);
+    
+    // Effect to stop sound if puzzle becomes locked
+    useEffect(() => {
+        if (isLocked && audioRef.current && isPlaying) {
+            audioRef.current.pause();
+            setIsPlaying(false);
+        }
+    }, [isLocked, isPlaying]);
+
+    // --- All Handlers ---
+    const handlePlayPause = () => {
+        if (audioRef.current) {
+            if (isPlaying) {
+                audioRef.current.pause();
+            } else {
+                audioRef.current.play().catch(e => console.error("Error playing sound:", e));
+            }
+            setIsPlaying(!isPlaying);
+        }
+    };
+    
+    const handleStop = () => {
+        if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current.currentTime = 0;
+            setIsPlaying(false);
+        }
+    }
+
+    const handleScrub = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (audioRef.current) {
+            const newTime = Number(e.target.value);
+            audioRef.current.currentTime = newTime;
+            setProgress(newTime);
+        }
+    }
+
+    const handleToggleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (isLocked) return;
+
+        const isAttemptingToSolve = e.target.checked;
+
+        if (isAttemptingToSolve && puzzle.answer) {
+            onAttemptSolve(puzzle.id);
+            e.target.checked = false; // Revert checkbox state visually
+        } else {
+            onToggle(puzzle.id, isAttemptingToSolve);
+        }
+    };
+
+    // --- Conditional Rendering ---
     if (puzzle.isSolved) {
         const CheckmarkIcon = ({ className = 'h-6 w-6' }: { className?: string }) => (
             <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -70,84 +155,6 @@ const PuzzleItem: React.FC<{
     }
 
     // --- Unsolved State ---
-    const audioRef = useRef<HTMLAudioElement | null>(null);
-    const [isPlaying, setIsPlaying] = useState(false);
-    const [progress, setProgress] = useState(0);
-    const [duration, setDuration] = useState(0);
-
-    useEffect(() => {
-        if (puzzle.sound) {
-            const audio = new Audio(`/api/assets/${puzzle.sound}`);
-            audioRef.current = audio;
-
-            const setAudioData = () => setDuration(audio.duration);
-            const setAudioTime = () => setProgress(audio.currentTime);
-            const handleAudioEnd = () => setIsPlaying(false);
-
-            audio.addEventListener('loadedmetadata', setAudioData);
-            audio.addEventListener('timeupdate', setAudioTime);
-            audio.addEventListener('ended', handleAudioEnd);
-
-            return () => {
-                audio.removeEventListener('loadedmetadata', setAudioData);
-                audio.removeEventListener('timeupdate', setAudioTime);
-                audio.removeEventListener('ended', handleAudioEnd);
-                audio.pause();
-                audioRef.current = null;
-            }
-        }
-    }, [puzzle.sound]);
-    
-    // Stop sound if puzzle becomes locked
-    useEffect(() => {
-        if (isLocked && audioRef.current && isPlaying) {
-            audioRef.current.pause();
-            setIsPlaying(false);
-        }
-    }, [isLocked, isPlaying]);
-
-    const handlePlayPause = () => {
-        if (audioRef.current) {
-            if (isPlaying) {
-                audioRef.current.pause();
-            } else {
-                audioRef.current.play().catch(e => console.error("Error playing sound:", e));
-            }
-            setIsPlaying(!isPlaying);
-        }
-    };
-    
-    const handleStop = () => {
-        if (audioRef.current) {
-            audioRef.current.pause();
-            audioRef.current.currentTime = 0;
-            setIsPlaying(false);
-        }
-    }
-
-    const handleScrub = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (audioRef.current) {
-            const newTime = Number(e.target.value);
-            audioRef.current.currentTime = newTime;
-            setProgress(newTime);
-        }
-    }
-
-    const handleToggleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (isLocked) return;
-
-        const isAttemptingToSolve = e.target.checked;
-
-        if (isAttemptingToSolve && puzzle.answer) {
-            onAttemptSolve(puzzle.id);
-            // Revert checkbox state visually until answer is confirmed correct
-            e.target.checked = false;
-        } else {
-            onToggle(puzzle.id, isAttemptingToSolve);
-        }
-    };
-
-
     if (variant === 'mini') {
         return (
              <div className={`mt-1 flex flex-col ${isLocked ? 'opacity-50' : ''}`}>
