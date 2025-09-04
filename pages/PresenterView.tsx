@@ -38,7 +38,6 @@ const PresenterView: React.FC = () => {
   } = usePresenterState(game);
 
   const prevInventoryCountRef = useRef(inventoryObjects.length);
-  const prevInventoryRef = useRef(inventoryObjects);
   
   useEffect(() => {
     // If an item was added and the inventory tab is not active, show notification.
