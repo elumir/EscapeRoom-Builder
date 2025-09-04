@@ -359,7 +359,7 @@ const PresenterView: React.FC = () => {
       <main className="flex-1 grid grid-cols-12 gap-4 overflow-hidden p-4">
         {/* Column 1: Room Navigation */}
         <div className="col-span-3 overflow-y-auto pr-2">
-            <h2 className="text-lg font-semibold mb-4 text-slate-300 sticky top-0 bg-slate-800 py-2">Rooms</h2>
+            <h2 className="text-lg font-semibold mb-4 text-slate-300">Rooms</h2>
             <div className="space-y-2">
                 {game.rooms.map((room, index) => {
                     const isLocked = lockingPuzzlesByRoomId.has(room.id);
@@ -394,7 +394,7 @@ const PresenterView: React.FC = () => {
             {currentRoom ? (
               <>
                 <div className="flex-shrink-0">
-                    <h2 className="text-lg font-semibold mb-4 text-slate-300 sticky top-0 bg-slate-900 py-2">Room Description</h2>
+                    <h2 className="text-lg font-semibold mb-4 text-slate-300">Room Description</h2>
                     <div className="prose prose-invert prose-lg max-w-none text-slate-200">
                         {currentRoom.notes ? (
                            <MarkdownRenderer content={currentRoom.notes} />
@@ -406,7 +406,7 @@ const PresenterView: React.FC = () => {
                 
                 {currentRoom.actions && currentRoom.actions.length > 0 && (
                   <div className="mt-8 pt-6 border-t border-slate-700 flex-shrink-0">
-                    <h2 className="text-lg font-semibold mb-4 text-slate-300 sticky top-0 bg-slate-900 py-2">
+                    <h2 className="text-lg font-semibold mb-4 text-slate-300">
                       Actions
                     </h2>
                     <div className="space-y-4">
@@ -423,7 +423,7 @@ const PresenterView: React.FC = () => {
                 
                 {currentRoom.puzzles && currentRoom.puzzles.length > 0 && (
                   <div className="mt-8 pt-6 border-t border-slate-700 flex-shrink-0">
-                    <h2 className="text-lg font-semibold mb-4 text-slate-300 sticky top-0 bg-slate-900 py-2 flex items-baseline gap-2">
+                    <h2 className="text-lg font-semibold mb-4 text-slate-300 flex items-baseline gap-2">
                       <span>Puzzles</span>
                       <span className="text-xs font-normal text-slate-400">(Toggle to solve)</span>
                     </h2>
@@ -448,7 +448,7 @@ const PresenterView: React.FC = () => {
                 
                 {currentRoom.objects && currentRoom.objects.length > 0 && (
                   <div className="mt-8 pt-6 border-t border-slate-700 flex-shrink-0">
-                    <h2 className="text-lg font-semibold mb-4 text-slate-300 sticky top-0 bg-slate-900 py-2 flex items-baseline gap-2">
+                    <h2 className="text-lg font-semibold mb-4 text-slate-300 flex items-baseline gap-2">
                       <span>Available Objects</span>
                       <span className="text-xs font-normal text-slate-400">(Toggle to add to inventory)</span>
                     </h2>
@@ -472,7 +472,7 @@ const PresenterView: React.FC = () => {
         
         {/* Column 3: Live Inventory */}
         <div className="col-span-2 bg-slate-900/50 rounded-lg p-6 overflow-y-auto">
-            <h2 className="text-lg font-semibold mb-4 text-slate-300 sticky top-0 bg-slate-900/50 backdrop-blur-sm py-2">Live Inventory</h2>
+            <h2 className="text-lg font-semibold mb-4 text-slate-300">Live Inventory</h2>
             <div className="space-y-4">
                 {inventoryObjects.length > 0 ? (
                     inventoryObjects.map(obj => {
