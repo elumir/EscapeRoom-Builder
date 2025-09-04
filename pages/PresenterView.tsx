@@ -28,6 +28,7 @@ const PresenterView: React.FC = () => {
   const [submittedAnswer, setSubmittedAnswer] = useState('');
   const [solveError, setSolveError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'rooms' | 'inventory'>('rooms');
+  const [showInventoryNotification, setShowInventoryNotification] = useState(false);
   
   const { 
     lockingPuzzlesByRoomId, 
@@ -118,6 +119,10 @@ const PresenterView: React.FC = () => {
 
   const handleToggleObject = (objectId: string, newState: boolean) => {
     if (!game) return;
+
+    if (newState && activeTab !== 'inventory') {
+        setShowInventoryNotification(true);
+    }
 
     const updatedGame = {
         ...game,
@@ -372,13 +377,19 @@ const PresenterView: React.FC = () => {
                         Rooms
                     </button>
                     <button
-                        onClick={() => setActiveTab('inventory')}
-                        className={`px-4 py-2 text-sm font-semibold rounded-t-md transition-colors ${
+                        onClick={() => {
+                            setActiveTab('inventory');
+                            setShowInventoryNotification(false);
+                        }}
+                        className={`relative px-4 py-2 text-sm font-semibold rounded-t-md transition-colors ${
                             activeTab === 'inventory' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-300'
                         }`}
                         aria-pressed={activeTab === 'inventory'}
                     >
-                        Live Inventory
+                        <span>Live Inventory</span>
+                        {showInventoryNotification && (
+                            <span className="absolute top-2 right-2 block w-2.5 h-2.5 bg-brand-500 rounded-full ring-2 ring-slate-900"></span>
+                        )}
                     </button>
                 </div>
             </div>
@@ -416,20 +427,23 @@ const PresenterView: React.FC = () => {
                 {activeTab === 'inventory' && (
                     <div className="space-y-4">
                         {inventoryObjects.length > 0 ? (
-                            inventoryObjects.map(obj => {
-                                const lockingPuzzle = allUnsolvedPuzzles.find(p => p.lockedObjectIds?.includes(obj.id));
-                                return (
-                                    <ObjectItem 
-                                        key={obj.id} 
-                                        obj={obj} 
-                                        onToggle={handleToggleObject} 
-                                        lockingPuzzleName={lockingPuzzle?.name} 
-                                        showVisibilityToggle={true}
-                                        isDescriptionVisible={visibleDescriptionIds.has(obj.id)}
-                                        onToggleDescription={handleToggleDescriptionVisibility}
-                                    />
-                                );
-                            })
+                            <>
+                                <p className="text-xs text-slate-400 italic">Toggle to move object back to room.</p>
+                                {inventoryObjects.map(obj => {
+                                    const lockingPuzzle = allUnsolvedPuzzles.find(p => p.lockedObjectIds?.includes(obj.id));
+                                    return (
+                                        <ObjectItem 
+                                            key={obj.id} 
+                                            obj={obj} 
+                                            onToggle={handleToggleObject} 
+                                            lockingPuzzleName={lockingPuzzle?.name} 
+                                            showVisibilityToggle={true}
+                                            isDescriptionVisible={visibleDescriptionIds.has(obj.id)}
+                                            onToggleDescription={handleToggleDescriptionVisibility}
+                                        />
+                                    );
+                                })}
+                            </>
                         ) : (
                             <p className="text-slate-400">Inventory is empty. Toggle objects to add them.</p>
                         )}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { Game, Puzzle } from '../types';
 import Icon from './Icon';
 import ObjectItem from './presenter/ObjectItem';
@@ -25,6 +25,7 @@ const PresenterPreview: React.FC<PresenterPreviewProps> = ({ game, currentRoomIn
   const [submittedAnswer, setSubmittedAnswer] = useState('');
   const [solveError, setSolveError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'rooms' | 'inventory'>('rooms');
+  const [showInventoryNotification, setShowInventoryNotification] = useState(false);
 
   useEffect(() => {
     setCurrentRoomIndex(initialRoomIndex);
@@ -36,6 +37,17 @@ const PresenterPreview: React.FC<PresenterPreviewProps> = ({ game, currentRoomIn
       lockingPuzzlesByPuzzleId,
       inventoryObjects,
   } = usePresenterState(game);
+  
+  const prevInventoryCountRef = useRef(inventoryObjects.length);
+  
+  useEffect(() => {
+    // If an item was added and the inventory tab is not active, show notification.
+    if (inventoryObjects.length > prevInventoryCountRef.current && activeTab !== 'inventory') {
+        setShowInventoryNotification(true);
+    }
+    // Update the ref to the current count for the next render.
+    prevInventoryCountRef.current = inventoryObjects.length;
+  }, [inventoryObjects.length, activeTab]);
 
 
   const handleToggleDescriptionVisibility = (objectId: string) => {
@@ -142,13 +154,19 @@ const PresenterPreview: React.FC<PresenterPreviewProps> = ({ game, currentRoomIn
                                 Rooms
                             </button>
                             <button
-                                onClick={() => setActiveTab('inventory')}
-                                className={`px-4 py-2 text-sm font-semibold rounded-t-md transition-colors ${
+                                onClick={() => {
+                                    setActiveTab('inventory');
+                                    setShowInventoryNotification(false);
+                                }}
+                                className={`relative px-4 py-2 text-sm font-semibold rounded-t-md transition-colors ${
                                     activeTab === 'inventory' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:bg-slate-800'
                                 }`}
                                 aria-pressed={activeTab === 'inventory'}
                             >
-                                Live Inventory
+                                <span>Live Inventory</span>
+                                {showInventoryNotification && (
+                                    <span className="absolute top-2 right-2 block w-2.5 h-2.5 bg-brand-500 rounded-full ring-2 ring-slate-900"></span>
+                                )}
                             </button>
                         </div>
                     </div>
@@ -185,20 +203,23 @@ const PresenterPreview: React.FC<PresenterPreviewProps> = ({ game, currentRoomIn
                         {activeTab === 'inventory' && (
                             <div className="space-y-4">
                                 {inventoryObjects.length > 0 ? (
-                                    inventoryObjects.map(obj => {
-                                        const lockingPuzzle = allUnsolvedPuzzles.find(p => p.lockedObjectIds?.includes(obj.id));
-                                        return (
-                                            <ObjectItem
-                                                key={obj.id}
-                                                obj={obj}
-                                                onToggle={onToggleObject}
-                                                lockingPuzzleName={lockingPuzzle?.name}
-                                                showVisibilityToggle={true}
-                                                isDescriptionVisible={visibleDescriptionIds.has(obj.id)}
-                                                onToggleDescription={handleToggleDescriptionVisibility}
-                                            />
-                                        );
-                                    })
+                                    <>
+                                        <p className="text-slate-400 text-xs italic">Toggle to move object back to room.</p>
+                                        {inventoryObjects.map(obj => {
+                                            const lockingPuzzle = allUnsolvedPuzzles.find(p => p.lockedObjectIds?.includes(obj.id));
+                                            return (
+                                                <ObjectItem
+                                                    key={obj.id}
+                                                    obj={obj}
+                                                    onToggle={onToggleObject}
+                                                    lockingPuzzleName={lockingPuzzle?.name}
+                                                    showVisibilityToggle={true}
+                                                    isDescriptionVisible={visibleDescriptionIds.has(obj.id)}
+                                                    onToggleDescription={handleToggleDescriptionVisibility}
+                                                />
+                                            );
+                                        })}
+                                    </>
                                 ) : (
                                     <p className="text-slate-400">Inventory is empty. Toggle objects to add them.</p>
                                 )}
@@ -303,11 +324,17 @@ const PresenterPreview: React.FC<PresenterPreviewProps> = ({ game, currentRoomIn
                         Rooms
                     </button>
                     <button 
-                        onClick={() => setActiveTab('inventory')} 
-                        className={`flex-1 text-center text-[9px] font-bold p-1 rounded-sm transition-colors ${activeTab === 'inventory' ? 'bg-slate-700 text-slate-200' : 'text-slate-400 hover:bg-slate-600'}`}
+                        onClick={() => {
+                            setActiveTab('inventory');
+                            setShowInventoryNotification(false);
+                        }} 
+                        className={`relative flex-1 text-center text-[9px] font-bold p-1 rounded-sm transition-colors ${activeTab === 'inventory' ? 'bg-slate-700 text-slate-200' : 'text-slate-400 hover:bg-slate-600'}`}
                         aria-pressed={activeTab === 'inventory'}
                     >
-                        Inventory
+                        <span>Inventory</span>
+                        {showInventoryNotification && (
+                            <span className="absolute top-1 right-1 block w-1.5 h-1.5 bg-brand-500 rounded-full ring-1 ring-slate-900"></span>
+                        )}
                     </button>
                 </div>
                 <div className="flex-grow overflow-y-auto p-2">
@@ -342,21 +369,24 @@ const PresenterPreview: React.FC<PresenterPreviewProps> = ({ game, currentRoomIn
                     {activeTab === 'inventory' && (
                         <div>
                             {inventoryObjects.length > 0 ? (
-                                inventoryObjects.map(obj => {
-                                    const lockingPuzzle = allUnsolvedPuzzles.find(p => p.lockedObjectIds?.includes(obj.id));
-                                    return (
-                                        <ObjectItem
-                                            key={obj.id}
-                                            obj={obj}
-                                            onToggle={onToggleObject}
-                                            lockingPuzzleName={lockingPuzzle?.name}
-                                            showVisibilityToggle={true}
-                                            isDescriptionVisible={visibleDescriptionIds.has(obj.id)}
-                                            onToggleDescription={handleToggleDescriptionVisibility}
-                                            variant="mini"
-                                        />
-                                    );
-                                })
+                                <>
+                                    <p className="text-slate-500 text-[8px] italic mb-1">Toggle to move back to room.</p>
+                                    {inventoryObjects.map(obj => {
+                                        const lockingPuzzle = allUnsolvedPuzzles.find(p => p.lockedObjectIds?.includes(obj.id));
+                                        return (
+                                            <ObjectItem
+                                                key={obj.id}
+                                                obj={obj}
+                                                onToggle={onToggleObject}
+                                                lockingPuzzleName={lockingPuzzle?.name}
+                                                showVisibilityToggle={true}
+                                                isDescriptionVisible={visibleDescriptionIds.has(obj.id)}
+                                                onToggleDescription={handleToggleDescriptionVisibility}
+                                                variant="mini"
+                                            />
+                                        );
+                                    })}
+                                </>
                              ) : (
                                 <p className="text-slate-500 text-[9px] italic">Empty.</p>
                              )}
