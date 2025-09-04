@@ -48,6 +48,16 @@ const PresenterView: React.FC = () => {
     prevInventoryCountRef.current = inventoryObjects.length;
   }, [inventoryObjects.length, activeTab]);
 
+  useEffect(() => {
+    if (activeTab === 'inventory') {
+      // When switching to the inventory tab, make all inventory item descriptions visible.
+      setVisibleDescriptionIds(new Set(inventoryObjects.map(obj => obj.id)));
+    } else {
+      // When leaving the inventory tab, hide all descriptions.
+      setVisibleDescriptionIds(new Set());
+    }
+  }, [activeTab, inventoryObjects]);
+
 
   const isPresentationWindowOpen = presentationWindow && !presentationWindow.closed;
 
