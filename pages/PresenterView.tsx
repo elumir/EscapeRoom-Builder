@@ -498,10 +498,10 @@ const PresenterView: React.FC = () => {
         </div>
 
         {/* Column 2: Room Details */}
-        <div className="col-span-9 bg-slate-900 rounded-lg p-6 overflow-y-auto flex flex-col">
+        <div className="col-span-9 bg-slate-900 rounded-lg p-6 overflow-y-auto">
             {currentRoom ? (
               <>
-                <div className="flex-shrink-0">
+                <div>
                     <h2 className="text-lg font-semibold mb-4 text-slate-300">Room Description</h2>
                     <div className="prose prose-invert prose-lg max-w-none text-slate-200">
                         {currentRoom.notes ? (
@@ -513,7 +513,7 @@ const PresenterView: React.FC = () => {
                 </div>
                 
                 {currentRoom.actions && currentRoom.actions.length > 0 && (
-                  <div className="mt-8 pt-6 border-t border-slate-700 flex-shrink-0">
+                  <div className="mt-8 pt-6 border-t border-slate-700">
                     <h2 className="text-lg font-semibold mb-4 text-slate-300">
                       Actions
                     </h2>
@@ -530,7 +530,7 @@ const PresenterView: React.FC = () => {
                 )}
                 
                 {currentRoom.puzzles && currentRoom.puzzles.length > 0 && (
-                  <div className="mt-8 pt-6 border-t border-slate-700 flex-shrink-0">
+                  <div className="mt-8 pt-6 border-t border-slate-700">
                     <h2 className="text-lg font-semibold mb-4 text-slate-300 flex items-baseline gap-2">
                       <span>Puzzles</span>
                       <span className="text-xs font-normal text-slate-400">(Toggle to solve)</span>
@@ -555,7 +555,7 @@ const PresenterView: React.FC = () => {
                 )}
                 
                 {currentRoom.objects && currentRoom.objects.length > 0 && (
-                  <div className="mt-8 pt-6 border-t border-slate-700 flex-shrink-0">
+                  <div className="mt-8 pt-6 border-t border-slate-700">
                     <h2 className="text-lg font-semibold mb-4 text-slate-300 flex items-baseline gap-2">
                       <span>Available Objects</span>
                       <span className="text-xs font-normal text-slate-400">(Toggle to add to inventory)</span>
