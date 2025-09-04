@@ -4,7 +4,6 @@ import * as gameService from '../services/presentationService';
 import type { Game, Room as RoomType, InventoryObject, Puzzle, Action } from '../types';
 import Room from '../components/Slide';
 import Icon from '../components/Icon';
-import PresenterPreview from '../components/PresenterPreview';
 import Accordion from '../components/Accordion';
 import { generateUUID } from '../utils/uuid';
 
@@ -21,7 +20,6 @@ const Editor: React.FC = () => {
   const [editingRoomObjects, setEditingRoomObjects] = useState<InventoryObject[]>([]);
   const [editingRoomPuzzles, setEditingRoomPuzzles] = useState<Puzzle[]>([]);
   const [editingRoomActions, setEditingRoomActions] = useState<Action[]>([]);
-  const [isPreviewExpanded, setIsPreviewExpanded] = useState(false);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [openPuzzleObjectsDropdown, setOpenPuzzleObjectsDropdown] = useState<string | null>(null);
   const [openPuzzleRoomsDropdown, setOpenPuzzleRoomsDropdown] = useState<string | null>(null);
@@ -549,22 +547,6 @@ const Editor: React.FC = () => {
             </div>
         </div>
        )}
-       {isPreviewExpanded && (
-        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-            <div className="w-full h-full max-w-6xl max-h-[90vh] bg-slate-800 rounded-lg shadow-2xl">
-                <PresenterPreview
-                    game={game}
-                    currentRoomIndex={selectedRoomIndex}
-                    onToggleObject={handleToggleObject}
-                    onTogglePuzzle={handleTogglePuzzle}
-                    onTogglePuzzleImage={handleTogglePuzzleImage}
-                    onToggleActionImage={handleToggleActionImage}
-                    isExpanded={true}
-                    onClose={() => setIsPreviewExpanded(false)}
-                />
-            </div>
-        </div>
-       )}
       <header className="bg-white dark:bg-slate-800 shadow-md p-2 flex justify-between items-center z-10">
         <div className="flex items-center gap-4">
           <Link to="/" className="text-xl font-bold text-brand-600 dark:text-brand-400 p-2">Studio</Link>
@@ -1010,23 +992,6 @@ const Editor: React.FC = () => {
                      <button onClick={deleteRoom} className="w-full flex items-center gap-2 p-2 bg-red-50 dark:bg-red-900/50 text-red-600 dark:text-red-300 rounded-md hover:bg-red-100 dark:hover:bg-red-900 transition text-sm">
                         <Icon as="trash" className="w-4 h-4" /> Delete Current Room
                       </button>
-                 </Accordion>
-                 <Accordion title="Presenter Preview" defaultOpen={false}>
-                    <div className="flex justify-end mb-2">
-                        <button onClick={() => setIsPreviewExpanded(true)} className="text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 flex items-center gap-1 text-xs">
-                            <Icon as="expand" className="w-3 h-3" />
-                            Expand
-                        </button>
-                    </div>
-                    <PresenterPreview 
-                        game={game} 
-                        currentRoomIndex={selectedRoomIndex} 
-                        onToggleObject={handleToggleObject}
-                        onTogglePuzzle={handleTogglePuzzle}
-                        onTogglePuzzleImage={handleTogglePuzzleImage}
-                        onToggleActionImage={handleToggleActionImage}
-                        isExpanded={false}
-                    />
                  </Accordion>
             </div>
         </aside>
