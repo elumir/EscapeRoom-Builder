@@ -88,7 +88,7 @@ const PuzzleItem: React.FC<{
         }
     };
     
-    const handleStop = () => {
+    const handleRewind = () => {
         if (audioRef.current) {
             audioRef.current.pause();
             audioRef.current.currentTime = 0;
@@ -240,15 +240,15 @@ const PuzzleItem: React.FC<{
             {puzzle.sound && (
                 <div className="pl-14 mt-2">
                     <div className={`flex items-center gap-3 w-full bg-slate-700/50 p-2 rounded-lg transition-opacity ${isLocked ? 'opacity-60' : ''}`}>
-                        <button onClick={handlePlayPause} disabled={isLocked} className="p-2 bg-slate-700 rounded-full hover:bg-slate-600 flex-shrink-0 disabled:cursor-not-allowed disabled:hover:bg-slate-700">
+                        <button onClick={handlePlayPause} disabled={isLocked} title={isPlaying ? "Pause" : "Play"} className="p-2 bg-slate-700 rounded-full hover:bg-slate-600 flex-shrink-0 disabled:cursor-not-allowed disabled:hover:bg-slate-700">
                             {isPlaying ? (
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0zM7 8a1 1 0 0 1 2 0v4a1 1 0 1 1-2 0V8zm4 0a1 1 0 0 1 2 0v4a1 1 0 1 1-2 0V8z" clipRule="evenodd" /></svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M5.5 3.5A1.5 1.5 0 017 5v10a1.5 1.5 0 01-3 0V5a1.5 1.5 0 011.5-1.5zM12.5 3.5A1.5 1.5 0 0114 5v10a1.5 1.5 0 01-3 0V5a1.5 1.5 0 011.5-1.5z" /></svg>
                             ) : (
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM9.555 7.168A1 1 0 0 0 8 8v4a1 1 0 0 0 1.555.832l3-2a1 1 0 0 0 0-1.664l-3-2z" /></svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" /></svg>
                             )}
                         </button>
-                        <button onClick={handleStop} disabled={isLocked} className="p-2 bg-slate-700 rounded-full hover:bg-slate-600 flex-shrink-0 disabled:cursor-not-allowed disabled:hover:bg-slate-700">
-                           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 1 1-16 0 8 8 0 0 1 16 0zM8 8a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V8z" clipRule="evenodd" /></svg>
+                        <button onClick={handleRewind} disabled={isLocked} title="Rewind to Start" className="p-2 bg-slate-700 rounded-full hover:bg-slate-600 flex-shrink-0 disabled:cursor-not-allowed disabled:hover:bg-slate-700">
+                           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M4.5 3.5A1.5 1.5 0 003 5v10a1.5 1.5 0 003 0V5a1.5 1.5 0 00-1.5-1.5zM16.898 9.22a1.5 1.5 0 000-2.438l-6-4.5a1.5 1.5 0 00-2.398 1.218V16.5a1.5 1.5 0 002.398 1.218l6-4.5z" /></svg>
                         </button>
                         <div className="flex-grow flex items-center gap-2">
                             <span className="text-xs text-slate-400">{formatTime(progress)}</span>
