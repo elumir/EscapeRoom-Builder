@@ -39,6 +39,7 @@ const PresenterPreview: React.FC<PresenterPreviewProps> = ({ game, currentRoomIn
   } = usePresenterState(game);
   
   const prevInventoryCountRef = useRef(inventoryObjects.length);
+  const prevInventoryRef = useRef<InventoryObject[]>(inventoryObjects);
   
   useEffect(() => {
     // If an item was added and the inventory tab is not active, show notification.
@@ -50,12 +51,37 @@ const PresenterPreview: React.FC<PresenterPreviewProps> = ({ game, currentRoomIn
   }, [inventoryObjects.length, activeTab]);
 
   useEffect(() => {
-    // When the user switches to the 'Rooms' tab, hide all object descriptions in the inventory.
-    // The descriptions will remain hidden until manually shown again by the user.
-    if (activeTab === 'rooms') {
-        setVisibleDescriptionIds(new Set());
+    const prevIds = new Set(prevInventoryRef.current.map(o => o.id));
+    const currentIds = new Set(inventoryObjects.map(o => o.id));
+
+    const newlyAddedIds = inventoryObjects
+      .filter(o => !prevIds.has(o.id))
+      .map(o => o.id);
+
+    // This effect ensures that:
+    // 1. Newly added inventory items have their descriptions visible by default.
+    // 2. The visibility state of items removed from inventory is cleaned up.
+    // 3. Manual hide/show toggles are preserved during re-renders.
+    if (newlyAddedIds.length > 0 || prevIds.size !== currentIds.size) {
+        setVisibleDescriptionIds(currentVisibleIds => {
+            const newVisibleIds = new Set(currentVisibleIds);
+
+            // Add newly added inventory items to the visible set
+            newlyAddedIds.forEach(id => newVisibleIds.add(id));
+
+            // Remove items that are no longer in the inventory from the visible set
+            currentVisibleIds.forEach(id => {
+                if (!currentIds.has(id)) {
+                    newVisibleIds.delete(id);
+                }
+            });
+
+            return newVisibleIds;
+        });
     }
-  }, [activeTab]);
+
+    prevInventoryRef.current = inventoryObjects;
+  }, [inventoryObjects]);
 
 
   const handleToggleDescriptionVisibility = (objectId: string) => {
