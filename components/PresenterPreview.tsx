@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { Game } from '../types';
+import type { Game, Puzzle } from '../types';
 import Icon from './Icon';
 import ObjectItem from './presenter/ObjectItem';
 import PuzzleItem from './presenter/PuzzleItem';
@@ -21,6 +21,9 @@ interface PresenterPreviewProps {
 const PresenterPreview: React.FC<PresenterPreviewProps> = ({ game, currentRoomIndex: initialRoomIndex, onToggleObject, onTogglePuzzle, onTogglePuzzleImage, onToggleActionImage, isExpanded, onClose }) => {
   const [currentRoomIndex, setCurrentRoomIndex] = useState(initialRoomIndex);
   const [visibleDescriptionIds, setVisibleDescriptionIds] = useState<Set<string>>(new Set());
+  const [puzzleToSolve, setPuzzleToSolve] = useState<Puzzle | null>(null);
+  const [submittedAnswer, setSubmittedAnswer] = useState('');
+  const [solveError, setSolveError] = useState<string | null>(null);
 
   useEffect(() => {
     setCurrentRoomIndex(initialRoomIndex);
@@ -46,12 +49,71 @@ const PresenterPreview: React.FC<PresenterPreviewProps> = ({ game, currentRoomIn
       });
   };
 
+  const handleAttemptSolve = (puzzleId: string) => {
+    if (!game) return;
+    for (const room of game.rooms) {
+        const puzzle = room.puzzles.find(p => p.id === puzzleId);
+        if (puzzle) {
+            setPuzzleToSolve(puzzle);
+            setSubmittedAnswer('');
+            setSolveError(null);
+            break;
+        }
+    }
+  };
+
+  const handleSubmitAnswer = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!puzzleToSolve) return;
+
+    const sanitizedInput = submittedAnswer.toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (sanitizedInput === puzzleToSolve.answer) {
+        onTogglePuzzle(puzzleToSolve.id, true);
+        setPuzzleToSolve(null);
+    } else {
+        setSolveError('Incorrect answer. Please try again.');
+        setSubmittedAnswer('');
+    }
+  };
+
+
   const currentRoom = game.rooms[currentRoomIndex];
   const availableObjects = currentRoom?.objects.filter(o => !o.showInInventory) || [];
   
+  const AnswerModal = () => (
+    puzzleToSolve && (
+      <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60]">
+          <div className="bg-slate-800 p-8 rounded-lg shadow-2xl w-full max-w-md border border-slate-700">
+              <h2 className="text-xl font-bold mb-4 text-amber-400">Solving: {puzzleToSolve.name}</h2>
+              <p className="text-slate-400 mb-6">Enter the answer provided by the players.</p>
+              <form onSubmit={handleSubmitAnswer}>
+                  <input
+                      type="text"
+                      value={submittedAnswer}
+                      onChange={e => {
+                          setSubmittedAnswer(e.target.value);
+                          if (solveError) setSolveError(null);
+                      }}
+                      className="w-full px-4 py-2 font-mono tracking-widest text-lg border border-slate-600 rounded-lg bg-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+                      autoFocus
+                  />
+                  {solveError && (
+                      <p className="text-red-400 text-sm mt-2">{solveError}</p>
+                  )}
+                  <div className="mt-6 flex justify-end gap-4">
+                      <button type="button" onClick={() => setPuzzleToSolve(null)} className="px-4 py-2 bg-slate-600 text-slate-200 rounded-lg hover:bg-slate-500 transition-colors">Cancel</button>
+                      <button type="submit" className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors">Submit</button>
+                  </div>
+              </form>
+          </div>
+      </div>
+    )
+  );
+
   if (isExpanded) {
     return (
         <div className="h-full bg-slate-800 text-white flex flex-col rounded-lg">
+            <AnswerModal />
             <header className="p-4 bg-slate-900 flex justify-between items-center flex-shrink-0 rounded-t-lg">
                 <h1 className="text-xl font-bold">{game.title} - Presenter Preview</h1>
                 {onClose && (
@@ -133,7 +195,8 @@ const PresenterPreview: React.FC<PresenterPreviewProps> = ({ game, currentRoomIn
                                   <PuzzleItem 
                                     key={puzzle.id} 
                                     puzzle={puzzle} 
-                                    onToggle={onTogglePuzzle} 
+                                    onToggle={onTogglePuzzle}
+                                    onAttemptSolve={handleAttemptSolve}
                                     onToggleImage={onTogglePuzzleImage} 
                                     isLocked={!!lockingPuzzleName}
                                     lockingPuzzleName={lockingPuzzleName}
@@ -194,6 +257,7 @@ const PresenterPreview: React.FC<PresenterPreviewProps> = ({ game, currentRoomIn
 
   return (
     <div className="bg-slate-100 dark:bg-slate-900 p-2 rounded-lg border border-slate-200 dark:border-slate-700">
+      <AnswerModal />
       <div className="aspect-[4/3] bg-slate-800 text-white flex flex-col rounded-md overflow-hidden text-xs leading-tight">
         <header className="p-2 bg-slate-900 flex-shrink-0">
           <h1 className="font-bold truncate text-white/80 text-[10px]">Presenter Controls</h1>
@@ -266,6 +330,7 @@ const PresenterPreview: React.FC<PresenterPreviewProps> = ({ game, currentRoomIn
                                     key={puzzle.id} 
                                     puzzle={puzzle} 
                                     onToggle={onTogglePuzzle} 
+                                    onAttemptSolve={handleAttemptSolve}
                                     onToggleImage={onTogglePuzzleImage} 
                                     isLocked={!!lockingPuzzleName}
                                     lockingPuzzleName={lockingPuzzleName}

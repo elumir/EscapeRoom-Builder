@@ -1,4 +1,5 @@
 
+
 import React, { useState, useRef, useEffect } from 'react';
 import type { Puzzle } from '../../types';
 import Icon from '../Icon';
@@ -13,10 +14,11 @@ const PuzzleItem: React.FC<{
     puzzle: Puzzle;
     onToggle: (id: string, state: boolean) => void;
     onToggleImage: (id: string, state: boolean) => void;
+    onAttemptSolve: (id: string) => void;
     isLocked?: boolean;
     lockingPuzzleName?: string;
     variant?: 'full' | 'mini';
-}> = ({ puzzle, onToggle, onToggleImage, isLocked, lockingPuzzleName, variant = 'full' }) => {
+}> = ({ puzzle, onToggle, onToggleImage, onAttemptSolve, isLocked, lockingPuzzleName, variant = 'full' }) => {
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [progress, setProgress] = useState(0);
@@ -80,6 +82,19 @@ const PuzzleItem: React.FC<{
         }
     }
 
+    const handleToggleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (isLocked) return;
+
+        const isAttemptingToSolve = e.target.checked;
+
+        if (isAttemptingToSolve && puzzle.answer) {
+            onAttemptSolve(puzzle.id);
+        } else {
+            onToggle(puzzle.id, isAttemptingToSolve);
+        }
+    };
+
+
     if (variant === 'mini') {
         return (
              <div className={`mt-1 flex flex-col ${isLocked ? 'opacity-50' : ''}`}>
@@ -88,7 +103,7 @@ const PuzzleItem: React.FC<{
                         <input
                             type="checkbox"
                             checked={puzzle.isSolved}
-                            onChange={(e) => onToggle(puzzle.id, e.target.checked)}
+                            onChange={handleToggleChange}
                             className="sr-only peer"
                             disabled={isLocked}
                         />
@@ -99,11 +114,6 @@ const PuzzleItem: React.FC<{
                             {isLocked && <Icon as="lock" className="w-2 h-2 text-slate-400"/>}
                             {puzzle.name}
                         </h4>
-                         {puzzle.answer && (
-                            <div className="text-[8px] text-slate-400 mt-0.5">
-                                Ans: <span className="font-mono bg-slate-700/50 px-1 rounded-sm">{puzzle.answer}</span>
-                            </div>
-                        )}
                     </div>
                 </div>
                 {lockingPuzzleName && (
@@ -135,7 +145,7 @@ const PuzzleItem: React.FC<{
                     <input
                         type="checkbox"
                         checked={puzzle.isSolved}
-                        onChange={(e) => onToggle(puzzle.id, e.target.checked)}
+                        onChange={handleToggleChange}
                         className="sr-only peer"
                         disabled={isLocked}
                     />
@@ -146,12 +156,6 @@ const PuzzleItem: React.FC<{
                         {isLocked && <Icon as="lock" className="w-4 h-4 text-slate-400"/>}
                         {puzzle.name}
                     </h3>
-                    {puzzle.answer && (
-                        <div className="text-sm mt-1">
-                            <span className="font-semibold text-slate-400">Answer: </span>
-                            <span className="font-mono bg-slate-700 text-slate-200 px-2 py-1 rounded-md tracking-wider">{puzzle.answer}</span>
-                        </div>
-                    )}
                 </div>
                 {puzzle.image && (
                     <label className={`flex items-center gap-2 text-sm text-sky-300 ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}>

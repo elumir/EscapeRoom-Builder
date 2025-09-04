@@ -24,6 +24,9 @@ const PresenterView: React.FC = () => {
   const [currentRoomIndex, setCurrentRoomIndex] = useState(0);
   const [presentationWindow, setPresentationWindow] = useState<Window | null>(null);
   const [visibleDescriptionIds, setVisibleDescriptionIds] = useState<Set<string>>(new Set());
+  const [puzzleToSolve, setPuzzleToSolve] = useState<Puzzle | null>(null);
+  const [submittedAnswer, setSubmittedAnswer] = useState('');
+  const [solveError, setSolveError] = useState<string | null>(null);
   
   const { 
     lockingPuzzlesByRoomId, 
@@ -165,6 +168,33 @@ const PresenterView: React.FC = () => {
     updateAndBroadcast(updatedGame);
   };
   
+  const handleAttemptSolve = (puzzleId: string) => {
+    if (!game) return;
+    for (const room of game.rooms) {
+        const puzzle = room.puzzles.find(p => p.id === puzzleId);
+        if (puzzle) {
+            setPuzzleToSolve(puzzle);
+            setSubmittedAnswer('');
+            setSolveError(null);
+            break;
+        }
+    }
+  };
+
+  const handleSubmitAnswer = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!puzzleToSolve) return;
+
+    const sanitizedInput = submittedAnswer.toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (sanitizedInput === puzzleToSolve.answer) {
+        handleTogglePuzzle(puzzleToSolve.id, true);
+        setPuzzleToSolve(null);
+    } else {
+        setSolveError('Incorrect answer. Please try again.');
+        setSubmittedAnswer('');
+    }
+  };
+
   const handleTogglePuzzleImage = (puzzleId: string, newState: boolean) => {
     if (!game || !game.rooms[currentRoomIndex]) return;
     const currentRoomId = game.rooms[currentRoomIndex].id;
@@ -242,6 +272,33 @@ const PresenterView: React.FC = () => {
 
   return (
     <div className="h-screen bg-slate-800 text-white flex flex-col">
+      {puzzleToSolve && (
+          <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+              <div className="bg-slate-800 p-8 rounded-lg shadow-2xl w-full max-w-md border border-slate-700">
+                  <h2 className="text-xl font-bold mb-4 text-amber-400">Solving: {puzzleToSolve.name}</h2>
+                  <p className="text-slate-400 mb-6">Enter the answer provided by the players.</p>
+                  <form onSubmit={handleSubmitAnswer}>
+                      <input
+                          type="text"
+                          value={submittedAnswer}
+                          onChange={e => {
+                              setSubmittedAnswer(e.target.value);
+                              if (solveError) setSolveError(null);
+                          }}
+                          className="w-full px-4 py-2 font-mono tracking-widest text-lg border border-slate-600 rounded-lg bg-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+                          autoFocus
+                      />
+                      {solveError && (
+                          <p className="text-red-400 text-sm mt-2">{solveError}</p>
+                      )}
+                      <div className="mt-6 flex justify-end gap-4">
+                          <button type="button" onClick={() => setPuzzleToSolve(null)} className="px-4 py-2 bg-slate-600 text-slate-200 rounded-lg hover:bg-slate-500 transition-colors">Cancel</button>
+                          <button type="submit" className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors">Submit</button>
+                      </div>
+                  </form>
+              </div>
+          </div>
+      )}
       <header className="p-4 bg-slate-900 flex justify-between items-center flex-shrink-0">
         <h1 className="text-xl font-bold">{game.title} - Presenter View</h1>
         {isPresentationWindowOpen ? (
@@ -369,6 +426,7 @@ const PresenterView: React.FC = () => {
                             key={puzzle.id} 
                             puzzle={puzzle} 
                             onToggle={handleTogglePuzzle} 
+                            onAttemptSolve={handleAttemptSolve}
                             onToggleImage={handleTogglePuzzleImage}
                             isLocked={!!lockingPuzzleName}
                             lockingPuzzleName={lockingPuzzleName}
