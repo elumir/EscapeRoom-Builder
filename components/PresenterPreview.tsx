@@ -165,7 +165,7 @@ const PresenterPreview: React.FC<PresenterPreviewProps> = ({ game, currentRoomIn
                             >
                                 <span>Live Inventory</span>
                                 {showInventoryNotification && (
-                                    <span className="absolute top-2 right-2 block w-2.5 h-2.5 bg-brand-500 rounded-full ring-2 ring-slate-900"></span>
+                                    <span className="absolute top-1 right-2 block w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-slate-900"></span>
                                 )}
                             </button>
                         </div>
@@ -333,7 +333,7 @@ const PresenterPreview: React.FC<PresenterPreviewProps> = ({ game, currentRoomIn
                     >
                         <span>Inventory</span>
                         {showInventoryNotification && (
-                            <span className="absolute top-1 right-1 block w-1.5 h-1.5 bg-brand-500 rounded-full ring-1 ring-slate-900"></span>
+                            <span className="absolute top-0.5 right-1 block w-1.5 h-1.5 bg-red-500 rounded-full ring-1 ring-slate-900"></span>
                         )}
                     </button>
                 </div>
@@ -435,6 +435,7 @@ const PresenterPreview: React.FC<PresenterPreviewProps> = ({ game, currentRoomIn
                                     puzzle={puzzle} 
                                     onToggle={onTogglePuzzle} 
                                     onAttemptSolve={handleAttemptSolve}
+                                    // FIX: Pass the correct prop 'onTogglePuzzleImage' instead of undefined 'onToggleImage'
                                     onToggleImage={onTogglePuzzleImage} 
                                     isLocked={!!lockingPuzzleName}
                                     lockingPuzzleName={lockingPuzzleName}
