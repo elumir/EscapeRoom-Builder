@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import * as gameService from '../services/presentationService';
-import type { Game, Puzzle, InventoryObject } from '../types';
+import type { Game, Puzzle } from '../types';
 import Icon from '../components/Icon';
 import { useBroadcastChannel } from '../hooks/useBroadcastChannel';
 import ObjectItem from '../components/presenter/ObjectItem';
@@ -38,7 +38,7 @@ const PresenterView: React.FC = () => {
   } = usePresenterState(game);
 
   const prevInventoryCountRef = useRef(inventoryObjects.length);
-  const prevInventoryRef = useRef<InventoryObject[]>(inventoryObjects);
+  const prevInventoryRef = useRef(inventoryObjects);
   
   useEffect(() => {
     // If an item was added and the inventory tab is not active, show notification.
@@ -50,37 +50,17 @@ const PresenterView: React.FC = () => {
   }, [inventoryObjects.length, activeTab]);
 
   useEffect(() => {
-    const prevIds = new Set(prevInventoryRef.current.map(o => o.id));
-    const currentIds = new Set(inventoryObjects.map(o => o.id));
-
-    const newlyAddedIds = inventoryObjects
-      .filter(o => !prevIds.has(o.id))
-      .map(o => o.id);
-
-    // This effect ensures that:
-    // 1. Newly added inventory items have their descriptions visible by default.
-    // 2. The visibility state of items removed from inventory is cleaned up.
-    // 3. Manual hide/show toggles are preserved during re-renders.
-    if (newlyAddedIds.length > 0 || prevIds.size !== currentIds.size) {
-        setVisibleDescriptionIds(currentVisibleIds => {
-            const newVisibleIds = new Set(currentVisibleIds);
-
-            // Add newly added inventory items to the visible set
-            newlyAddedIds.forEach(id => newVisibleIds.add(id));
-
-            // Remove items that are no longer in the inventory from the visible set
-            currentVisibleIds.forEach(id => {
-                if (!currentIds.has(id)) {
-                    newVisibleIds.delete(id);
-                }
-            });
-
-            return newVisibleIds;
-        });
+    // This effect runs when the active tab changes.
+    if (activeTab === 'rooms') {
+      // When switching to the rooms tab, hide all inventory descriptions.
+      const inventoryIds = new Set(inventoryObjects.map(o => o.id));
+      setVisibleDescriptionIds(currentVisibleIds => {
+        const newVisibleIds = new Set(currentVisibleIds);
+        inventoryIds.forEach(id => newVisibleIds.delete(id));
+        return newVisibleIds;
+      });
     }
-
-    prevInventoryRef.current = inventoryObjects;
-  }, [inventoryObjects]);
+  }, [activeTab, inventoryObjects]);
 
 
   const isPresentationWindowOpen = presentationWindow && !presentationWindow.closed;
