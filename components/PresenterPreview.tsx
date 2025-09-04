@@ -66,8 +66,8 @@ const PresenterPreview: React.FC<PresenterPreviewProps> = ({ game, currentRoomIn
     e.preventDefault();
     if (!puzzleToSolve) return;
 
-    const sanitizedInput = submittedAnswer.toLowerCase().replace(/[^a-z0-9]/g, '');
-    if (sanitizedInput === puzzleToSolve.answer) {
+    // Input is already sanitized by the onChange handler
+    if (submittedAnswer === puzzleToSolve.answer) {
         onTogglePuzzle(puzzleToSolve.id, true);
         setPuzzleToSolve(null);
     } else {
@@ -85,13 +85,18 @@ const PresenterPreview: React.FC<PresenterPreviewProps> = ({ game, currentRoomIn
       <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60]">
           <div className="bg-slate-800 p-8 rounded-lg shadow-2xl w-full max-w-md border border-slate-700">
               <h2 className="text-xl font-bold mb-4 text-amber-400">Solving: {puzzleToSolve.name}</h2>
+              {puzzleToSolve.unsolvedText && (
+                  <blockquote className="mb-6 p-4 bg-slate-700/50 border-l-4 border-slate-600 text-slate-300 italic">
+                      {puzzleToSolve.unsolvedText}
+                  </blockquote>
+              )}
               <p className="text-slate-400 mb-6">Enter the answer provided by the players.</p>
               <form onSubmit={handleSubmitAnswer}>
                   <input
                       type="text"
                       value={submittedAnswer}
                       onChange={e => {
-                          setSubmittedAnswer(e.target.value);
+                          setSubmittedAnswer(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''));
                           if (solveError) setSolveError(null);
                       }}
                       className="w-full px-4 py-2 font-mono tracking-widest text-lg border border-slate-600 rounded-lg bg-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
