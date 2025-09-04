@@ -25,6 +25,7 @@ const PresenterView: React.FC = () => {
   const [presentationWindow, setPresentationWindow] = useState<Window | null>(null);
   const [visibleDescriptionIds, setVisibleDescriptionIds] = useState<Set<string>>(new Set());
   const [puzzleToSolve, setPuzzleToSolve] = useState<Puzzle | null>(null);
+  const [solvedPuzzleInfo, setSolvedPuzzleInfo] = useState<Puzzle | null>(null);
   const [submittedAnswer, setSubmittedAnswer] = useState('');
   const [solveError, setSolveError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'rooms' | 'inventory'>('rooms');
@@ -215,9 +216,9 @@ const PresenterView: React.FC = () => {
     e.preventDefault();
     if (!puzzleToSolve) return;
 
-    // Input is already sanitized by the onChange handler
     if (submittedAnswer === puzzleToSolve.answer) {
         handleTogglePuzzle(puzzleToSolve.id, true);
+        setSolvedPuzzleInfo(puzzleToSolve);
         setPuzzleToSolve(null);
     } else {
         setSolveError('Incorrect answer. Please try again.');
@@ -331,6 +332,30 @@ const PresenterView: React.FC = () => {
                           <button type="submit" className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors">Submit</button>
                       </div>
                   </form>
+              </div>
+          </div>
+      )}
+      {solvedPuzzleInfo && (
+          <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+              <div className="bg-slate-800 p-8 rounded-lg shadow-2xl w-full max-w-md border border-slate-700 text-center">
+                  <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-600 mb-4">
+                      <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                      </svg>
+                  </div>
+                  <h2 className="text-2xl font-bold mb-4 text-green-400">Correct!</h2>
+                  {solvedPuzzleInfo.solvedText && (
+                      <blockquote className="mb-6 p-4 bg-slate-700/50 border-l-4 border-slate-600 text-slate-300 italic text-left">
+                          {solvedPuzzleInfo.solvedText}
+                      </blockquote>
+                  )}
+                  <button 
+                      type="button" 
+                      onClick={() => setSolvedPuzzleInfo(null)} 
+                      className="px-6 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors"
+                  >
+                      Continue
+                  </button>
               </div>
           </div>
       )}
