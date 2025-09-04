@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import * as gameService from '../services/presentationService';
-import type { Game, Puzzle } from '../types';
+import type { Game, Puzzle, InventoryObject } from '../types';
 import Icon from '../components/Icon';
 import { useBroadcastChannel } from '../hooks/useBroadcastChannel';
 import ObjectItem from '../components/presenter/ObjectItem';
@@ -38,6 +38,7 @@ const PresenterView: React.FC = () => {
   } = usePresenterState(game);
 
   const prevInventoryCountRef = useRef(inventoryObjects.length);
+  const prevInventoryRef = useRef<InventoryObject[]>(inventoryObjects);
   
   useEffect(() => {
     // If an item was added and the inventory tab is not active, show notification.
@@ -49,14 +50,37 @@ const PresenterView: React.FC = () => {
   }, [inventoryObjects.length, activeTab]);
 
   useEffect(() => {
-    if (activeTab === 'inventory') {
-      // When switching to the inventory tab, make all inventory item descriptions visible.
-      setVisibleDescriptionIds(new Set(inventoryObjects.map(obj => obj.id)));
-    } else {
-      // When leaving the inventory tab, hide all descriptions.
-      setVisibleDescriptionIds(new Set());
+    const prevIds = new Set(prevInventoryRef.current.map(o => o.id));
+    const currentIds = new Set(inventoryObjects.map(o => o.id));
+
+    const newlyAddedIds = inventoryObjects
+      .filter(o => !prevIds.has(o.id))
+      .map(o => o.id);
+
+    // This effect ensures that:
+    // 1. Newly added inventory items have their descriptions visible by default.
+    // 2. The visibility state of items removed from inventory is cleaned up.
+    // 3. Manual hide/show toggles are preserved during re-renders.
+    if (newlyAddedIds.length > 0 || prevIds.size !== currentIds.size) {
+        setVisibleDescriptionIds(currentVisibleIds => {
+            const newVisibleIds = new Set(currentVisibleIds);
+
+            // Add newly added inventory items to the visible set
+            newlyAddedIds.forEach(id => newVisibleIds.add(id));
+
+            // Remove items that are no longer in the inventory from the visible set
+            currentVisibleIds.forEach(id => {
+                if (!currentIds.has(id)) {
+                    newVisibleIds.delete(id);
+                }
+            });
+
+            return newVisibleIds;
+        });
     }
-  }, [activeTab, inventoryObjects]);
+
+    prevInventoryRef.current = inventoryObjects;
+  }, [inventoryObjects]);
 
 
   const isPresentationWindowOpen = presentationWindow && !presentationWindow.closed;
