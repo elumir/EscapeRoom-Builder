@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import type { Action } from '../../types';
 
 const ActionItem: React.FC<{
@@ -9,6 +9,40 @@ const ActionItem: React.FC<{
 }> = ({ action, onToggleImage, onToggleComplete, variant = 'full' }) => {
     
     const isComplete = action.isComplete ?? false;
+    const audioRef = useRef<HTMLAudioElement | null>(null);
+    const [isPlaying, setIsPlaying] = useState(false);
+
+    useEffect(() => {
+        if (!action.sound) {
+            return;
+        }
+
+        const audio = new Audio(`/api/assets/${action.sound}`);
+        audioRef.current = audio;
+
+        const handleAudioEnd = () => setIsPlaying(false);
+        audio.addEventListener('ended', handleAudioEnd);
+
+        return () => {
+            audio.pause();
+            audio.removeEventListener('ended', handleAudioEnd);
+            audioRef.current = null;
+            setIsPlaying(false);
+        }
+    }, [action.sound]);
+
+    const handlePlayPause = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (audioRef.current) {
+            if (isPlaying) {
+                audioRef.current.pause();
+                audioRef.current.currentTime = 0;
+            } else {
+                audioRef.current.play().catch(err => console.error("Error playing sound:", err));
+            }
+            setIsPlaying(!isPlaying);
+        }
+    };
 
     if (variant === 'mini') {
         return (
@@ -47,8 +81,24 @@ const ActionItem: React.FC<{
     return (
         <div className={`flex flex-col gap-3 p-4 bg-slate-800/50 rounded-lg transition-opacity ${isComplete ? 'opacity-50' : ''}`}>
             <div className="flex items-start justify-between gap-4">
-                <h3 className={`font-bold flex-grow ${isComplete ? 'text-slate-400 line-through' : 'text-teal-300'}`}>{action.name}</h3>
-                
+                <div className="flex items-center gap-3 flex-grow min-w-0">
+                    {action.sound && (
+                        <button
+                            onClick={handlePlayPause}
+                            title={isPlaying ? "Stop Sound" : "Play Sound"}
+                            disabled={isComplete}
+                            className="p-2 bg-slate-700 rounded-full hover:bg-slate-600 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {isPlaying ? (
+                               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 5h10v10H5V5z" /></svg>
+                            ) : (
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" /></svg>
+                            )}
+                        </button>
+                    )}
+                    <h3 className={`font-bold truncate ${isComplete ? 'text-slate-400 line-through' : 'text-teal-300'}`}>{action.name}</h3>
+                </div>
+
                 <div className="flex items-center gap-4 flex-shrink-0">
                     {action.image && (
                         <label className={`flex items-center gap-2 text-sm text-sky-300 cursor-pointer`}>
@@ -76,7 +126,7 @@ const ActionItem: React.FC<{
                     </label>
                 </div>
             </div>
-            <div className={` ${isComplete ? 'text-slate-500' : 'text-slate-300'} whitespace-pre-wrap`}>
+            <div className={`pl-4 ${isComplete ? 'text-slate-500' : 'text-slate-300'} whitespace-pre-wrap`}>
                 {action.description}
             </div>
         </div>

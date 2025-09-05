@@ -280,6 +280,7 @@ const Editor: React.FC = () => {
                          let actionModified = false;
                          const newAction = { ...action };
                          if (newAction.image === assetId) { newAction.image = null; actionModified = true; }
+                         if (newAction.sound === assetId) { newAction.sound = null; actionModified = true; }
                          if (actionModified) gameWasModified = true;
                          return newAction;
                       });
@@ -376,7 +377,7 @@ const Editor: React.FC = () => {
   };
 
   const addAction = () => {
-    const newAction: Action = { id: generateUUID(), name: '', description: '', image: null, showImageOverlay: false, isComplete: false };
+    const newAction: Action = { id: generateUUID(), name: '', description: '', image: null, sound: null, showImageOverlay: false, isComplete: false };
     const newActions = [...editingRoomActions, newAction];
     setEditingRoomActions(newActions);
     
@@ -390,20 +391,20 @@ const Editor: React.FC = () => {
       setModalActionData({ ...modalActionData, [field]: value });
   };
 
-  const handleModalActionFileChange = async (file: File | null) => {
+  const handleModalActionFileChange = async (field: 'image' | 'sound', file: File | null) => {
       if (!game || !modalActionData) return;
       if (!file) {
-          handleModalActionChange('image', null);
+          handleModalActionChange(field, null);
           return;
       }
       try {
           const { assetId } = await gameService.uploadAsset(game.id, file);
-          handleModalActionChange('image', assetId);
+          handleModalActionChange(field, assetId);
           const assets = await gameService.getAssetsForGame(game.id);
           setAssetLibrary(assets);
       } catch (error) {
-          console.error(`Action image upload failed:`, error);
-          alert(`Failed to upload action image. Please try again.`);
+          console.error(`Action ${field} upload failed:`, error);
+          alert(`Failed to upload action ${field}. Please try again.`);
       }
   };
 
@@ -1220,7 +1221,7 @@ const Editor: React.FC = () => {
                         <Icon as="close" className="w-5 h-5" />
                     </button>
                 </div>
-                <div className="flex-grow space-y-4">
+                <div className="flex-grow space-y-4 overflow-y-auto pr-2">
                     <div>
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Action Name</label>
                         <input
@@ -1241,16 +1242,29 @@ const Editor: React.FC = () => {
                             className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm resize-y"
                         />
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Image (Full Screen Overlay)</label>
-                        {modalActionData.image ? (
-                            <div className="flex items-center gap-2">
-                                <img src={`/api/assets/${modalActionData.image}`} alt="Action preview" className="w-24 h-24 object-cover rounded-md border border-slate-300 dark:border-slate-600" />
-                                <button onClick={() => handleModalActionFileChange(null)} className="text-red-500 hover:text-red-700 text-xs self-end p-1">Clear Image</button>
-                            </div>
-                        ) : (
-                            <input type="file" accept="image/*" onChange={(e) => handleModalActionFileChange(e.target.files?.[0] || null)} className="text-sm w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100" />
-                        )}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Image (Full Screen Overlay)</label>
+                            {modalActionData.image ? (
+                                <div className="flex items-center gap-2">
+                                    <img src={`/api/assets/${modalActionData.image}`} alt="Action preview" className="w-24 h-24 object-cover rounded-md border border-slate-300 dark:border-slate-600" />
+                                    <button onClick={() => handleModalActionFileChange('image', null)} className="text-red-500 hover:text-red-700 text-xs self-end p-1">Clear Image</button>
+                                </div>
+                            ) : (
+                                <input type="file" accept="image/*" onChange={(e) => handleModalActionFileChange('image', e.target.files?.[0] || null)} className="text-sm w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100" />
+                            )}
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Sound</label>
+                            {modalActionData.sound ? (
+                                <div className="space-y-2">
+                                    <AudioPreviewPlayer assetId={modalActionData.sound} />
+                                    <button onClick={() => handleModalActionFileChange('sound', null)} className="text-red-500 hover:text-red-700 text-xs px-1">Clear Sound</button>
+                                </div>
+                            ) : (
+                                <input type="file" accept="audio/*" onChange={(e) => handleModalActionFileChange('sound', e.target.files?.[0] || null)} className="text-sm w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100" />
+                            )}
+                        </div>
                     </div>
                 </div>
                 <div className="flex-shrink-0 mt-6 pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-4">

@@ -11,6 +11,7 @@ export interface Action {
   name: string;
   description: string;
   image: string | null; // Asset ID
+  sound: string | null; // Asset ID
   showImageOverlay: boolean;
   isComplete?: boolean;
 }
