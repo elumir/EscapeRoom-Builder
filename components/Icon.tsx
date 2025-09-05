@@ -18,7 +18,8 @@ const icons = {
   ),
   present: (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3v11.25A2.25 2.25 0 0 0 6 16.5h12A2.25 2.25 0 0 0 20.25 14.25V3m-16.5 0h16.5M12 16.5v4.875A1.125 1.125 0 0 1 10.875 22.5H9.125A1.125 1.125 0 0 1 8 21.375V16.5m12-13.5v9M15 6.75l3 3m0 0-3 3m3-3H6" />
+      <rect x=".75" y=".75" width="22.5" height="22.5" rx="1.5" ry="1.5" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M10.238 15.66A.856.856 0 0 1 9 14.894V9.106a.856.856 0 0 1 1.238-.766l5.789 2.895a.855.855 0 0 1 0 1.53z" />
     </svg>
   ),
   prev: (
