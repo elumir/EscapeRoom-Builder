@@ -471,13 +471,23 @@ const PresenterView: React.FC = () => {
 
   const handlePrevAct = () => {
     if (canGoToPrevAct) {
-      setSelectedAct(availableActs[currentActIndex - 1]);
+      const newAct = availableActs[currentActIndex - 1];
+      setSelectedAct(newAct);
+      const roomsForNewAct = roomsByAct[newAct];
+      if (roomsForNewAct && roomsForNewAct.length > 0) {
+        goToRoom(roomsForNewAct[0].originalIndex);
+      }
     }
   };
 
   const handleNextAct = () => {
     if (canGoToNextAct) {
-      setSelectedAct(availableActs[currentActIndex + 1]);
+      const newAct = availableActs[currentActIndex + 1];
+      setSelectedAct(newAct);
+      const roomsForNewAct = roomsByAct[newAct];
+      if (roomsForNewAct && roomsForNewAct.length > 0) {
+        goToRoom(roomsForNewAct[0].originalIndex);
+      }
     }
   };
 
