@@ -28,8 +28,9 @@ const PresenterView: React.FC = () => {
   const [solvedPuzzleInfo, setSolvedPuzzleInfo] = useState<Puzzle | null>(null);
   const [submittedAnswer, setSubmittedAnswer] = useState('');
   const [solveError, setSolveError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'rooms' | 'inventory'>('rooms');
+  const [activeTab, setActiveTab] = useState<'rooms' | 'inventory' | 'discarded'>('rooms');
   const [showInventoryNotification, setShowInventoryNotification] = useState(false);
+  const [showDiscardedNotification, setShowDiscardedNotification] = useState(false);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [activeActionTab, setActiveActionTab] = useState<'open' | 'complete'>('open');
   const [activePuzzleTab, setActivePuzzleTab] = useState<'open' | 'complete'>('open');
@@ -41,19 +42,28 @@ const PresenterView: React.FC = () => {
     lockingPuzzlesByPuzzleId,
     lockingPuzzlesByRoomSolveId,
     allUnsolvedPuzzles, 
-    inventoryObjects 
+    inventoryObjects,
+    discardedObjects,
   } = usePresenterState(game);
 
   const prevInventoryCountRef = useRef(inventoryObjects.length);
+  const prevDiscardedCountRef = useRef(discardedObjects.length);
   
   useEffect(() => {
     // If an item was added and the inventory tab is not active, show notification.
     if (inventoryObjects.length > prevInventoryCountRef.current && activeTab !== 'inventory') {
         setShowInventoryNotification(true);
     }
-    // Update the ref to the current count for the next render.
     prevInventoryCountRef.current = inventoryObjects.length;
   }, [inventoryObjects.length, activeTab]);
+
+  useEffect(() => {
+    // If an item was discarded and the discarded tab is not active, show notification.
+    if (discardedObjects.length > prevDiscardedCountRef.current && activeTab !== 'discarded') {
+        setShowDiscardedNotification(true);
+    }
+    prevDiscardedCountRef.current = discardedObjects.length;
+  }, [discardedObjects.length, activeTab]);
 
   // This effect handles making new items' descriptions visible by default.
   const inventoryObjectIds = useMemo(() => new Set(inventoryObjects.map(o => o.id)), [inventoryObjects]);
@@ -223,9 +233,17 @@ const PresenterView: React.FC = () => {
         ...game,
         rooms: game.rooms.map(room => ({
             ...room,
-            objects: room.objects.map(obj =>
-                obj.id === objectId ? { ...obj, showInInventory: newState } : obj
-            )
+            objects: room.objects.map(obj => {
+                if (obj.id === objectId) {
+                    const newObj = { ...obj, showInInventory: newState };
+                    // If object is being added to inventory for the first time, mark it.
+                    if (newState && !obj.wasEverInInventory) {
+                        newObj.wasEverInInventory = true;
+                    }
+                    return newObj;
+                }
+                return obj;
+            })
         }))
     };
     updateAndBroadcast(updatedGame);
@@ -261,10 +279,13 @@ const PresenterView: React.FC = () => {
     const updatedRooms = game.rooms.map(room => {
         let newObjects = room.objects;
         // Auto-add objects to inventory if configured
-        if (room.id === targetRoomId && shouldAutoAddObjects) {
-            newObjects = room.objects.map(obj => 
-                objectIdsToUpdate.includes(obj.id) ? { ...obj, showInInventory: true } : obj
-            );
+        if (shouldAutoAddObjects) {
+            newObjects = room.objects.map(obj => {
+                if (objectIdsToUpdate.includes(obj.id)) {
+                    return { ...obj, showInInventory: true, wasEverInInventory: true };
+                }
+                return obj;
+            });
         }
 
         // Update the puzzle's solved state
@@ -415,6 +436,7 @@ const PresenterView: React.FC = () => {
             objects: room.objects.map(obj => ({
                 ...obj,
                 showInInventory: false,
+                wasEverInInventory: false,
             })),
             puzzles: room.puzzles.map(p => ({
                 ...p,
@@ -501,7 +523,7 @@ const PresenterView: React.FC = () => {
   
   const currentRoom = game.rooms[currentRoomIndex];
   const hasSolvedState = currentRoom?.solvedImage || (currentRoom?.solvedNotes && currentRoom.solvedNotes.trim() !== '');
-  const availableObjects = currentRoom?.objects.filter(o => !o.showInInventory) || [];
+  const availableObjects = currentRoom?.objects.filter(o => !o.showInInventory && !o.wasEverInInventory) || [];
   
   const openActions = (currentRoom?.actions || []).filter(action => !action.isComplete);
   const completedActions = (currentRoom?.actions || []).filter(action => action.isComplete);
@@ -701,8 +723,23 @@ const PresenterView: React.FC = () => {
                         }`}
                         aria-pressed={activeTab === 'inventory'}
                     >
-                        <span>Live Inventory</span>
+                        <span>Inventory</span>
                         {showInventoryNotification && (
+                            <span className="absolute top-1 right-2 block w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-slate-900"></span>
+                        )}
+                    </button>
+                     <button
+                        onClick={() => {
+                            setActiveTab('discarded');
+                            setShowDiscardedNotification(false);
+                        }}
+                        className={`relative px-4 py-2 text-sm font-semibold rounded-t-md transition-colors ${
+                            activeTab === 'discarded' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-300'
+                        }`}
+                        aria-pressed={activeTab === 'discarded'}
+                    >
+                        <span>Discarded</span>
+                        {showDiscardedNotification && (
                             <span className="absolute top-1 right-2 block w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-slate-900"></span>
                         )}
                     </button>
@@ -770,7 +807,7 @@ const PresenterView: React.FC = () => {
                         {inventoryObjects.length > 0 ? (
                             <>
                                 <div className="flex justify-between items-center mb-1">
-                                    <p className="text-xs text-slate-400 italic">Toggle to move object back to room.</p>
+                                    <p className="text-xs text-slate-400 italic">Toggle to discard object.</p>
                                     <button
                                         onClick={handleToggleAllInventoryDescriptions}
                                         title={areAllDescriptionsVisible ? "Hide all descriptions" : "Show all descriptions"}
@@ -797,6 +834,27 @@ const PresenterView: React.FC = () => {
                             </>
                         ) : (
                             <p className="text-slate-400">Inventory is empty. Toggle objects to add them.</p>
+                        )}
+                    </div>
+                )}
+                 {activeTab === 'discarded' && (
+                    <div className="space-y-4">
+                        {discardedObjects.length > 0 ? (
+                            <>
+                                <p className="text-xs text-slate-400 italic">Toggle to move object back to inventory.</p>
+                                {discardedObjects.map(obj => {
+                                    return (
+                                        <ObjectItem 
+                                            key={obj.id} 
+                                            obj={obj} 
+                                            onToggle={handleToggleObject}
+                                            isDescriptionVisible={true}
+                                        />
+                                    );
+                                })}
+                            </>
+                        ) : (
+                            <p className="text-slate-400">No objects have been discarded yet.</p>
                         )}
                     </div>
                 )}
@@ -973,7 +1031,7 @@ const PresenterView: React.FC = () => {
                             return <ObjectItem key={obj.id} obj={obj} onToggle={handleToggleObject} lockingPuzzleName={lockingPuzzle?.name} />;
                         })
                       ) : (
-                         <p className="text-slate-400">All objects from this room are in the inventory.</p>
+                         <p className="text-slate-400">All objects from this room are in the inventory or have been discarded.</p>
                       )}
                     </div>
                   </div>

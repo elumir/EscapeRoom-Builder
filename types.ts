@@ -3,6 +3,7 @@ export interface InventoryObject {
   name: string;
   description: string;
   showInInventory: boolean;
+  wasEverInInventory?: boolean;
 }
 
 export interface Action {

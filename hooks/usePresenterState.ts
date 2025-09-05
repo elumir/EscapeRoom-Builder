@@ -10,6 +10,7 @@ export const usePresenterState = (game: Game | null) => {
                 lockingPuzzlesByPuzzleId: new Map<string, string>(),
                 lockingPuzzlesByRoomSolveId: new Map<string, string>(),
                 inventoryObjects: [],
+                discardedObjects: [],
             };
         }
 
@@ -37,7 +38,10 @@ export const usePresenterState = (game: Game | null) => {
             });
         });
 
-        const inventoryObjects = game.rooms.flatMap(r => r.objects).filter(o => o.showInInventory);
+        const allObjectsWithRoomName = game.rooms.flatMap(r => r.objects.map(o => ({ ...o, roomName: r.name })));
+        const inventoryObjects = allObjectsWithRoomName.filter(o => o.showInInventory);
+        const discardedObjects = allObjectsWithRoomName.filter(o => !o.showInInventory && o.wasEverInInventory);
+
 
         return {
             allUnsolvedPuzzles,
@@ -45,6 +49,7 @@ export const usePresenterState = (game: Game | null) => {
             lockingPuzzlesByPuzzleId,
             lockingPuzzlesByRoomSolveId,
             inventoryObjects,
+            discardedObjects,
         };
     }, [game]);
 
