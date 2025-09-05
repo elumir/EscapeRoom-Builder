@@ -28,12 +28,14 @@ export interface Puzzle {
   sound: string | null;
   showImageOverlay: boolean;
   lockedObjectIds: string[];
+  discardObjectIds: string[];
   lockedRoomIds: string[];
   lockedPuzzleIds: string[];
   lockedRoomSolveIds: string[];
   lockedActionIds: string[];
   completedActionIds: string[];
   autoAddLockedObjects: boolean;
+  autoDiscardObjects: boolean;
   autoSolveRooms: boolean;
   autoCompleteActions: boolean;
 }

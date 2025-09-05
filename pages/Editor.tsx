@@ -41,12 +41,14 @@ const Editor: React.FC = () => {
   const [puzzleModalState, setPuzzleModalState] = useState<{ puzzle: Puzzle; index: number } | null>(null);
   const [modalPuzzleData, setModalPuzzleData] = useState<Puzzle | null>(null);
   const [openModalPuzzleObjectsDropdown, setOpenModalPuzzleObjectsDropdown] = useState(false);
+  const [openModalPuzzleDiscardObjectsDropdown, setOpenModalPuzzleDiscardObjectsDropdown] = useState(false);
   const [openModalPuzzleRoomsDropdown, setOpenModalPuzzleRoomsDropdown] = useState(false);
   const [openModalPuzzlePuzzlesDropdown, setOpenModalPuzzlePuzzlesDropdown] = useState(false);
   const [openModalPuzzleRoomSolvesDropdown, setOpenModalPuzzleRoomSolvesDropdown] = useState(false);
   const [openModalPuzzleActionsDropdown, setOpenModalPuzzleActionsDropdown] = useState(false);
   const [openModalPuzzleCompletedActionsDropdown, setOpenModalPuzzleCompletedActionsDropdown] = useState(false);
   const [modalPuzzleObjectsSearch, setModalPuzzleObjectsSearch] = useState('');
+  const [modalPuzzleDiscardObjectsSearch, setModalPuzzleDiscardObjectsSearch] = useState('');
   const [modalPuzzlePuzzlesSearch, setModalPuzzlePuzzlesSearch] = useState('');
   const [modalPuzzleRoomsSearch, setModalPuzzleRoomsSearch] = useState('');
   const [modalPuzzleRoomSolvesSearch, setModalPuzzleRoomSolvesSearch] = useState('');
@@ -59,6 +61,7 @@ const Editor: React.FC = () => {
 
   const objectRemoveDropdownRef = useRef<HTMLDivElement>(null);
   const modalObjectsDropdownRef = useRef<HTMLDivElement>(null);
+  const modalDiscardObjectsDropdownRef = useRef<HTMLDivElement>(null);
   const modalRoomsDropdownRef = useRef<HTMLDivElement>(null);
   const modalPuzzlesDropdownRef = useRef<HTMLDivElement>(null);
   const modalRoomSolvesDropdownRef = useRef<HTMLDivElement>(null);
@@ -109,6 +112,9 @@ const Editor: React.FC = () => {
         }
         if (modalObjectsDropdownRef.current && !modalObjectsDropdownRef.current.contains(event.target as Node)) {
             setOpenModalPuzzleObjectsDropdown(false);
+        }
+        if (modalDiscardObjectsDropdownRef.current && !modalDiscardObjectsDropdownRef.current.contains(event.target as Node)) {
+            setOpenModalPuzzleDiscardObjectsDropdown(false);
         }
         if (modalRoomsDropdownRef.current && !modalRoomsDropdownRef.current.contains(event.target as Node)) {
             setOpenModalPuzzleRoomsDropdown(false);
@@ -366,7 +372,7 @@ const Editor: React.FC = () => {
   }
 
   const addPuzzle = () => {
-    const newPuzzle: Puzzle = { id: generateUUID(), name: 'New Puzzle', answer: '', isSolved: false, unsolvedText: '', solvedText: '', image: null, sound: null, showImageOverlay: false, lockedObjectIds: [], lockedRoomIds: [], lockedPuzzleIds: [], lockedRoomSolveIds: [], lockedActionIds: [], completedActionIds: [], autoAddLockedObjects: false, autoSolveRooms: false, autoCompleteActions: false };
+    const newPuzzle: Puzzle = { id: generateUUID(), name: 'New Puzzle', answer: '', isSolved: false, unsolvedText: '', solvedText: '', image: null, sound: null, showImageOverlay: false, lockedObjectIds: [], discardObjectIds: [], lockedRoomIds: [], lockedPuzzleIds: [], lockedRoomSolveIds: [], lockedActionIds: [], completedActionIds: [], autoAddLockedObjects: false, autoDiscardObjects: false, autoSolveRooms: false, autoCompleteActions: false };
     const newPuzzles = [...editingRoomPuzzles, newPuzzle];
     setEditingRoomPuzzles(newPuzzles);
     
@@ -374,6 +380,7 @@ const Editor: React.FC = () => {
     const newPuzzleIndex = newPuzzles.length - 1;
     setPuzzleModalState({ puzzle: { ...newPuzzle }, index: newPuzzleIndex });
     setModalPuzzleObjectsSearch('');
+    setModalPuzzleDiscardObjectsSearch('');
     setModalPuzzlePuzzlesSearch('');
     setModalPuzzleRoomsSearch('');
     setModalPuzzleRoomSolvesSearch('');
@@ -1073,7 +1080,7 @@ const Editor: React.FC = () => {
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                           {/* Locked Objects */}
                           <div className="relative" ref={modalObjectsDropdownRef}>
-                              <h4 className="font-semibold text-sm mb-1 text-slate-600 dark:text-slate-400">Locked Objects</h4>
+                              <h4 className="font-semibold text-sm mb-1 text-slate-600 dark:text-slate-400">Locked Objects (Add to Inventory)</h4>
                               <button type="button" onClick={() => setOpenModalPuzzleObjectsDropdown(prev => !prev)} className="w-full text-left px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 flex justify-between items-center text-sm">
                                   <span>{`${modalPuzzleData.lockedObjectIds?.length || 0} selected`}</span>
                                   <Icon as="chevron-down" className={`w-4 h-4 transition-transform ${openModalPuzzleObjectsDropdown ? 'rotate-180' : ''}`} />
@@ -1100,6 +1107,43 @@ const Editor: React.FC = () => {
                                                       <h5 className="text-xs font-bold text-slate-500 dark:text-slate-400 sticky top-0 bg-white dark:bg-slate-800 py-1 px-2 -mx-2">{room.name}</h5>
                                                       {filteredObjects.map(obj => (
                                                         <label key={obj.id} className="flex items-center gap-2 text-sm p-1 cursor-pointer"><input type="checkbox" checked={modalPuzzleData.lockedObjectIds?.includes(obj.id)} onChange={e => handleModalPuzzleChange('lockedObjectIds', e.target.checked ? [...modalPuzzleData.lockedObjectIds, obj.id] : modalPuzzleData.lockedObjectIds.filter(id => id !== obj.id))} />{obj.name}</label>
+                                                      ))}
+                                                  </div>
+                                              )
+                                          })}
+                                      </div>
+                                  </div>
+                              )}
+                          </div>
+                          {/* Discarded Objects */}
+                          <div className="relative" ref={modalDiscardObjectsDropdownRef}>
+                              <h4 className="font-semibold text-sm mb-1 text-slate-600 dark:text-slate-400">Discarded Objects</h4>
+                              <button type="button" onClick={() => setOpenModalPuzzleDiscardObjectsDropdown(prev => !prev)} className="w-full text-left px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 flex justify-between items-center text-sm">
+                                  <span>{`${modalPuzzleData.discardObjectIds?.length || 0} selected`}</span>
+                                  <Icon as="chevron-down" className={`w-4 h-4 transition-transform ${openModalPuzzleDiscardObjectsDropdown ? 'rotate-180' : ''}`} />
+                              </button>
+                              {openModalPuzzleDiscardObjectsDropdown && (
+                                  <div className="absolute z-10 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg flex flex-col max-h-60">
+                                      <div className="p-2 border-b border-slate-200 dark:border-slate-700">
+                                          <input 
+                                              type="text"
+                                              value={modalPuzzleDiscardObjectsSearch}
+                                              onChange={(e) => setModalPuzzleDiscardObjectsSearch(e.target.value)}
+                                              placeholder="Search objects..."
+                                              className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
+                                          />
+                                      </div>
+                                      <div className="overflow-y-auto">
+                                          {game.rooms.map(room => {
+                                              const filteredObjects = room.objects.filter(obj => 
+                                                  obj.name.toLowerCase().includes(modalPuzzleDiscardObjectsSearch.toLowerCase())
+                                              );
+                                              if (filteredObjects.length === 0) return null;
+                                              return (
+                                                  <div key={room.id} className="p-2">
+                                                      <h5 className="text-xs font-bold text-slate-500 dark:text-slate-400 sticky top-0 bg-white dark:bg-slate-800 py-1 px-2 -mx-2">{room.name}</h5>
+                                                      {filteredObjects.map(obj => (
+                                                        <label key={obj.id} className="flex items-center gap-2 text-sm p-1 cursor-pointer"><input type="checkbox" checked={modalPuzzleData.discardObjectIds?.includes(obj.id)} onChange={e => handleModalPuzzleChange('discardObjectIds', e.target.checked ? [...(modalPuzzleData.discardObjectIds || []), obj.id] : (modalPuzzleData.discardObjectIds || []).filter(id => id !== obj.id))} />{obj.name}</label>
                                                       ))}
                                                   </div>
                                               )
@@ -1309,6 +1353,7 @@ const Editor: React.FC = () => {
                     </div>
                     <div className="pt-4 space-y-2">
                         <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer"><input type="checkbox" className="disabled:opacity-50" checked={modalPuzzleData.autoAddLockedObjects} onChange={e => handleModalPuzzleChange('autoAddLockedObjects', e.target.checked)} disabled={!modalPuzzleData.lockedObjectIds || modalPuzzleData.lockedObjectIds.length === 0} />Automatically add locked objects to inventory upon solving.</label>
+                        <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer"><input type="checkbox" className="disabled:opacity-50" checked={modalPuzzleData.autoDiscardObjects} onChange={e => handleModalPuzzleChange('autoDiscardObjects', e.target.checked)} disabled={!modalPuzzleData.discardObjectIds || modalPuzzleData.discardObjectIds.length === 0} />Automatically discard selected objects upon solving.</label>
                         <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer"><input type="checkbox" className="disabled:opacity-50" checked={modalPuzzleData.autoSolveRooms} onChange={e => handleModalPuzzleChange('autoSolveRooms', e.target.checked)} disabled={!modalPuzzleData.lockedRoomSolveIds || modalPuzzleData.lockedRoomSolveIds.length === 0} />Automatically set locked Room Solves to solved.</label>
                         <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer"><input type="checkbox" className="disabled:opacity-50" checked={modalPuzzleData.autoCompleteActions} onChange={e => handleModalPuzzleChange('autoCompleteActions', e.target.checked)} disabled={!modalPuzzleData.completedActionIds || modalPuzzleData.completedActionIds.length === 0} />Automatically complete selected actions upon solving.</label>
                     </div>
@@ -1624,6 +1669,7 @@ const Editor: React.FC = () => {
                                 setModalPuzzleRoomSolvesSearch('');
                                 setModalPuzzleActionsSearch('');
                                 setModalPuzzleCompletedActionsSearch('');
+                                setModalPuzzleDiscardObjectsSearch('');
                             }}
                             className={`flex items-center justify-between p-2 rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer transition-colors hover:bg-slate-100 dark:hover:bg-slate-700 ${index % 2 === 0 ? '' : 'bg-slate-50 dark:bg-slate-700/50'}`}
                         >

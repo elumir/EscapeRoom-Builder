@@ -263,6 +263,9 @@ const PresenterView: React.FC = () => {
 
     const shouldAutoAddObjects = newState && targetPuzzle.autoAddLockedObjects;
     const objectIdsToUpdate = shouldAutoAddObjects ? targetPuzzle.lockedObjectIds : [];
+    
+    const shouldAutoDiscardObjects = newState && targetPuzzle.autoDiscardObjects;
+    const objectIdsToDiscard = shouldAutoDiscardObjects ? (targetPuzzle.discardObjectIds || []) : [];
 
     const shouldAutoSolveRooms = newState && targetPuzzle.autoSolveRooms;
     const roomIdsToAutoSolve = shouldAutoSolveRooms ? targetPuzzle.lockedRoomSolveIds : [];
@@ -274,9 +277,19 @@ const PresenterView: React.FC = () => {
         let newObjects = room.objects;
         // Auto-add objects to inventory if configured
         if (shouldAutoAddObjects) {
-            newObjects = room.objects.map(obj => {
+            newObjects = newObjects.map(obj => {
                 if (objectIdsToUpdate.includes(obj.id)) {
                     return { ...obj, showInInventory: true, wasEverInInventory: true };
+                }
+                return obj;
+            });
+        }
+        
+        // Auto-discard objects if configured
+        if (shouldAutoDiscardObjects) {
+            newObjects = newObjects.map(obj => {
+                if (objectIdsToDiscard.includes(obj.id)) {
+                    return { ...obj, showInInventory: false };
                 }
                 return obj;
             });
