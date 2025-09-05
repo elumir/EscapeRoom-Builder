@@ -6,6 +6,7 @@ import Room from '../components/Slide';
 import Icon from '../components/Icon';
 import Accordion from '../components/Accordion';
 import { generateUUID } from '../utils/uuid';
+import AudioPreviewPlayer from '../components/AudioPreviewPlayer';
 
 type Status = 'loading' | 'success' | 'error';
 
@@ -1006,9 +1007,9 @@ const Editor: React.FC = () => {
                         <div>
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Sound</label>
                             {modalPuzzleData.sound ? (
-                                <div className="flex items-center gap-2 text-sm">
-                                    <span>Audio file uploaded.</span>
-                                    <button onClick={() => handleModalPuzzleFileChange('sound', null)} className="text-red-500 hover:text-red-700">Clear</button>
+                                <div className="space-y-2">
+                                    <AudioPreviewPlayer assetId={modalPuzzleData.sound} />
+                                    <button onClick={() => handleModalPuzzleFileChange('sound', null)} className="text-red-500 hover:text-red-700 text-xs px-1">Clear Sound</button>
                                 </div>
                             ) : (
                                 <input type="file" accept="audio/*" onChange={(e) => handleModalPuzzleFileChange('sound', e.target.files?.[0] || null)} className="text-sm w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100"/>
