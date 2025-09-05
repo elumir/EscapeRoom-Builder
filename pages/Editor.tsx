@@ -790,6 +790,15 @@ const Editor: React.FC = () => {
                               <p className="text-sm">Click or drag & drop</p>
                           </div>
                       </label>
+                      {currentRoom.image && (
+                          <button
+                              onClick={() => changeRoomProperty('image', null)}
+                              className="absolute top-2 right-2 z-10 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-red-600"
+                              aria-label="Clear room image"
+                          >
+                              <Icon as="trash" className="w-4 h-4" />
+                          </button>
+                      )}
                   </div>
                    <div className={`h-full ${currentRoom.isFullScreenImage ? 'hidden' : 'w-[30%]'}`}>
                      <div className="h-1/2 relative group">
@@ -800,6 +809,15 @@ const Editor: React.FC = () => {
                                   <p className="text-xs">Map Image</p>
                               </div>
                           </label>
+                           {currentRoom.mapImage && (
+                              <button
+                                  onClick={() => changeRoomProperty('mapImage', null)}
+                                  className="absolute top-2 right-2 z-10 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-red-600"
+                                  aria-label="Clear map image"
+                              >
+                                  <Icon as="trash" className="w-4 h-4" />
+                              </button>
+                          )}
                      </div>
                   </div>
                 </div>
