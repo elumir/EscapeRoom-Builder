@@ -64,11 +64,3 @@ export interface Asset {
   id: string;
   mime_type: string;
 }
-
-export interface DetailedAsset extends Asset {
-  url: string; // Object URL for preview
-  name: string;
-  width?: number;
-  height?: number;
-  duration?: number;
-}
