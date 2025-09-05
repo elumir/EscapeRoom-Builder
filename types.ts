@@ -63,4 +63,5 @@ export interface Game {
 export interface Asset {
   id: string;
   mime_type: string;
+  name: string;
 }

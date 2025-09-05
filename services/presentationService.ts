@@ -106,7 +106,7 @@ export const deleteGame = async (id: string): Promise<boolean> => {
 
 export const uploadAsset = async (gameId: string, file: File): Promise<{ assetId: string }> => {
     try {
-        const response = await fetch(`${API_BASE_URL}/presentations/${gameId}/assets`, {
+        const response = await fetch(`${API_BASE_URL}/presentations/${gameId}/assets?filename=${encodeURIComponent(file.name)}`, {
             method: 'POST',
             headers: { 'Content-Type': file.type },
             body: file,
@@ -125,6 +125,21 @@ export const getAssetsForGame = async (gameId: string): Promise<Asset[]> => {
     } catch (error) {
         console.error("Failed to fetch assets for game:", error);
         return [];
+    }
+};
+
+export const updateAssetName = async (gameId: string, assetId: string, name: string): Promise<boolean> => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/presentations/${gameId}/assets/${assetId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name }),
+        });
+        await handleResponse(response);
+        return true;
+    } catch(error) {
+        console.error("Failed to update asset name:", error);
+        return false;
     }
 };
 

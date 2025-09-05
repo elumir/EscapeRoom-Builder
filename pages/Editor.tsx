@@ -36,6 +36,7 @@ const Editor: React.FC = () => {
   const [assetModalTarget, setAssetModalTarget] = useState<'image' | 'mapImage' | 'solvedImage' | null>(null);
   const [isAssetManagerOpen, setIsAssetManagerOpen] = useState(false);
   const [deletingAssetId, setDeletingAssetId] = useState<string | null>(null);
+  const [editingAssetName, setEditingAssetName] = useState<{ id: string; name: string } | null>(null);
   const [puzzleModalState, setPuzzleModalState] = useState<{ puzzle: Puzzle; index: number } | null>(null);
   const [modalPuzzleData, setModalPuzzleData] = useState<Puzzle | null>(null);
   const [openModalPuzzleObjectsDropdown, setOpenModalPuzzleObjectsDropdown] = useState(false);
@@ -299,6 +300,26 @@ const Editor: React.FC = () => {
       } finally {
           setDeletingAssetId(null);
       }
+  };
+
+  const handleSaveAssetName = async () => {
+    if (!editingAssetName || !game) return;
+
+    const originalAsset = assetLibrary.find(a => a.id === editingAssetName.id);
+    if (!editingAssetName.name.trim() || editingAssetName.name === originalAsset?.name) {
+        setEditingAssetName(null);
+        return;
+    }
+
+    const success = await gameService.updateAssetName(game.id, editingAssetName.id, editingAssetName.name.trim());
+    if (success) {
+        setAssetLibrary(prev => prev.map(asset => 
+            asset.id === editingAssetName.id ? { ...asset, name: editingAssetName.name.trim() } : asset
+        ));
+    } else {
+        alert('Failed to update asset name.');
+    }
+    setEditingAssetName(null);
   };
 
   const addObject = () => {
@@ -851,27 +872,50 @@ const Editor: React.FC = () => {
                 {assetLibrary.length > 0 ? (
                     <div className="flex-grow overflow-y-auto pr-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
                         {assetLibrary.map(asset => (
-                            <div key={asset.id} className="aspect-square group relative rounded-md overflow-hidden bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600">
-                                {asset.mime_type.startsWith('image/') ? (
-                                    <img src={`/api/assets/${asset.id}`} alt="Game asset" className="w-full h-full object-cover"/>
-                                ) : (
-                                    <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 p-2">
-                                        <Icon as="audio" className="w-12 h-12 mb-2"/>
-                                        <p className="text-xs text-center break-all font-mono">Audio File</p>
+                            <div key={asset.id} className="group relative rounded-md bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 flex flex-col">
+                                <div className="aspect-square w-full relative overflow-hidden">
+                                    {asset.mime_type.startsWith('image/') ? (
+                                        <img src={`/api/assets/${asset.id}`} alt={asset.name} className="w-full h-full object-cover"/>
+                                    ) : (
+                                        <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 p-2">
+                                            <Icon as="audio" className="w-12 h-12 mb-2"/>
+                                        </div>
+                                    )}
+                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/60 transition-colors flex items-center justify-center">
+                                        <button
+                                            onClick={() => handleDeleteAsset(asset.id)}
+                                            disabled={deletingAssetId === asset.id}
+                                            className="p-2 bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                                            aria-label="Delete asset"
+                                        >
+                                            {deletingAssetId === asset.id ? 
+                                              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                              : <Icon as="trash" className="w-5 h-5" />
+                                            }
+                                        </button>
                                     </div>
-                                )}
-                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/60 transition-colors flex items-center justify-center">
-                                    <button
-                                        onClick={() => handleDeleteAsset(asset.id)}
-                                        disabled={deletingAssetId === asset.id}
-                                        className="p-2 bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
-                                        aria-label="Delete asset"
-                                    >
-                                        {deletingAssetId === asset.id ? 
-                                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                          : <Icon as="trash" className="w-5 h-5" />
-                                        }
-                                    </button>
+                                </div>
+                                <div className="p-2 text-center">
+                                    {editingAssetName?.id === asset.id ? (
+                                        <input
+                                            type="text"
+                                            value={editingAssetName.name}
+                                            onChange={(e) => setEditingAssetName({ ...editingAssetName, name: e.target.value })}
+                                            onBlur={handleSaveAssetName}
+                                            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSaveAssetName(); } if (e.key === 'Escape') { setEditingAssetName(null); } }}
+                                            className="w-full text-xs px-1 py-0.5 border border-brand-500 rounded bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none"
+                                            autoFocus
+                                            onFocus={(e) => e.target.select()}
+                                        />
+                                    ) : (
+                                        <p
+                                            onClick={() => setEditingAssetName({ id: asset.id, name: asset.name })}
+                                            className="text-xs text-slate-600 dark:text-slate-400 break-all cursor-pointer hover:underline"
+                                            title="Click to edit name"
+                                        >
+                                            {asset.name}
+                                        </p>
+                                    )}
                                 </div>
                             </div>
                         ))}

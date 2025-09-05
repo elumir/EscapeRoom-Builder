@@ -170,7 +170,7 @@ app.delete('/api/presentations/:id', async (req, res) => {
 app.get('/api/presentations/:presentationId/assets', async (req, res) => {
     try {
         const { presentationId } = req.params;
-        const [rows] = await dbPool.query('SELECT id, mime_type FROM assets WHERE presentation_id = ? ORDER BY created_at DESC', [presentationId]);
+        const [rows] = await dbPool.query('SELECT id, mime_type, name FROM assets WHERE presentation_id = ? ORDER BY created_at DESC', [presentationId]);
         res.json(rows);
     } catch (error) {
         console.error(`Failed to fetch assets for presentation ${req.params.presentationId}:`, error);
@@ -182,16 +182,17 @@ app.get('/api/presentations/:presentationId/assets', async (req, res) => {
 app.post('/api/presentations/:presentationId/assets', async (req, res) => {
     try {
         const { presentationId } = req.params;
+        const { filename } = req.query;
         const mimeType = req.headers['content-type'];
         const data = req.body;
 
-        if (!presentationId || !mimeType || !data) {
-            return res.status(400).json({ error: 'Missing presentation ID, content-type, or file data.' });
+        if (!presentationId || !mimeType || !data || !filename) {
+            return res.status(400).json({ error: 'Missing presentation ID, content-type, filename, or file data.' });
         }
 
         const assetId = crypto.randomUUID();
-        const sql = 'INSERT INTO assets (id, presentation_id, mime_type, data) VALUES (?, ?, ?, ?)';
-        await dbPool.query(sql, [assetId, presentationId, mimeType, data]);
+        const sql = 'INSERT INTO assets (id, presentation_id, mime_type, name, data) VALUES (?, ?, ?, ?, ?)';
+        await dbPool.query(sql, [assetId, presentationId, mimeType, filename, data]);
         
         res.status(201).json({ assetId });
 
@@ -222,6 +223,33 @@ app.get('/api/assets/:assetId', async (req, res) => {
         res.status(500).json({ error: 'Database query failed' });
     }
 });
+
+// Update an asset's name
+app.put('/api/presentations/:presentationId/assets/:assetId', async (req, res) => {
+    try {
+        const { presentationId, assetId } = req.params;
+        const { name } = req.body;
+
+        if (!name || typeof name !== 'string' || name.trim() === '') {
+            return res.status(400).json({ error: 'Asset name must be a non-empty string.' });
+        }
+
+        const [result] = await dbPool.query(
+            'UPDATE assets SET name = ? WHERE id = ? AND presentation_id = ?',
+            [name.trim(), assetId, presentationId]
+        );
+
+        if (result.affectedRows > 0) {
+            res.status(204).send();
+        } else {
+            res.status(404).json({ error: 'Asset not found or does not belong to this presentation.' });
+        }
+    } catch (error) {
+        console.error(`Failed to update asset ${req.params.assetId}:`, error);
+        res.status(500).json({ error: 'Database update failed for asset.' });
+    }
+});
+
 
 // Delete an asset by ID
 app.delete('/api/presentations/:presentationId/assets/:assetId', async (req, res) => {
