@@ -185,7 +185,7 @@ app.get('/api/presentations/:presentationId/assets', async (req, res) => {
 app.post('/api/presentations/:presentationId/assets', upload.single('asset'), async (req, res) => {
     try {
         const { presentationId } = req.params;
-        const { file } = req;
+        const file = req.file; // Correctly access the file from req.file
         const { filename } = req.body;
 
         if (!presentationId || !file) {
