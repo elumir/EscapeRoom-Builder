@@ -123,6 +123,7 @@ const Dashboard: React.FC = () => {
         solvedImage: null,
         solvedNotes: '',
         objectRemoveIds: [],
+        objectRemoveText: '',
     };
 
     return (

@@ -34,6 +34,7 @@ const PresenterView: React.FC = () => {
   const [activeActionTab, setActiveActionTab] = useState<'open' | 'complete'>('open');
   const [activePuzzleTab, setActivePuzzleTab] = useState<'open' | 'complete'>('open');
   const [selectedAct, setSelectedAct] = useState(1);
+  const [objectRemoveModalText, setObjectRemoveModalText] = useState<string | null>(null);
   
   const { 
     lockingPuzzlesByRoomId, 
@@ -191,6 +192,9 @@ const PresenterView: React.FC = () => {
                 )
             }));
             objectsWereRemoved = true;
+            if (destinationRoom.objectRemoveText && destinationRoom.objectRemoveText.trim()) {
+                setObjectRemoveModalText(destinationRoom.objectRemoveText);
+            }
         }
         
         if (objectsWereRemoved) {
@@ -499,6 +503,26 @@ const PresenterView: React.FC = () => {
 
   return (
     <div className="h-screen bg-slate-800 text-white flex flex-col">
+      {objectRemoveModalText && (
+          <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+              <div className="bg-slate-800 p-8 rounded-lg shadow-2xl w-full max-w-md border border-slate-700 text-center">
+                  <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-sky-600 mb-4">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                  </div>
+                  <h2 className="text-2xl font-bold mb-4 text-sky-400">Object(s) Removed</h2>
+                  <p className="text-slate-300 mb-6 whitespace-pre-wrap">{objectRemoveModalText}</p>
+                  <button 
+                      type="button" 
+                      onClick={() => setObjectRemoveModalText(null)} 
+                      className="px-6 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors"
+                  >
+                      Continue
+                  </button>
+              </div>
+          </div>
+      )}
       {puzzleToSolve && (
           <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
               <div className="bg-slate-800 p-8 rounded-lg shadow-2xl w-full max-w-md border border-slate-700">

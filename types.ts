@@ -42,6 +42,7 @@ export interface Room {
   isFullScreenImage: boolean;
   act: number;
   objectRemoveIds: string[];
+  objectRemoveText?: string;
   objects: InventoryObject[];
   puzzles: Puzzle[];
   actions: Action[];

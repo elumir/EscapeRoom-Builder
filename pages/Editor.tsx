@@ -19,6 +19,7 @@ const Editor: React.FC = () => {
   const [editingRoomAct, setEditingRoomAct] = useState(1);
   const [editingRoomNotes, setEditingRoomNotes] = useState('');
   const [editingRoomSolvedNotes, setEditingRoomSolvedNotes] = useState('');
+  const [editingRoomObjectRemoveText, setEditingRoomObjectRemoveText] = useState('');
   const [editingRoomObjects, setEditingRoomObjects] = useState<InventoryObject[]>([]);
   const [editingRoomPuzzles, setEditingRoomPuzzles] = useState<Puzzle[]>([]);
   const [editingRoomActions, setEditingRoomActions] = useState<Action[]>([]);
@@ -61,6 +62,7 @@ const Editor: React.FC = () => {
               setEditingRoomNotes(currentRoom.notes);
               setEditingRoomSolvedNotes(currentRoom.solvedNotes || '');
               setEditingRoomAct(currentRoom.act || 1);
+              setEditingRoomObjectRemoveText(currentRoom.objectRemoveText || '');
               setEditingRoomObjects(currentRoom.objects || []);
               setEditingRoomPuzzles(currentRoom.puzzles || []);
               setEditingRoomActions(currentRoom.actions || []);
@@ -132,6 +134,7 @@ const Editor: React.FC = () => {
   useDebouncedUpdater(editingRoomNotes, 'notes');
   useDebouncedUpdater(editingRoomSolvedNotes, 'solvedNotes');
   useDebouncedUpdater(editingRoomAct, 'act');
+  useDebouncedUpdater(editingRoomObjectRemoveText, 'objectRemoveText');
   useDebouncedUpdater(editingRoomObjects, 'objects');
   useDebouncedUpdater(editingRoomPuzzles, 'puzzles');
   useDebouncedUpdater(editingRoomActions, 'actions');
@@ -143,6 +146,7 @@ const Editor: React.FC = () => {
     setEditingRoomNotes(room?.notes || '');
     setEditingRoomSolvedNotes(room?.solvedNotes || '');
     setEditingRoomAct(room?.act || 1);
+    setEditingRoomObjectRemoveText(room?.objectRemoveText || '');
     setEditingRoomObjects(room?.objects || []);
     setEditingRoomPuzzles(room?.puzzles || []);
     setEditingRoomActions(room?.actions || []);
@@ -151,7 +155,7 @@ const Editor: React.FC = () => {
 
   const addRoom = () => {
     if (!game) return;
-    const newRoom: RoomType = { id: generateUUID(), name: `Room ${game.rooms.length + 1}`, image: null, mapImage: null, notes: '', backgroundColor: '#000000', isFullScreenImage: false, act: game.rooms[selectedRoomIndex]?.act || 1, objectRemoveIds: [], objects: [], puzzles: [], actions: [], isSolved: false, solvedImage: null, solvedNotes: '' };
+    const newRoom: RoomType = { id: generateUUID(), name: `Room ${game.rooms.length + 1}`, image: null, mapImage: null, notes: '', backgroundColor: '#000000', isFullScreenImage: false, act: game.rooms[selectedRoomIndex]?.act || 1, objectRemoveIds: [], objectRemoveText: '', objects: [], puzzles: [], actions: [], isSolved: false, solvedImage: null, solvedNotes: '' };
     const newRooms = [...game.rooms, newRoom];
     updateGame({ ...game, rooms: newRooms });
     selectRoom(newRooms.length - 1);
@@ -1098,8 +1102,24 @@ const Editor: React.FC = () => {
                             </div>
                           )}
                         </div>
-                         <div>
-                            <h3 className="font-semibold text-sm mb-2 text-slate-600 dark:text-slate-400">Object Removal</h3>
+                        <div>
+                            <label className="flex items-center justify-between gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer">
+                                <span>Full-Screen Image</span>
+                                <input
+                                    type="checkbox"
+                                    className="sr-only peer"
+                                    checked={currentRoom.isFullScreenImage || false}
+                                    onChange={(e) => changeRoomProperty('isFullScreenImage', e.target.checked)}
+                                />
+                                <div className="relative w-11 h-6 bg-slate-200 dark:bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-600"></div>
+                            </label>
+                        </div>
+                    </div>
+                </Accordion>
+                <Accordion title="Object Removal">
+                    <div className="space-y-4">
+                        <div>
+                            <h3 className="font-semibold text-sm mb-2 text-slate-600 dark:text-slate-400">Removed Objects</h3>
                             <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">Visiting this room will remove the selected objects from the live inventory.</p>
                             <div className="relative">
                                 <button
@@ -1149,16 +1169,14 @@ const Editor: React.FC = () => {
                             </div>
                         </div>
                         <div>
-                            <label className="flex items-center justify-between gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer">
-                                <span>Full-Screen Image</span>
-                                <input
-                                    type="checkbox"
-                                    className="sr-only peer"
-                                    checked={currentRoom.isFullScreenImage || false}
-                                    onChange={(e) => changeRoomProperty('isFullScreenImage', e.target.checked)}
-                                />
-                                <div className="relative w-11 h-6 bg-slate-200 dark:bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-600"></div>
-                            </label>
+                            <h3 className="font-semibold text-sm mb-2 text-slate-600 dark:text-slate-400">Removal Text</h3>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">Optional text to show the presenter in a pop-up when objects are removed.</p>
+                            <textarea
+                                value={editingRoomObjectRemoveText}
+                                onChange={e => setEditingRoomObjectRemoveText(e.target.value)}
+                                placeholder="e.g., The key dissolves in the lock..."
+                                className="w-full h-24 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none text-sm"
+                            />
                         </div>
                     </div>
                 </Accordion>
