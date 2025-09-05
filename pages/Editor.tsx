@@ -833,9 +833,18 @@ const Editor: React.FC = () => {
                       <label className={`w-full h-full cursor-pointer flex items-center justify-center bg-black/0 hover:bg-black/30 transition-colors duration-300 ${currentRoom.isFullScreenImage ? 'pointer-events-auto' : ''}`}>
                         <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'image')} className="sr-only" />
                           {!currentRoom.image && (
-                            <div className="text-white text-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-                                <p className="font-bold text-lg">Upload Image</p>
-                                <p className="text-sm">Click or drag & drop</p>
+                            <div className="w-full h-full flex flex-col items-center justify-center gap-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                <div className="text-white text-center pointer-events-none">
+                                    <p className="font-bold text-lg">Upload New Image</p>
+                                    <p className="text-sm">Click or drag & drop</p>
+                                </div>
+                                <button
+                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('image'); }}
+                                    className="pointer-events-auto flex items-center gap-2 text-sm px-3 py-1.5 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors"
+                                >
+                                    <Icon as="gallery" className="w-4 h-4" />
+                                    Select existing image
+                                </button>
                             </div>
                           )}
                       </label>
@@ -865,9 +874,18 @@ const Editor: React.FC = () => {
                           <label className="w-full h-full cursor-pointer flex items-center justify-center bg-black/0 hover:bg-black/30 transition-colors duration-300">
                               <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'mapImage')} className="sr-only" />
                               {!currentRoom.mapImage && (
-                                <div className="text-white text-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none p-2">
-                                    <p className="font-bold text-sm">Upload</p>
-                                    <p className="text-xs">Map Image</p>
+                                <div className="w-full h-full flex flex-col items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-2">
+                                    <div className="text-white text-center pointer-events-none">
+                                        <p className="font-bold text-sm">Upload New</p>
+                                        <p className="text-xs">Map Image</p>
+                                    </div>
+                                    <button
+                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('mapImage'); }}
+                                        className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors"
+                                    >
+                                        <Icon as="gallery" className="w-3.5 h-3.5" />
+                                        Select existing image
+                                    </button>
                                 </div>
                               )}
                           </label>
@@ -1410,18 +1428,35 @@ const Editor: React.FC = () => {
                     <div className="space-y-4">
                         <div>
                             <h3 className="font-semibold text-sm mb-2 text-slate-600 dark:text-slate-400">Solved Image</h3>
-                            <div className="relative group w-24 h-24">
-                                <label className="absolute inset-0 cursor-pointer bg-black/0 hover:bg-black/30 transition-colors rounded-md flex items-center justify-center">
+                            <div className="relative group w-24 h-24 bg-slate-100 dark:bg-slate-700 rounded-md border border-slate-200 dark:border-slate-600">
+                                {currentRoom.solvedImage && (
+                                    <img src={`/api/assets/${currentRoom.solvedImage}`} alt="Solved state preview" className="w-full h-full object-cover rounded-md" />
+                                )}
+                                <label className="absolute inset-0 cursor-pointer hover:bg-black/40 transition-colors rounded-md flex items-center justify-center">
                                     <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'solvedImage')} className="sr-only" />
                                     {!currentRoom.solvedImage && (
-                                        <div className="text-slate-400 group-hover:text-white transition-colors">
-                                            <Icon as="gallery" className="w-8 h-8"/>
-                                        </div>
+                                        <>
+                                            {/* Default state: icon */}
+                                            <div className="text-center text-slate-400 dark:text-slate-500 group-hover:opacity-0 transition-opacity">
+                                                 <Icon as="gallery" className="w-8 h-8 mx-auto"/>
+                                                 <p className="text-xs mt-1">Add Image</p>
+                                            </div>
+                                            {/* Hover state: upload text + library button */}
+                                            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                 <div className="pointer-events-none text-white text-center">
+                                                    <p className="font-bold text-xs">Upload New</p>
+                                                </div>
+                                                <button
+                                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('solvedImage'); }}
+                                                    className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors text-center"
+                                                >
+                                                  <Icon as="gallery" className="w-3.5 h-3.5" />
+                                                  Select existing image
+                                                </button>
+                                            </div>
+                                        </>
                                     )}
                                 </label>
-                                {currentRoom.solvedImage && (
-                                    <img src={`/api/assets/${currentRoom.solvedImage}`} alt="Solved state preview" className="w-full h-full object-cover rounded-md border border-slate-300 dark:border-slate-600" />
-                                )}
                                 {currentRoom.solvedImage && (
                                     <div className="absolute bottom-0 left-0 right-0 bg-black/60 p-1 flex justify-end items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
                                         <button
