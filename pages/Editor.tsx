@@ -167,17 +167,20 @@ const Editor: React.FC = () => {
     setModalActionData(actionModalState ? actionModalState.action : null);
   }, [actionModalState]);
 
-  const selectRoom = (index: number) => {
+  const selectRoom = (index: number, rooms?: RoomType[]) => {
+    const roomList = rooms || game?.rooms;
+    if (!roomList || !roomList[index]) return;
+
     setSelectedRoomIndex(index);
-    const room = game?.rooms[index];
-    setEditingRoomName(room?.name || '');
-    setEditingRoomNotes(room?.notes || '');
-    setEditingRoomSolvedNotes(room?.solvedNotes || '');
-    setEditingRoomAct(room?.act || 1);
-    setEditingRoomObjectRemoveText(room?.objectRemoveText || '');
-    setEditingRoomObjects(room?.objects || []);
-    setEditingRoomPuzzles(room?.puzzles || []);
-    setEditingRoomActions(room?.actions || []);
+    const room = roomList[index];
+    setEditingRoomName(room.name || '');
+    setEditingRoomNotes(room.notes || '');
+    setEditingRoomSolvedNotes(room.solvedNotes || '');
+    setEditingRoomAct(room.act || 1);
+    setEditingRoomObjectRemoveText(room.objectRemoveText || '');
+    setEditingRoomObjects(room.objects || []);
+    setEditingRoomPuzzles(room.puzzles || []);
+    setEditingRoomActions(room.actions || []);
     setPreviewSolved(false);
   };
 
@@ -187,7 +190,7 @@ const Editor: React.FC = () => {
     const newRoom: RoomType = { id: generateUUID(), name: `Room ${game.rooms.length + 1}`, image: null, mapImage: null, notes: '', backgroundColor: '#000000', isFullScreenImage: false, act: latestAct, objectRemoveIds: [], objectRemoveText: '', objects: [], puzzles: [], actions: [], isSolved: false, solvedImage: null, solvedNotes: '' };
     const newRooms = [...game.rooms, newRoom];
     updateGame({ ...game, rooms: newRooms });
-    selectRoom(newRooms.length - 1);
+    selectRoom(newRooms.length - 1, newRooms);
     setTimeout(() => {
         roomsContainerRef.current?.lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'end' });
     }, 100);
@@ -202,7 +205,7 @@ const Editor: React.FC = () => {
         const newRooms = game.rooms.filter((_, i) => i !== selectedRoomIndex);
         const newIndex = Math.max(0, selectedRoomIndex - 1);
         updateGame({ ...game, rooms: newRooms });
-        selectRoom(newIndex);
+        selectRoom(newIndex, newRooms);
     }
   };
   
