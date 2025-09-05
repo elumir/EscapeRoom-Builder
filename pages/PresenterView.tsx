@@ -37,8 +37,8 @@ const PresenterView: React.FC = () => {
   
   const { 
     lockingPuzzlesByRoomId, 
-    // FIX: Corrected typo from lockingPzzlesByPuzzleId to lockingPuzzlesByPuzzleId
     lockingPuzzlesByPuzzleId,
+    lockingPuzzlesByRoomSolveId,
     allUnsolvedPuzzles, 
     inventoryObjects 
   } = usePresenterState(game);
@@ -450,6 +450,8 @@ const PresenterView: React.FC = () => {
   const openPuzzles = (currentRoom?.puzzles || []).filter(puzzle => !puzzle.isSolved);
   const completedPuzzles = (currentRoom?.puzzles || []).filter(puzzle => puzzle.isSolved);
   const roomsForSelectedAct = roomsByAct[selectedAct] || [];
+  const roomSolveIsLocked = lockingPuzzlesByRoomSolveId.has(currentRoom.id);
+  const roomSolveLockingPuzzleName = lockingPuzzlesByRoomSolveId.get(currentRoom.id);
 
   return (
     <div className="h-screen bg-slate-800 text-white flex flex-col">
@@ -729,16 +731,22 @@ const PresenterView: React.FC = () => {
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-lg font-semibold text-slate-300">Room Description</h2>
                         {hasSolvedState && (
-                            <label className={`flex items-center gap-2 text-sm ${currentRoom.isSolved ? 'text-slate-400' : 'text-green-300'} cursor-pointer`}>
-                                <span>Mark Room as Solved</span>
-                                <input
-                                    type="checkbox"
-                                    checked={currentRoom.isSolved}
-                                    onChange={(e) => handleToggleRoomSolved(currentRoom.id, e.target.checked)}
-                                    className="sr-only peer"
-                                />
-                                <div className="relative w-11 h-6 bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
-                            </label>
+                            <div title={roomSolveIsLocked ? `Locked by: ${roomSolveLockingPuzzleName}` : ''}>
+                                <label className={`flex items-center gap-2 text-sm ${currentRoom.isSolved ? 'text-slate-400' : 'text-green-300'} ${roomSolveIsLocked ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
+                                    <span>Mark Room as Solved</span>
+                                    <input
+                                        type="checkbox"
+                                        checked={currentRoom.isSolved}
+                                        onChange={(e) => handleToggleRoomSolved(currentRoom.id, e.target.checked)}
+                                        className="sr-only peer"
+                                        disabled={roomSolveIsLocked}
+                                    />
+                                    <div className="relative w-11 h-6 bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                                </label>
+                                {roomSolveIsLocked && (
+                                    <p className="text-red-500 text-xs text-right mt-1">Locked by: {roomSolveLockingPuzzleName}</p>
+                                )}
+                            </div>
                         )}
                     </div>
                     <div className="prose prose-invert prose-lg max-w-none text-slate-200">

@@ -27,6 +27,7 @@ export interface Puzzle {
   lockedObjectIds: string[];
   lockedRoomIds: string[];
   lockedPuzzleIds: string[];
+  lockedRoomSolveIds: string[];
   autoAddLockedObjects: boolean;
 }
 

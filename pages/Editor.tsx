@@ -26,6 +26,7 @@ const Editor: React.FC = () => {
   const [openPuzzleObjectsDropdown, setOpenPuzzleObjectsDropdown] = useState<string | null>(null);
   const [openPuzzleRoomsDropdown, setOpenPuzzleRoomsDropdown] = useState<string | null>(null);
   const [openPuzzlePuzzlesDropdown, setOpenPuzzlePuzzlesDropdown] = useState<string | null>(null);
+  const [openPuzzleRoomSolvesDropdown, setOpenPuzzleRoomSolvesDropdown] = useState<string | null>(null);
   const [draggedRoomIndex, setDraggedRoomIndex] = useState<number | null>(null);
   const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
   const [previewSolved, setPreviewSolved] = useState(false);
@@ -34,6 +35,7 @@ const Editor: React.FC = () => {
   const objectsDropdownRef = useRef<HTMLDivElement>(null);
   const roomsDropdownRef = useRef<HTMLDivElement>(null);
   const puzzlesDropdownRef = useRef<HTMLDivElement>(null);
+  const roomSolvesDropdownRef = useRef<HTMLDivElement>(null);
   const roomsContainerRef = useRef<HTMLDivElement>(null);
   const objectsContainerRef = useRef<HTMLDivElement>(null);
   const puzzlesContainerRef = useRef<HTMLDivElement>(null);
@@ -78,6 +80,9 @@ const Editor: React.FC = () => {
         }
         if (puzzlesDropdownRef.current && !puzzlesDropdownRef.current.contains(event.target as Node)) {
             setOpenPuzzlePuzzlesDropdown(null);
+        }
+        if (roomSolvesDropdownRef.current && !roomSolvesDropdownRef.current.contains(event.target as Node)) {
+            setOpenPuzzleRoomSolvesDropdown(null);
         }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -201,7 +206,7 @@ const Editor: React.FC = () => {
   }
 
   const addPuzzle = () => {
-    const newPuzzle: Puzzle = { id: generateUUID(), name: 'New Puzzle', answer: '', isSolved: false, unsolvedText: '', solvedText: '', image: null, sound: null, showImageOverlay: false, lockedObjectIds: [], lockedRoomIds: [], lockedPuzzleIds: [], autoAddLockedObjects: false };
+    const newPuzzle: Puzzle = { id: generateUUID(), name: 'New Puzzle', answer: '', isSolved: false, unsolvedText: '', solvedText: '', image: null, sound: null, showImageOverlay: false, lockedObjectIds: [], lockedRoomIds: [], lockedPuzzleIds: [], lockedRoomSolveIds: [], autoAddLockedObjects: false };
     setEditingRoomPuzzles([...editingRoomPuzzles, newPuzzle]);
     setTimeout(() => {
         puzzlesContainerRef.current?.lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'end' });
@@ -685,7 +690,7 @@ const Editor: React.FC = () => {
                                </div>
                             </div>
                             <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
-                                <div className="grid grid-cols-3 gap-4">
+                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                                     <div>
                                         <h4 className="font-semibold text-sm mb-1 text-slate-600 dark:text-slate-400">Locked Objects</h4>
                                         <div className="relative">
@@ -799,6 +804,41 @@ const Editor: React.FC = () => {
                                                                             ? [...(puzzle.lockedRoomIds || []), room.id]
                                                                             : (puzzle.lockedRoomIds || []).filter(id => id !== room.id);
                                                                         handlePuzzleChange(index, 'lockedRoomIds', newLockedIds);
+                                                                    }}
+                                                                />
+                                                                {room.name}
+                                                            </label>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h4 className="font-semibold text-sm mb-1 text-slate-600 dark:text-slate-400">Locked Room Solves</h4>
+                                        <div className="relative">
+                                            <button
+                                                type="button"
+                                                onClick={() => setOpenPuzzleRoomSolvesDropdown(openPuzzleRoomSolvesDropdown === puzzle.id ? null : puzzle.id)}
+                                                className="w-full text-left px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 flex justify-between items-center text-sm"
+                                            >
+                                                <span>{`${puzzle.lockedRoomSolveIds?.length || 0} selected`}</span>
+                                                <svg className={`w-4 h-4 transition-transform ${openPuzzleRoomSolvesDropdown === puzzle.id ? 'rotate-180' : ''}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
+                                            </button>
+                                            {openPuzzleRoomSolvesDropdown === puzzle.id && (
+                                                <div ref={roomSolvesDropdownRef} className="absolute z-20 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                                                    <div className="space-y-1 p-2">
+                                                        {game.rooms.map(room => (
+                                                            <label key={room.id} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 pl-2 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md p-1">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    className="rounded border-slate-400 text-brand-600 focus:ring-brand-500"
+                                                                    checked={puzzle.lockedRoomSolveIds?.includes(room.id)}
+                                                                    onChange={(e) => {
+                                                                        const newLockedIds = e.target.checked
+                                                                            ? [...(puzzle.lockedRoomSolveIds || []), room.id]
+                                                                            : (puzzle.lockedRoomSolveIds || []).filter(id => id !== room.id);
+                                                                        handlePuzzleChange(index, 'lockedRoomSolveIds', newLockedIds);
                                                                     }}
                                                                 />
                                                                 {room.name}

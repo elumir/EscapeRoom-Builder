@@ -8,6 +8,7 @@ export const usePresenterState = (game: Game | null) => {
                 allUnsolvedPuzzles: [],
                 lockingPuzzlesByRoomId: new Map<string, string>(),
                 lockingPuzzlesByPuzzleId: new Map<string, string>(),
+                lockingPuzzlesByRoomSolveId: new Map<string, string>(),
                 inventoryObjects: [],
             };
         }
@@ -16,6 +17,7 @@ export const usePresenterState = (game: Game | null) => {
 
         const lockingPuzzlesByRoomId = new Map<string, string>();
         const lockingPuzzlesByPuzzleId = new Map<string, string>();
+        const lockingPuzzlesByRoomSolveId = new Map<string, string>();
 
         allUnsolvedPuzzles.forEach(puzzle => {
             (puzzle.lockedRoomIds || []).forEach(roomId => {
@@ -28,6 +30,11 @@ export const usePresenterState = (game: Game | null) => {
                     lockingPuzzlesByPuzzleId.set(puzzleId, puzzle.name);
                 }
             });
+            (puzzle.lockedRoomSolveIds || []).forEach(roomId => {
+                if (!lockingPuzzlesByRoomSolveId.has(roomId)) {
+                    lockingPuzzlesByRoomSolveId.set(roomId, puzzle.name);
+                }
+            });
         });
 
         const inventoryObjects = game.rooms.flatMap(r => r.objects).filter(o => o.showInInventory);
@@ -36,6 +43,7 @@ export const usePresenterState = (game: Game | null) => {
             allUnsolvedPuzzles,
             lockingPuzzlesByRoomId,
             lockingPuzzlesByPuzzleId,
+            lockingPuzzlesByRoomSolveId,
             inventoryObjects,
         };
     }, [game]);
