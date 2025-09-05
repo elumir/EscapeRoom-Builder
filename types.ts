@@ -38,6 +38,7 @@ export interface Room {
   notes: string;
   backgroundColor: string;
   isFullScreenImage: boolean;
+  act: number;
   objects: InventoryObject[];
   puzzles: Puzzle[];
   actions: Action[];

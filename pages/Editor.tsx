@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import * as gameService from '../services/presentationService';
 import type { Game, Room as RoomType, InventoryObject, Puzzle, Action } from '../types';
@@ -16,6 +16,7 @@ const Editor: React.FC = () => {
   const [selectedRoomIndex, setSelectedRoomIndex] = useState(0);
   const [editingGameTitle, setEditingGameTitle] = useState('');
   const [editingRoomName, setEditingRoomName] = useState('');
+  const [editingRoomAct, setEditingRoomAct] = useState(1);
   const [editingRoomNotes, setEditingRoomNotes] = useState('');
   const [editingRoomObjects, setEditingRoomObjects] = useState<InventoryObject[]>([]);
   const [editingRoomPuzzles, setEditingRoomPuzzles] = useState<Puzzle[]>([]);
@@ -49,6 +50,7 @@ const Editor: React.FC = () => {
               const currentRoom = data.rooms[0];
               setEditingRoomName(currentRoom.name);
               setEditingRoomNotes(currentRoom.notes);
+              setEditingRoomAct(currentRoom.act || 1);
               setEditingRoomObjects(currentRoom.objects || []);
               setEditingRoomPuzzles(currentRoom.puzzles || []);
               setEditingRoomActions(currentRoom.actions || []);
@@ -112,6 +114,7 @@ const Editor: React.FC = () => {
   
   useDebouncedUpdater(editingRoomName, 'name');
   useDebouncedUpdater(editingRoomNotes, 'notes');
+  useDebouncedUpdater(editingRoomAct, 'act');
   useDebouncedUpdater(editingRoomObjects, 'objects');
   useDebouncedUpdater(editingRoomPuzzles, 'puzzles');
   useDebouncedUpdater(editingRoomActions, 'actions');
@@ -121,6 +124,7 @@ const Editor: React.FC = () => {
     const room = game?.rooms[index];
     setEditingRoomName(room?.name || '');
     setEditingRoomNotes(room?.notes || '');
+    setEditingRoomAct(room?.act || 1);
     setEditingRoomObjects(room?.objects || []);
     setEditingRoomPuzzles(room?.puzzles || []);
     setEditingRoomActions(room?.actions || []);
@@ -128,7 +132,7 @@ const Editor: React.FC = () => {
 
   const addRoom = () => {
     if (!game) return;
-    const newRoom: RoomType = { id: generateUUID(), name: `Room ${game.rooms.length + 1}`, image: null, mapImage: null, notes: '', backgroundColor: '#000000', isFullScreenImage: false, objects: [], puzzles: [], actions: [] };
+    const newRoom: RoomType = { id: generateUUID(), name: `Room ${game.rooms.length + 1}`, image: null, mapImage: null, notes: '', backgroundColor: '#000000', isFullScreenImage: false, act: game.rooms[selectedRoomIndex]?.act || 1, objects: [], puzzles: [], actions: [] };
     const newRooms = [...game.rooms, newRoom];
     updateGame({ ...game, rooms: newRooms });
     selectRoom(newRooms.length - 1);
@@ -392,6 +396,18 @@ const Editor: React.FC = () => {
 
   const COLORS = ['#000000', '#ffffff', '#f87171', '#fbbf24', '#34d399', '#60a5fa', '#a78bfa'];
 
+  const roomsByAct = useMemo(() => {
+    if (!game) return {};
+    return game.rooms.reduce((acc, room, index) => {
+        const act = room.act || 1;
+        if (!acc[act]) {
+            acc[act] = [];
+        }
+        acc[act].push({ ...room, originalIndex: index });
+        return acc;
+    }, {} as Record<number, (RoomType & { originalIndex: number })[]>);
+  }, [game]);
+
   if (status === 'loading') {
     return <div className="flex items-center justify-center h-screen">Loading game...</div>;
   }
@@ -472,37 +488,47 @@ const Editor: React.FC = () => {
       <div className="flex flex-1 overflow-hidden">
         {/* Left Sidebar - Thumbnails */}
         <aside className="w-48 bg-white dark:bg-slate-800 p-2 overflow-y-auto shadow-lg">
-          <div className="space-y-2" ref={roomsContainerRef}>
-            {game.rooms.map((room, index) => (
-              <div 
-                key={room.id}
-                draggable
-                onDragStart={() => handleDragStart(index)}
-                onDragOver={(e) => handleDragOver(e, index)}
-                onDragLeave={handleDragLeave}
-                onDrop={() => handleDrop(index)}
-                onDragEnd={handleDragEnd}
-                onClick={() => selectRoom(index)} 
-                className={`relative group cursor-pointer rounded-md overflow-hidden border-2 ${selectedRoomIndex === index ? 'border-brand-500' : 'border-transparent hover:border-brand-300'} ${draggedRoomIndex === index ? 'opacity-50' : ''}`}
-                >
-                  {dropTargetIndex === index && draggedRoomIndex !== index && (
-                    <div className="absolute top-0 left-0 w-full h-1 bg-brand-500 z-10" />
-                  )}
-                  <div className="flex items-start gap-2">
-                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 p-1">{index + 1}</span>
-                    <div className="flex-1 transform scale-[0.95] origin-top-left">
-                       <Room room={room} inventoryItems={inventoryItems} visibleMapImages={allMapImages} className="shadow-md" />
-                    </div>
+            <div ref={roomsContainerRef}>
+              {Object.entries(roomsByAct).sort(([a], [b]) => Number(a) - Number(b)).map(([act, rooms]) => (
+                <div key={`act-${act}`}>
+                  <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider px-1 py-2">Act {act}</h3>
+                  <div className="space-y-2">
+                    {rooms.map((room) => {
+                      const index = room.originalIndex;
+                      return (
+                        <div 
+                          key={room.id}
+                          draggable
+                          onDragStart={() => handleDragStart(index)}
+                          onDragOver={(e) => handleDragOver(e, index)}
+                          onDragLeave={handleDragLeave}
+                          onDrop={() => handleDrop(index)}
+                          onDragEnd={handleDragEnd}
+                          onClick={() => selectRoom(index)} 
+                          className={`relative group cursor-pointer rounded-md overflow-hidden border-2 ${selectedRoomIndex === index ? 'border-brand-500' : 'border-transparent hover:border-brand-300'} ${draggedRoomIndex === index ? 'opacity-50' : ''}`}
+                          >
+                            {dropTargetIndex === index && draggedRoomIndex !== index && (
+                              <div className="absolute top-0 left-0 w-full h-1 bg-brand-500 z-10" />
+                            )}
+                            <div className="flex items-start gap-2">
+                              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 p-1">{index + 1}</span>
+                              <div className="flex-1 transform scale-[0.95] origin-top-left">
+                                 <Room room={room} inventoryItems={inventoryItems} visibleMapImages={allMapImages} className="shadow-md" />
+                              </div>
+                            </div>
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 p-1 bg-black/50 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                              <Icon as="reorder" className="w-5 h-5" />
+                            </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 p-1 bg-black/50 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                    <Icon as="reorder" className="w-5 h-5" />
-                  </div>
-              </div>
-            ))}
-          </div>
-          <button onClick={addRoom} className="w-full mt-4 flex items-center justify-center gap-2 p-2 bg-slate-200 dark:bg-slate-700 rounded-md hover:bg-slate-300 dark:hover:bg-slate-600 transition">
-             <Icon as="plus" className="w-4 h-4"/> Add Room
-          </button>
+                </div>
+              ))}
+            </div>
+            <button onClick={addRoom} className="w-full mt-4 flex items-center justify-center gap-2 p-2 bg-slate-200 dark:bg-slate-700 rounded-md hover:bg-slate-300 dark:hover:bg-slate-600 transition">
+               <Icon as="plus" className="w-4 h-4"/> Add Room
+            </button>
         </aside>
 
         {/* Main Area - Editor */}
@@ -841,6 +867,16 @@ const Editor: React.FC = () => {
                             type="text"
                             value={editingRoomName}
                             onChange={e => setEditingRoomName(e.target.value)}
+                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                          />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-sm mb-2 text-slate-600 dark:text-slate-400">Act Number</h3>
+                          <input
+                            type="number"
+                            value={editingRoomAct}
+                            onChange={e => setEditingRoomAct(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                            min="1"
                             className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500"
                           />
                         </div>

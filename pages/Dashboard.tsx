@@ -115,6 +115,7 @@ const Dashboard: React.FC = () => {
         notes: '', 
         backgroundColor: '#eee', 
         isFullScreenImage: false,
+        act: 1,
         objects: [],
         puzzles: [],
         actions: [],

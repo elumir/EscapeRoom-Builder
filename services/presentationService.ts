@@ -62,6 +62,7 @@ export const createGame = async (title: string): Promise<Game> => {
         notes: '',
         backgroundColor: '#000000',
         isFullScreenImage: false,
+        act: 1,
         objects: [],
         puzzles: [],
         actions: [],
