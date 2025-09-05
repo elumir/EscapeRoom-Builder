@@ -321,11 +321,17 @@ const Editor: React.FC = () => {
 
   const addPuzzle = () => {
     const newPuzzle: Puzzle = { id: generateUUID(), name: 'New Puzzle', answer: '', isSolved: false, unsolvedText: '', solvedText: '', image: null, sound: null, showImageOverlay: false, lockedObjectIds: [], lockedRoomIds: [], lockedPuzzleIds: [], lockedRoomSolveIds: [], autoAddLockedObjects: false, autoSolveRooms: false };
-    setEditingRoomPuzzles([...editingRoomPuzzles, newPuzzle]);
-    setTimeout(() => {
-        puzzlesContainerRef.current?.lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-    }, 100);
-  }
+    const newPuzzles = [...editingRoomPuzzles, newPuzzle];
+    setEditingRoomPuzzles(newPuzzles);
+    
+    // Automatically open the modal for the new puzzle
+    const newPuzzleIndex = newPuzzles.length - 1;
+    setPuzzleModalState({ puzzle: { ...newPuzzle }, index: newPuzzleIndex });
+    setModalPuzzleObjectsSearch('');
+    setModalPuzzlePuzzlesSearch('');
+    setModalPuzzleRoomsSearch('');
+    setModalPuzzleRoomSolvesSearch('');
+  };
 
   const deletePuzzle = (index: number) => {
     setEditingRoomPuzzles(editingRoomPuzzles.filter((_, i) => i !== index));
