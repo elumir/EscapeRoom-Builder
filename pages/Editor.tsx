@@ -793,6 +793,7 @@ const Editor: React.FC = () => {
                       {currentRoom.image && (
                           <button
                               onClick={(e) => {
+                                e.preventDefault();
                                 e.stopPropagation();
                                 changeRoomProperty('image', null);
                               }}
@@ -815,6 +816,7 @@ const Editor: React.FC = () => {
                            {currentRoom.mapImage && (
                               <button
                                   onClick={(e) => {
+                                    e.preventDefault();
                                     e.stopPropagation();
                                     changeRoomProperty('mapImage', null);
                                   }}
