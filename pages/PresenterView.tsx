@@ -536,12 +536,30 @@ const PresenterView: React.FC = () => {
   
   const currentRoom = game.rooms[currentRoomIndex];
   const hasSolvedState = currentRoom?.solvedImage || (currentRoom?.solvedNotes && currentRoom.solvedNotes.trim() !== '');
-  const availableObjects = currentRoom?.objects.filter(o => !o.showInInventory && !o.wasEverInInventory) || [];
   
-  const openActions = (currentRoom?.actions || []).filter(action => !action.isComplete);
+  // Filter out locked items
+  const availableObjects = (currentRoom?.objects || []).filter(o => 
+    !o.showInInventory && 
+    !o.wasEverInInventory &&
+    !allUnsolvedPuzzles.some(p => p.lockedObjectIds?.includes(o.id))
+  );
+  
+  const unlockedInventoryObjects = inventoryObjects.filter(obj => 
+    !allUnsolvedPuzzles.some(p => p.lockedObjectIds?.includes(obj.id))
+  );
+
+  const openActions = (currentRoom?.actions || []).filter(action => 
+    !action.isComplete && 
+    !lockingPuzzlesByActionId.has(action.id)
+  );
   const completedActions = (currentRoom?.actions || []).filter(action => action.isComplete);
-  const openPuzzles = (currentRoom?.puzzles || []).filter(puzzle => !puzzle.isSolved);
+  
+  const openPuzzles = (currentRoom?.puzzles || []).filter(puzzle => 
+    !puzzle.isSolved && 
+    !lockingPuzzlesByPuzzleId.has(puzzle.id)
+  );
   const completedPuzzles = (currentRoom?.puzzles || []).filter(puzzle => puzzle.isSolved);
+
   const roomsForSelectedAct = roomsByAct[selectedAct] || [];
   const roomSolveIsLocked = lockingPuzzlesByRoomSolveId.has(currentRoom.id);
   const roomSolveLockingPuzzleName = lockingPuzzlesByRoomSolveId.get(currentRoom.id);
@@ -780,29 +798,23 @@ const PresenterView: React.FC = () => {
                             </div>
                         )}
                         <div className="space-y-2">
-                            {roomsForSelectedAct.map((room) => {
+                            {roomsForSelectedAct
+                                .filter(room => !lockingPuzzlesByRoomId.has(room.id))
+                                .map((room) => {
                                 const index = room.originalIndex;
-                                const isLocked = lockingPuzzlesByRoomId.has(room.id);
-                                const lockingPuzzleName = lockingPuzzlesByRoomId.get(room.id);
                                 return (
                                     <button
                                         key={room.id}
                                         onClick={() => goToRoom(index)}
-                                        disabled={isLocked}
-                                        title={isLocked ? `Locked by: ${lockingPuzzleName}` : ''}
                                         className={`w-full text-left p-3 rounded-lg transition-colors flex flex-col items-start ${
                                             currentRoomIndex === index
                                                 ? 'bg-brand-600 text-white font-bold shadow-lg'
-                                                : 'bg-slate-700'
-                                        } ${isLocked ? 'opacity-50 cursor-not-allowed hover:bg-slate-700' : 'hover:bg-slate-600'}`}
+                                                : 'bg-slate-700 hover:bg-slate-600'
+                                        }`}
                                     >
                                         <div className="w-full flex items-center justify-between">
                                             <span className="text-lg truncate">{room.name}</span>
-                                            {isLocked && <Icon as="lock" className="w-4 h-4 text-slate-400 flex-shrink-0 ml-2" />}
                                         </div>
-                                        {isLocked && (
-                                            <span className="text-xs text-red-400 mt-1 truncate">Locked by: {lockingPuzzleName}</span>
-                                        )}
                                     </button>
                                 );
                             })}
@@ -811,7 +823,7 @@ const PresenterView: React.FC = () => {
                 )}
                 {activeTab === 'inventory' && (
                     <div className="space-y-4">
-                        {inventoryObjects.length > 0 ? (
+                        {unlockedInventoryObjects.length > 0 ? (
                             <>
                                 <div className="flex justify-between items-center mb-1">
                                     <p className="text-xs text-slate-400 italic">Toggle to discard object.</p>
@@ -824,14 +836,12 @@ const PresenterView: React.FC = () => {
                                         <Icon as={areAllDescriptionsVisible ? 'eye-slash' : 'eye'} className="w-5 h-5" />
                                     </button>
                                 </div>
-                                {inventoryObjects.map(obj => {
-                                    const lockingPuzzle = allUnsolvedPuzzles.find(p => p.lockedObjectIds?.includes(obj.id));
+                                {unlockedInventoryObjects.map(obj => {
                                     return (
                                         <ObjectItem 
                                             key={obj.id} 
                                             obj={obj} 
                                             onToggle={handleToggleObject} 
-                                            lockingPuzzleName={lockingPuzzle?.name} 
                                             showVisibilityToggle={true}
                                             isDescriptionVisible={visibleDescriptionIds.has(obj.id)}
                                             onToggleDescription={handleToggleDescriptionVisibility}
@@ -935,19 +945,14 @@ const PresenterView: React.FC = () => {
                     <div className="space-y-4">
                         {activeActionTab === 'open' && (
                             openActions.length > 0 ? (
-                                openActions.map(action => {
-                                    const lockingPuzzleName = lockingPuzzlesByActionId.get(action.id);
-                                    return (
+                                openActions.map(action => (
                                     <ActionItem 
                                         key={action.id} 
                                         action={action} 
                                         onToggleImage={handleToggleActionImage}
                                         onToggleComplete={handleToggleActionComplete}
-                                        isLocked={!!lockingPuzzleName}
-                                        lockingPuzzleName={lockingPuzzleName}
                                     />
-                                );
-                               })
+                                ))
                             ) : (
                                 <p className="text-slate-400 italic text-sm p-4">No open actions in this room.</p>
                             )
@@ -960,8 +965,6 @@ const PresenterView: React.FC = () => {
                                         action={action} 
                                         onToggleImage={handleToggleActionImage}
                                         onToggleComplete={handleToggleActionComplete}
-                                        // Completed actions can't be locked, but passing for prop consistency
-                                        isLocked={false} 
                                     />
                                 ))
                             ) : (
@@ -994,20 +997,15 @@ const PresenterView: React.FC = () => {
                     <div className="space-y-4">
                         {activePuzzleTab === 'open' && (
                              openPuzzles.length > 0 ? (
-                                openPuzzles.map(puzzle => {
-                                    const lockingPuzzleName = lockingPuzzlesByPuzzleId.get(puzzle.id);
-                                    return (
+                                openPuzzles.map(puzzle => (
                                     <PuzzleItem 
                                         key={puzzle.id} 
                                         puzzle={puzzle} 
                                         onToggle={handleTogglePuzzle} 
                                         onAttemptSolve={handleAttemptSolve}
                                         onToggleImage={handleTogglePuzzleImage}
-                                        isLocked={!!lockingPuzzleName}
-                                        lockingPuzzleName={lockingPuzzleName}
                                     />
-                                    );
-                                })
+                                ))
                              ) : (
                                  <p className="text-slate-400 italic text-sm p-4">No open puzzles in this room.</p>
                              )
@@ -1021,7 +1019,6 @@ const PresenterView: React.FC = () => {
                                         onToggle={handleTogglePuzzle} 
                                         onAttemptSolve={handleAttemptSolve}
                                         onToggleImage={handleTogglePuzzleImage}
-                                        isLocked={false} // Completed puzzles aren't locked
                                     />
                                 ))
                             ) : (
@@ -1040,10 +1037,9 @@ const PresenterView: React.FC = () => {
                     </h2>
                     <div className="space-y-4">
                       {availableObjects.length > 0 ? (
-                        availableObjects.map(obj => {
-                            const lockingPuzzle = allUnsolvedPuzzles.find(p => p.lockedObjectIds?.includes(obj.id));
-                            return <ObjectItem key={obj.id} obj={obj} onToggle={handleToggleObject} lockingPuzzleName={lockingPuzzle?.name} />;
-                        })
+                        availableObjects.map(obj => (
+                            <ObjectItem key={obj.id} obj={obj} onToggle={handleToggleObject} />
+                        ))
                       ) : (
                          <p className="text-slate-400">All objects from this room are in the inventory or have been discarded.</p>
                       )}
