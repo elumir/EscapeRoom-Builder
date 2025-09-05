@@ -792,7 +792,10 @@ const Editor: React.FC = () => {
                       </label>
                       {currentRoom.image && (
                           <button
-                              onClick={() => changeRoomProperty('image', null)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                changeRoomProperty('image', null);
+                              }}
                               className="absolute top-2 right-2 z-10 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-red-600"
                               aria-label="Clear room image"
                           >
@@ -811,7 +814,10 @@ const Editor: React.FC = () => {
                           </label>
                            {currentRoom.mapImage && (
                               <button
-                                  onClick={() => changeRoomProperty('mapImage', null)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    changeRoomProperty('mapImage', null);
+                                  }}
                                   className="absolute top-2 right-2 z-10 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-red-600"
                                   aria-label="Clear map image"
                               >
