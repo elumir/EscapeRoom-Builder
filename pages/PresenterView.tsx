@@ -30,6 +30,7 @@ const PresenterView: React.FC = () => {
   const [solveError, setSolveError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'rooms' | 'inventory'>('rooms');
   const [showInventoryNotification, setShowInventoryNotification] = useState(false);
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   
   const { 
     lockingPuzzlesByRoomId, 
@@ -295,6 +296,38 @@ const PresenterView: React.FC = () => {
       });
   };
 
+  const handleRestartGame = async () => {
+    if (!game) return;
+
+    const resetGame: Game = {
+        ...game,
+        rooms: game.rooms.map(room => ({
+            ...room,
+            objects: room.objects.map(obj => ({
+                ...obj,
+                showInInventory: false,
+            })),
+            puzzles: room.puzzles.map(p => ({
+                ...p,
+                isSolved: false,
+                showImageOverlay: false,
+            })),
+            actions: (room.actions || []).map(a => ({
+                ...a,
+                showImageOverlay: false,
+            })),
+        })),
+        visitedRoomIds: game.rooms.length > 0 ? [game.rooms[0].id] : [],
+    };
+    
+    setCurrentRoomIndex(0);
+    postMessage({ type: 'GOTO_ROOM', roomIndex: 0 });
+    
+    await updateAndBroadcast(resetGame);
+    
+    setIsResetModalOpen(false);
+  };
+
   if (status === 'loading') {
     return <div className="h-screen bg-slate-800 text-white flex items-center justify-center">Loading Presenter View...</div>;
   }
@@ -349,7 +382,7 @@ const PresenterView: React.FC = () => {
                       </svg>
                   </div>
                   <h2 className="text-2xl font-bold mb-4 text-green-400">
-                    {solvedPuzzleInfo.answer ? 'Correct!' : 'Complete!'}
+                    {solvedPuzzleInfo.answer ? 'Correct!' : 'Puzzle Solved!'}
                   </h2>
                   {solvedPuzzleInfo.solvedText && (
                       <blockquote className="mb-6 p-4 bg-slate-700/50 border-l-4 border-slate-600 text-slate-300 italic text-left">
@@ -366,53 +399,89 @@ const PresenterView: React.FC = () => {
               </div>
           </div>
       )}
+      {isResetModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+            <div className="bg-slate-800 p-8 rounded-lg shadow-2xl w-full max-w-md border border-slate-700 text-center">
+                <h2 className="text-2xl font-bold mb-4 text-yellow-400">Restart Game?</h2>
+                <p className="text-slate-300 mb-6">
+                    This will reset all puzzles, inventory, and visited rooms to their default state. This action cannot be undone.
+                </p>
+                <div className="mt-6 flex justify-center gap-4">
+                    <button
+                        type="button"
+                        onClick={() => setIsResetModalOpen(false)}
+                        className="px-6 py-2 bg-slate-600 text-slate-200 rounded-lg hover:bg-slate-500 transition-colors"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        type="button"
+                        onClick={handleRestartGame}
+                        className="px-6 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
+                    >
+                        Confirm Restart
+                    </button>
+                </div>
+            </div>
+        </div>
+      )}
       <header className="p-4 bg-slate-900 flex justify-between items-center flex-shrink-0">
         <h1 className="text-xl font-bold">{game.title} - Presenter View</h1>
-        {isPresentationWindowOpen ? (
-          <span className="flex items-center gap-2 px-4 py-2 bg-slate-600 text-white rounded-lg cursor-not-allowed">
-            <Icon as="present" className="w-5 h-5" />
-            Window Open
-          </span>
-        ) : (
-          <a href={`/game/present/${id}`}
-            onClick={(e) => {
-                e.preventDefault();
-                
-                const screenWidth = window.screen.availWidth;
-                const screenHeight = window.screen.availHeight;
-                const aspectRatio = 16 / 9;
+        <div className="flex items-center gap-2">
+            <button
+                onClick={() => setIsResetModalOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors duration-300 shadow"
+                title="Restart Game"
+            >
+                <Icon as="restart" className="w-5 h-5" />
+                Restart Game
+            </button>
+            {isPresentationWindowOpen ? (
+            <span className="flex items-center gap-2 px-4 py-2 bg-slate-600 text-white rounded-lg cursor-not-allowed">
+                <Icon as="present" className="w-5 h-5" />
+                Window Open
+            </span>
+            ) : (
+            <a href={`/game/present/${id}`}
+                onClick={(e) => {
+                    e.preventDefault();
+                    
+                    const screenWidth = window.screen.availWidth;
+                    const screenHeight = window.screen.availHeight;
+                    const aspectRatio = 16 / 9;
 
-                let width, height;
+                    let width, height;
 
-                if ((screenWidth / screenHeight) > aspectRatio) {
-                    // Screen is wider than 16:9 (e.g., ultrawide), so height is the limiting factor.
-                    height = screenHeight;
-                    width = height * aspectRatio;
-                } else {
-                    // Screen is taller or same as 16:9, so width is the limiting factor.
-                    width = screenWidth;
-                    height = width / aspectRatio;
-                }
-                
-                width = Math.floor(width);
-                height = Math.floor(height);
+                    if ((screenWidth / screenHeight) > aspectRatio) {
+                        // Screen is wider than 16:9 (e.g., ultrawide), so height is the limiting factor.
+                        height = screenHeight;
+                        width = height * aspectRatio;
+                    } else {
+                        // Screen is taller or same as 16:9, so width is the limiting factor.
+                        width = screenWidth;
+                        height = width / aspectRatio;
+                    }
+                    
+                    width = Math.floor(width);
+                    height = Math.floor(height);
 
-                const left = Math.floor((window.screen.availWidth - width) / 2);
-                const top = Math.floor((window.screen.availHeight - height) / 2);
+                    const left = Math.floor((window.screen.availWidth - width) / 2);
+                    const top = Math.floor((window.screen.availHeight - height) / 2);
 
-                const features = `width=${width},height=${height},left=${left},top=${top},location=no,menubar=no,toolbar=no,status=no`;
-                
-                const win = window.open(e.currentTarget.href, 'Game', features);
-                setPresentationWindow(win);
-            }}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors duration-300 shadow"
-          >
-            <Icon as="present" className="w-5 h-5" />
-            Open Game Window
-          </a>
-        )}
+                    const features = `width=${width},height=${height},left=${left},top=${top},location=no,menubar=no,toolbar=no,status=no`;
+                    
+                    const win = window.open(e.currentTarget.href, 'Game', features);
+                    setPresentationWindow(win);
+                }}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors duration-300 shadow"
+            >
+                <Icon as="present" className="w-5 h-5" />
+                Open Game Window
+            </a>
+            )}
+        </div>
       </header>
       <main className="flex-1 grid grid-cols-12 gap-4 overflow-hidden p-4">
         {/* Column 1: TABS (Rooms & Inventory) */}
