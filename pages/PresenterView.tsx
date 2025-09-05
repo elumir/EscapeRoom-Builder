@@ -264,14 +264,9 @@ const PresenterView: React.FC = () => {
     const shouldAutoAddObjects = newState && targetPuzzle.autoAddLockedObjects;
     const objectIdsToUpdate = shouldAutoAddObjects ? targetPuzzle.lockedObjectIds : [];
     
-    const shouldAutoDiscardObjects = newState && targetPuzzle.autoDiscardObjects;
-    const objectIdsToDiscard = shouldAutoDiscardObjects ? (targetPuzzle.discardObjectIds || []) : [];
-
-    const shouldAutoSolveRooms = newState && targetPuzzle.autoSolveRooms;
-    const roomIdsToAutoSolve = shouldAutoSolveRooms ? targetPuzzle.lockedRoomSolveIds : [];
-    
-    const shouldAutoCompleteActions = newState && targetPuzzle.autoCompleteActions;
-    const actionIdsToComplete = shouldAutoCompleteActions ? (targetPuzzle.completedActionIds || []) : [];
+    const objectIdsToDiscard = newState ? (targetPuzzle.discardObjectIds || []) : [];
+    const roomIdsToAutoSolve = newState ? (targetPuzzle.lockedRoomSolveIds || []) : [];
+    const actionIdsToComplete = newState ? (targetPuzzle.completedActionIds || []) : [];
 
     const updatedRooms = game.rooms.map(room => {
         let newObjects = room.objects;
@@ -286,7 +281,7 @@ const PresenterView: React.FC = () => {
         }
         
         // Auto-discard objects if configured
-        if (shouldAutoDiscardObjects) {
+        if (objectIdsToDiscard.length > 0) {
             newObjects = newObjects.map(obj => {
                 if (objectIdsToDiscard.includes(obj.id)) {
                     return { ...obj, showInInventory: false };
@@ -297,7 +292,7 @@ const PresenterView: React.FC = () => {
         
         // Auto-complete actions if configured
         let newActions = room.actions || [];
-        if (shouldAutoCompleteActions && newActions.length > 0) {
+        if (actionIdsToComplete.length > 0 && newActions.length > 0) {
             newActions = newActions.map(action => {
                 if (actionIdsToComplete.includes(action.id)) {
                     return { ...action, isComplete: true, showImageOverlay: false };

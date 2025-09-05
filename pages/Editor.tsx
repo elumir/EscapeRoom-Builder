@@ -372,7 +372,7 @@ const Editor: React.FC = () => {
   }
 
   const addPuzzle = () => {
-    const newPuzzle: Puzzle = { id: generateUUID(), name: 'New Puzzle', answer: '', isSolved: false, unsolvedText: '', solvedText: '', image: null, sound: null, showImageOverlay: false, lockedObjectIds: [], discardObjectIds: [], lockedRoomIds: [], lockedPuzzleIds: [], lockedRoomSolveIds: [], lockedActionIds: [], completedActionIds: [], autoAddLockedObjects: false, autoDiscardObjects: false, autoSolveRooms: false, autoCompleteActions: false };
+    const newPuzzle: Puzzle = { id: generateUUID(), name: 'New Puzzle', answer: '', isSolved: false, unsolvedText: '', solvedText: '', image: null, sound: null, showImageOverlay: false, lockedObjectIds: [], discardObjectIds: [], lockedRoomIds: [], lockedPuzzleIds: [], lockedRoomSolveIds: [], lockedActionIds: [], completedActionIds: [], autoAddLockedObjects: false };
     const newPuzzles = [...editingRoomPuzzles, newPuzzle];
     setEditingRoomPuzzles(newPuzzles);
     
@@ -1352,10 +1352,10 @@ const Editor: React.FC = () => {
                       </div>
                     </div>
                     <div className="pt-4 space-y-2">
-                        <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer"><input type="checkbox" className="disabled:opacity-50" checked={modalPuzzleData.autoAddLockedObjects} onChange={e => handleModalPuzzleChange('autoAddLockedObjects', e.target.checked)} disabled={!modalPuzzleData.lockedObjectIds || modalPuzzleData.lockedObjectIds.length === 0} />Automatically add locked objects to inventory upon solving.</label>
-                        <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer"><input type="checkbox" className="disabled:opacity-50" checked={modalPuzzleData.autoDiscardObjects} onChange={e => handleModalPuzzleChange('autoDiscardObjects', e.target.checked)} disabled={!modalPuzzleData.discardObjectIds || modalPuzzleData.discardObjectIds.length === 0} />Automatically discard selected objects upon solving.</label>
-                        <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer"><input type="checkbox" className="disabled:opacity-50" checked={modalPuzzleData.autoSolveRooms} onChange={e => handleModalPuzzleChange('autoSolveRooms', e.target.checked)} disabled={!modalPuzzleData.lockedRoomSolveIds || modalPuzzleData.lockedRoomSolveIds.length === 0} />Automatically set locked Room Solves to solved.</label>
-                        <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer"><input type="checkbox" className="disabled:opacity-50" checked={modalPuzzleData.autoCompleteActions} onChange={e => handleModalPuzzleChange('autoCompleteActions', e.target.checked)} disabled={!modalPuzzleData.completedActionIds || modalPuzzleData.completedActionIds.length === 0} />Automatically complete selected actions upon solving.</label>
+                        <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer">
+                          <input type="checkbox" className="disabled:opacity-50" checked={modalPuzzleData.autoAddLockedObjects} onChange={e => handleModalPuzzleChange('autoAddLockedObjects', e.target.checked)} disabled={!modalPuzzleData.lockedObjectIds || modalPuzzleData.lockedObjectIds.length === 0} />
+                          Automatically add locked objects to inventory upon solving.
+                        </label>
                     </div>
                 </div>
                 <div className="flex-shrink-0 mt-6 pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-4">
