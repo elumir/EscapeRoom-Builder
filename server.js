@@ -191,8 +191,10 @@ app.post('/api/presentations/:presentationId/assets', async (req, res) => {
         }
 
         const assetId = crypto.randomUUID();
+        // Use the filename without the extension as the default asset name.
+        const nameWithoutExtension = filename.includes('.') ? filename.split('.').slice(0, -1).join('.') : filename;
         const sql = 'INSERT INTO assets (id, presentation_id, mime_type, name, data) VALUES (?, ?, ?, ?, ?)';
-        await dbPool.query(sql, [assetId, presentationId, mimeType, filename, data]);
+        await dbPool.query(sql, [assetId, presentationId, mimeType, nameWithoutExtension, data]);
         
         res.status(201).json({ assetId });
 
