@@ -206,7 +206,7 @@ const Editor: React.FC = () => {
   }
 
   const addPuzzle = () => {
-    const newPuzzle: Puzzle = { id: generateUUID(), name: 'New Puzzle', answer: '', isSolved: false, unsolvedText: '', solvedText: '', image: null, sound: null, showImageOverlay: false, lockedObjectIds: [], lockedRoomIds: [], lockedPuzzleIds: [], lockedRoomSolveIds: [], autoAddLockedObjects: false };
+    const newPuzzle: Puzzle = { id: generateUUID(), name: 'New Puzzle', answer: '', isSolved: false, unsolvedText: '', solvedText: '', image: null, sound: null, showImageOverlay: false, lockedObjectIds: [], lockedRoomIds: [], lockedPuzzleIds: [], lockedRoomSolveIds: [], autoAddLockedObjects: false, autoSolveRooms: false };
     setEditingRoomPuzzles([...editingRoomPuzzles, newPuzzle]);
     setTimeout(() => {
         puzzlesContainerRef.current?.lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'end' });
@@ -851,16 +851,35 @@ const Editor: React.FC = () => {
                                     </div>
                                 </div>
                             </div>
-                             <div className="mt-4">
-                                <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        className="rounded border-slate-400 text-brand-600 focus:ring-brand-500"
-                                        checked={puzzle.autoAddLockedObjects || false}
-                                        onChange={(e) => handlePuzzleChange(index, 'autoAddLockedObjects', e.target.checked)}
-                                    />
-                                    <span>Automatically add its locked objects in this room to inventory upon solving.</span>
-                                </label>
+                             <div className="mt-4 space-y-2">
+                                <div>
+                                    <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            className="rounded border-slate-400 text-brand-600 focus:ring-brand-500 disabled:opacity-50"
+                                            checked={puzzle.autoAddLockedObjects || false}
+                                            onChange={(e) => handlePuzzleChange(index, 'autoAddLockedObjects', e.target.checked)}
+                                            disabled={!puzzle.lockedObjectIds || puzzle.lockedObjectIds.length === 0}
+                                        />
+                                        <span className={(!puzzle.lockedObjectIds || puzzle.lockedObjectIds.length === 0) ? 'text-slate-400 dark:text-slate-500' : ''}>
+                                            Automatically add its locked objects in this room to inventory upon solving.
+                                        </span>
+                                    </label>
+                                </div>
+                                <div>
+                                    <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            className="rounded border-slate-400 text-brand-600 focus:ring-brand-500 disabled:opacity-50"
+                                            checked={puzzle.autoSolveRooms || false}
+                                            onChange={(e) => handlePuzzleChange(index, 'autoSolveRooms', e.target.checked)}
+                                            disabled={!puzzle.lockedRoomSolveIds || puzzle.lockedRoomSolveIds.length === 0}
+                                        />
+                                        <span className={(!puzzle.lockedRoomSolveIds || puzzle.lockedRoomSolveIds.length === 0) ? 'text-slate-400 dark:text-slate-500' : ''}>
+                                            Automatically set its locked Room Solves to solved.
+                                        </span>
+                                    </label>
+                                </div>
                             </div>
                         </div>
                     )) : (

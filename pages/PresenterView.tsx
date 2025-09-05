@@ -215,17 +215,22 @@ const PresenterView: React.FC = () => {
         setSolvedPuzzleInfo(targetPuzzle);
     }
 
-    const shouldAutoAdd = newState && targetPuzzle.autoAddLockedObjects;
-    const objectIdsToUpdate = shouldAutoAdd ? targetPuzzle.lockedObjectIds : [];
+    const shouldAutoAddObjects = newState && targetPuzzle.autoAddLockedObjects;
+    const objectIdsToUpdate = shouldAutoAddObjects ? targetPuzzle.lockedObjectIds : [];
+
+    const shouldAutoSolveRooms = newState && targetPuzzle.autoSolveRooms;
+    const roomIdsToAutoSolve = shouldAutoSolveRooms ? targetPuzzle.lockedRoomSolveIds : [];
     
     const updatedRooms = game.rooms.map(room => {
         let newObjects = room.objects;
-        if (room.id === targetRoomId && shouldAutoAdd) {
+        // Auto-add objects to inventory if configured
+        if (room.id === targetRoomId && shouldAutoAddObjects) {
             newObjects = room.objects.map(obj => 
                 objectIdsToUpdate.includes(obj.id) ? { ...obj, showInInventory: true } : obj
             );
         }
 
+        // Update the puzzle's solved state
         const newPuzzles = room.puzzles.map(p => {
             if (p.id === puzzleId) {
                 // If the puzzle is being solved, also set its showImageOverlay to false.
@@ -234,7 +239,13 @@ const PresenterView: React.FC = () => {
             return p;
         });
         
-        return { ...room, objects: newObjects, puzzles: newPuzzles };
+        // Auto-solve rooms if configured
+        let newIsSolvedState = room.isSolved;
+        if (roomIdsToAutoSolve.includes(room.id)) {
+            newIsSolvedState = true;
+        }
+        
+        return { ...room, objects: newObjects, puzzles: newPuzzles, isSolved: newIsSolvedState };
     });
     
     const updatedGame = { ...game, rooms: updatedRooms };

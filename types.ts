@@ -29,6 +29,7 @@ export interface Puzzle {
   lockedPuzzleIds: string[];
   lockedRoomSolveIds: string[];
   autoAddLockedObjects: boolean;
+  autoSolveRooms?: boolean;
 }
 
 export interface Room {
