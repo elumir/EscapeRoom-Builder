@@ -40,6 +40,12 @@ const Editor: React.FC = () => {
   const [assetModalTarget, setAssetModalTarget] = useState<'image' | 'mapImage' | 'solvedImage' | null>(null);
   const [isAssetManagerOpen, setIsAssetManagerOpen] = useState(false);
   const [deletingAssetId, setDeletingAssetId] = useState<string | null>(null);
+  const [puzzleModalState, setPuzzleModalState] = useState<{ puzzle: Puzzle; index: number } | null>(null);
+  const [modalPuzzleData, setModalPuzzleData] = useState<Puzzle | null>(null);
+  const [openModalPuzzleObjectsDropdown, setOpenModalPuzzleObjectsDropdown] = useState(false);
+  const [openModalPuzzleRoomsDropdown, setOpenModalPuzzleRoomsDropdown] = useState(false);
+  const [openModalPuzzlePuzzlesDropdown, setOpenModalPuzzlePuzzlesDropdown] = useState(false);
+  const [openModalPuzzleRoomSolvesDropdown, setOpenModalPuzzleRoomSolvesDropdown] = useState(false);
 
 
   const objectsDropdownRef = useRef<HTMLDivElement>(null);
@@ -47,6 +53,10 @@ const Editor: React.FC = () => {
   const puzzlesDropdownRef = useRef<HTMLDivElement>(null);
   const roomSolvesDropdownRef = useRef<HTMLDivElement>(null);
   const objectRemoveDropdownRef = useRef<HTMLDivElement>(null);
+  const modalObjectsDropdownRef = useRef<HTMLDivElement>(null);
+  const modalRoomsDropdownRef = useRef<HTMLDivElement>(null);
+  const modalPuzzlesDropdownRef = useRef<HTMLDivElement>(null);
+  const modalRoomSolvesDropdownRef = useRef<HTMLDivElement>(null);
   const roomsContainerRef = useRef<HTMLDivElement>(null);
   const objectsContainerRef = useRef<HTMLDivElement>(null);
   const puzzlesContainerRef = useRef<HTMLDivElement>(null);
@@ -102,6 +112,18 @@ const Editor: React.FC = () => {
         if (objectRemoveDropdownRef.current && !objectRemoveDropdownRef.current.contains(event.target as Node)) {
             setOpenObjectRemoveDropdown(false);
         }
+        if (modalObjectsDropdownRef.current && !modalObjectsDropdownRef.current.contains(event.target as Node)) {
+            setOpenModalPuzzleObjectsDropdown(false);
+        }
+        if (modalRoomsDropdownRef.current && !modalRoomsDropdownRef.current.contains(event.target as Node)) {
+            setOpenModalPuzzleRoomsDropdown(false);
+        }
+        if (modalPuzzlesDropdownRef.current && !modalPuzzlesDropdownRef.current.contains(event.target as Node)) {
+            setOpenModalPuzzlePuzzlesDropdown(false);
+        }
+        if (modalRoomSolvesDropdownRef.current && !modalRoomSolvesDropdownRef.current.contains(event.target as Node)) {
+            setOpenModalPuzzleRoomSolvesDropdown(false);
+        }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
@@ -147,6 +169,10 @@ const Editor: React.FC = () => {
   useDebouncedUpdater(editingRoomObjects, 'objects');
   useDebouncedUpdater(editingRoomPuzzles, 'puzzles');
   useDebouncedUpdater(editingRoomActions, 'actions');
+  
+  useEffect(() => {
+    setModalPuzzleData(puzzleModalState ? puzzleModalState.puzzle : null);
+  }, [puzzleModalState]);
 
   const selectRoom = (index: number) => {
     setSelectedRoomIndex(index);
@@ -383,6 +409,40 @@ const Editor: React.FC = () => {
 
   const deleteAction = (index: number) => {
       setEditingRoomActions(editingRoomActions.filter((_, i) => i !== index));
+  };
+  
+  const handleModalPuzzleChange = (field: keyof Puzzle, value: string | boolean | string[] | null) => {
+      if (!modalPuzzleData) return;
+      let processedValue = value;
+      if (field === 'answer' && typeof value === 'string') {
+          processedValue = value.toLowerCase().replace(/[^a-z0-9]/g, '');
+      }
+      setModalPuzzleData({ ...modalPuzzleData, [field]: processedValue });
+  };
+  
+  const handleModalPuzzleFileChange = async (field: 'image' | 'sound', file: File | null) => {
+    if (!game || !modalPuzzleData) return;
+    if (!file) {
+      handleModalPuzzleChange(field, null);
+      return;
+    }
+    try {
+        const { assetId } = await gameService.uploadAsset(game.id, file);
+        handleModalPuzzleChange(field, assetId);
+        const assets = await gameService.getAssetsForGame(game.id);
+        setAssetLibrary(assets);
+    } catch (error) {
+        console.error(`Puzzle ${field} upload failed:`, error);
+        alert(`Failed to upload puzzle ${field}. Please try again.`);
+    }
+  };
+
+  const handleSavePuzzleFromModal = () => {
+    if (!puzzleModalState || !modalPuzzleData) return;
+    const newPuzzles = [...editingRoomPuzzles];
+    newPuzzles[puzzleModalState.index] = modalPuzzleData;
+    setEditingRoomPuzzles(newPuzzles);
+    setPuzzleModalState(null);
   };
 
   const handleResetAndPresent = async () => {
@@ -865,6 +925,171 @@ const Editor: React.FC = () => {
             </div>
         </div>
       )}
+      {puzzleModalState && modalPuzzleData && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60] backdrop-blur-sm">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-2xl w-full max-w-4xl h-[90vh] flex flex-col">
+                <div className="flex-shrink-0 flex justify-between items-center mb-4 pb-4 border-b border-slate-200 dark:border-slate-700">
+                    <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">Edit Puzzle: {modalPuzzleData.name}</h2>
+                    <button onClick={() => setPuzzleModalState(null)} className="p-1.5 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700">
+                        <Icon as="close" className="w-5 h-5" />
+                    </button>
+                </div>
+                <div className="flex-grow overflow-y-auto pr-4 -mr-4 space-y-4">
+                    <div className="flex items-center gap-4">
+                        <div className="flex-1">
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Puzzle Name</label>
+                            <input 
+                                type="text" 
+                                value={modalPuzzleData.name}
+                                onChange={(e) => handleModalPuzzleChange('name', e.target.value)}
+                                placeholder="Puzzle Name"
+                                className="w-full font-semibold px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
+                            />
+                        </div>
+                        <div className="flex-1">
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Answer (optional)</label>
+                            <input
+                                type="text"
+                                value={modalPuzzleData.answer}
+                                onChange={(e) => handleModalPuzzleChange('answer', e.target.value)}
+                                placeholder="Answer (optional)"
+                                className="w-full font-mono px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
+                            />
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Unsolved Text</label>
+                            <textarea 
+                                value={modalPuzzleData.unsolvedText}
+                                onChange={(e) => handleModalPuzzleChange('unsolvedText', e.target.value)}
+                                placeholder="Unsolved Text"
+                                rows={4}
+                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm resize-y"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Solved Text</label>
+                            <textarea 
+                                value={modalPuzzleData.solvedText}
+                                onChange={(e) => handleModalPuzzleChange('solvedText', e.target.value)}
+                                placeholder="Solved Text"
+                                rows={4}
+                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm resize-y"
+                            />
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Image</label>
+                            {modalPuzzleData.image ? (
+                                <div className="flex items-center gap-2">
+                                    <img src={`/api/assets/${modalPuzzleData.image}`} alt="Puzzle preview" className="w-24 h-24 object-cover rounded-md border border-slate-300 dark:border-slate-600" />
+                                    <button onClick={() => handleModalPuzzleFileChange('image', null)} className="text-red-500 hover:text-red-700 text-xs self-end p-1">Clear</button>
+                                </div>
+                            ) : (
+                                <input type="file" accept="image/*" onChange={(e) => handleModalPuzzleFileChange('image', e.target.files?.[0] || null)} className="text-sm w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100" />
+                            )}
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Sound</label>
+                            {modalPuzzleData.sound ? (
+                                <div className="flex items-center gap-2 text-sm">
+                                    <span>Audio file uploaded.</span>
+                                    <button onClick={() => handleModalPuzzleFileChange('sound', null)} className="text-red-500 hover:text-red-700">Clear</button>
+                                </div>
+                            ) : (
+                                <input type="file" accept="audio/*" onChange={(e) => handleModalPuzzleFileChange('sound', e.target.files?.[0] || null)} className="text-sm w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100"/>
+                            )}
+                        </div>
+                    </div>
+                    <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
+                      <h3 className="text-base font-semibold text-slate-700 dark:text-slate-300 mb-2">Locking Logic</h3>
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                          {/* Locked Objects */}
+                          <div className="relative" ref={modalObjectsDropdownRef}>
+                              <h4 className="font-semibold text-sm mb-1 text-slate-600 dark:text-slate-400">Locked Objects</h4>
+                              <button type="button" onClick={() => setOpenModalPuzzleObjectsDropdown(prev => !prev)} className="w-full text-left px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 flex justify-between items-center text-sm">
+                                  <span>{`${modalPuzzleData.lockedObjectIds?.length || 0} selected`}</span>
+                                  <Icon as="chevron-down" className={`w-4 h-4 transition-transform ${openModalPuzzleObjectsDropdown ? 'rotate-180' : ''}`} />
+                              </button>
+                              {openModalPuzzleObjectsDropdown && (
+                                  <div className="absolute z-10 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                                      {game.rooms.map(room => (
+                                        <div key={room.id} className="p-2">
+                                          <h5 className="text-xs font-bold text-slate-500 dark:text-slate-400 sticky top-0 bg-white dark:bg-slate-800 py-1 px-2 -mx-2">{room.name}</h5>
+                                          {room.objects.map(obj => (
+                                            <label key={obj.id} className="flex items-center gap-2 text-sm p-1 cursor-pointer"><input type="checkbox" checked={modalPuzzleData.lockedObjectIds?.includes(obj.id)} onChange={e => handleModalPuzzleChange('lockedObjectIds', e.target.checked ? [...modalPuzzleData.lockedObjectIds, obj.id] : modalPuzzleData.lockedObjectIds.filter(id => id !== obj.id))} />{obj.name}</label>
+                                          ))}
+                                        </div>
+                                      ))}
+                                  </div>
+                              )}
+                          </div>
+                          {/* Locked Puzzles */}
+                          <div className="relative" ref={modalPuzzlesDropdownRef}>
+                            <h4 className="font-semibold text-sm mb-1 text-slate-600 dark:text-slate-400">Locked Puzzles</h4>
+                            <button type="button" onClick={() => setOpenModalPuzzlePuzzlesDropdown(prev => !prev)} className="w-full text-left px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 flex justify-between items-center text-sm">
+                                <span>{`${modalPuzzleData.lockedPuzzleIds?.length || 0} selected`}</span>
+                                <Icon as="chevron-down" className={`w-4 h-4 transition-transform ${openModalPuzzlePuzzlesDropdown ? 'rotate-180' : ''}`} />
+                            </button>
+                            {openModalPuzzlePuzzlesDropdown && (
+                                <div className="absolute z-10 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                                    {game.rooms.map(room => (
+                                      <div key={room.id} className="p-2">
+                                        <h5 className="text-xs font-bold text-slate-500 dark:text-slate-400 sticky top-0 bg-white dark:bg-slate-800 py-1 px-2 -mx-2">{room.name}</h5>
+                                        {room.puzzles.filter(p => p.id !== modalPuzzleData.id).map(p => (
+                                          <label key={p.id} className="flex items-center gap-2 text-sm p-1 cursor-pointer"><input type="checkbox" checked={modalPuzzleData.lockedPuzzleIds?.includes(p.id)} onChange={e => handleModalPuzzleChange('lockedPuzzleIds', e.target.checked ? [...modalPuzzleData.lockedPuzzleIds, p.id] : modalPuzzleData.lockedPuzzleIds.filter(id => id !== p.id))} />{p.name}</label>
+                                        ))}
+                                      </div>
+                                    ))}
+                                </div>
+                            )}
+                          </div>
+                           {/* Locked Rooms */}
+                          <div className="relative" ref={modalRoomsDropdownRef}>
+                            <h4 className="font-semibold text-sm mb-1 text-slate-600 dark:text-slate-400">Locked Rooms</h4>
+                            <button type="button" onClick={() => setOpenModalPuzzleRoomsDropdown(prev => !prev)} className="w-full text-left px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 flex justify-between items-center text-sm">
+                                <span>{`${modalPuzzleData.lockedRoomIds?.length || 0} selected`}</span>
+                                <Icon as="chevron-down" className={`w-4 h-4 transition-transform ${openModalPuzzleRoomsDropdown ? 'rotate-180' : ''}`} />
+                            </button>
+                            {openModalPuzzleRoomsDropdown && (
+                                <div className="absolute z-10 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg max-h-48 overflow-y-auto p-2">
+                                    {game.rooms.filter(r => r.id !== currentRoom.id).map(room => (
+                                      <label key={room.id} className="flex items-center gap-2 text-sm p-1 cursor-pointer"><input type="checkbox" checked={modalPuzzleData.lockedRoomIds?.includes(room.id)} onChange={e => handleModalPuzzleChange('lockedRoomIds', e.target.checked ? [...modalPuzzleData.lockedRoomIds, room.id] : modalPuzzleData.lockedRoomIds.filter(id => id !== room.id))} />{room.name}</label>
+                                    ))}
+                                </div>
+                            )}
+                          </div>
+                          {/* Locked Room Solves */}
+                           <div className="relative" ref={modalRoomSolvesDropdownRef}>
+                            <h4 className="font-semibold text-sm mb-1 text-slate-600 dark:text-slate-400">Locked Room Solves</h4>
+                            <button type="button" onClick={() => setOpenModalPuzzleRoomSolvesDropdown(prev => !prev)} className="w-full text-left px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 flex justify-between items-center text-sm">
+                                <span>{`${modalPuzzleData.lockedRoomSolveIds?.length || 0} selected`}</span>
+                                <Icon as="chevron-down" className={`w-4 h-4 transition-transform ${openModalPuzzleRoomSolvesDropdown ? 'rotate-180' : ''}`} />
+                            </button>
+                            {openModalPuzzleRoomSolvesDropdown && (
+                                <div className="absolute z-10 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg max-h-48 overflow-y-auto p-2">
+                                    {game.rooms.map(room => (
+                                      <label key={room.id} className="flex items-center gap-2 text-sm p-1 cursor-pointer"><input type="checkbox" checked={modalPuzzleData.lockedRoomSolveIds?.includes(room.id)} onChange={e => handleModalPuzzleChange('lockedRoomSolveIds', e.target.checked ? [...modalPuzzleData.lockedRoomSolveIds, room.id] : modalPuzzleData.lockedRoomSolveIds.filter(id => id !== room.id))} />{room.name}</label>
+                                    ))}
+                                </div>
+                            )}
+                          </div>
+                      </div>
+                    </div>
+                    <div className="pt-4 space-y-2">
+                        <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer"><input type="checkbox" className="disabled:opacity-50" checked={modalPuzzleData.autoAddLockedObjects} onChange={e => handleModalPuzzleChange('autoAddLockedObjects', e.target.checked)} disabled={!modalPuzzleData.lockedObjectIds || modalPuzzleData.lockedObjectIds.length === 0} />Automatically add locked objects to inventory upon solving.</label>
+                        <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer"><input type="checkbox" className="disabled:opacity-50" checked={modalPuzzleData.autoSolveRooms} onChange={e => handleModalPuzzleChange('autoSolveRooms', e.target.checked)} disabled={!modalPuzzleData.lockedRoomSolveIds || modalPuzzleData.lockedRoomSolveIds.length === 0} />Automatically set locked Room Solves to solved.</label>
+                    </div>
+                </div>
+                <div className="flex-shrink-0 mt-6 pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-4">
+                    <button onClick={() => setPuzzleModalState(null)} className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">Cancel</button>
+                    <button onClick={handleSavePuzzleFromModal} className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors">Save & Close</button>
+                </div>
+            </div>
+        </div>
+      )}
       <header className="bg-white dark:bg-slate-800 shadow-md p-2 flex justify-between items-center z-10">
         <div className="flex items-center gap-4">
           <Link to="/" className="text-xl font-bold text-brand-600 dark:text-brand-400 p-2">Studio</Link>
@@ -1084,7 +1309,7 @@ const Editor: React.FC = () => {
                 <h3 className="font-semibold mb-3 text-slate-700 dark:text-slate-300">Puzzles</h3>
                  <div className="space-y-4 max-h-96 overflow-y-auto pr-2" ref={puzzlesContainerRef}>
                     {editingRoomPuzzles.length > 0 ? editingRoomPuzzles.map((puzzle, index) => (
-                        <div key={puzzle.id} className="p-3 border border-slate-200 dark:border-slate-700 rounded-lg">
+                        <div key={puzzle.id} className={`p-3 border rounded-lg ${index % 2 === 0 ? 'bg-transparent' : 'bg-slate-50 dark:bg-slate-700/50'} border-slate-200 dark:border-slate-700`}>
                             <div className="flex items-center justify-between mb-2 gap-2">
                                 <div className="flex items-center gap-2 flex-grow">
                                     <input 
@@ -1103,6 +1328,9 @@ const Editor: React.FC = () => {
                                     />
                                 </div>
                                 <div className="flex items-center gap-2">
+                                    <button onClick={() => setPuzzleModalState({ puzzle: { ...puzzle }, index })} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1 rounded-full" title="Edit in larger view">
+                                        <Icon as="expand" className="w-4 h-4" />
+                                    </button>
                                     <button onClick={() => deletePuzzle(index)} className="text-red-500 hover:text-red-700 dark:hover:text-red-400 p-1 rounded-full flex items-center justify-center">
                                         <Icon as="trash" className="w-4 h-4" />
                                     </button>
