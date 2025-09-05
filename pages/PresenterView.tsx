@@ -512,7 +512,9 @@ const PresenterView: React.FC = () => {
                       </svg>
                   </div>
                   <h2 className="text-2xl font-bold mb-4 text-sky-400">Object(s) Removed</h2>
-                  <p className="text-slate-300 mb-6 whitespace-pre-wrap">{objectRemoveModalText}</p>
+                  <blockquote className="mb-6 p-4 bg-slate-700/50 border-l-4 border-slate-600 text-slate-300 italic text-left whitespace-pre-wrap">
+                      {objectRemoveModalText}
+                  </blockquote>
                   <button 
                       type="button" 
                       onClick={() => setObjectRemoveModalText(null)} 
