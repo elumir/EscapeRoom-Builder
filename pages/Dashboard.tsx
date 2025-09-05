@@ -75,6 +75,7 @@ const Dashboard: React.FC = () => {
             ...presentModalGame,
             rooms: presentModalGame.rooms.map(room => ({
                 ...room,
+                isSolved: false,
                 objects: room.objects.map(obj => ({
                     ...obj,
                     showInInventory: false,
@@ -119,6 +120,9 @@ const Dashboard: React.FC = () => {
         objects: [],
         puzzles: [],
         actions: [],
+        isSolved: false,
+        solvedImage: null,
+        solvedNotes: '',
     };
 
     return (

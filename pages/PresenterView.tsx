@@ -347,6 +347,15 @@ const PresenterView: React.FC = () => {
       });
   };
 
+  const handleToggleRoomSolved = (roomId: string, newState: boolean) => {
+    if (!game) return;
+    const updatedGame = {
+        ...game,
+        rooms: game.rooms.map(r => (r.id === roomId ? { ...r, isSolved: newState } : r))
+    };
+    updateAndBroadcast(updatedGame);
+  };
+
   const handleRestartGame = async () => {
     if (!game) return;
 
@@ -354,6 +363,7 @@ const PresenterView: React.FC = () => {
         ...game,
         rooms: game.rooms.map(room => ({
             ...room,
+            isSolved: false,
             objects: room.objects.map(obj => ({
                 ...obj,
                 showInInventory: false,
@@ -715,12 +725,32 @@ const PresenterView: React.FC = () => {
             {currentRoom ? (
               <>
                 <div>
-                    <h2 className="text-lg font-semibold mb-4 text-slate-300">Room Description</h2>
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-lg font-semibold text-slate-300">Room Description</h2>
+                        <label className={`flex items-center gap-2 text-sm ${currentRoom.isSolved ? 'text-slate-400' : 'text-green-300'} cursor-pointer`}>
+                            <span>Mark Room as Solved</span>
+                            <input
+                                type="checkbox"
+                                checked={currentRoom.isSolved}
+                                onChange={(e) => handleToggleRoomSolved(currentRoom.id, e.target.checked)}
+                                className="sr-only peer"
+                            />
+                            <div className="relative w-11 h-6 bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                        </label>
+                    </div>
                     <div className="prose prose-invert prose-lg max-w-none text-slate-200">
-                        {currentRoom.notes ? (
-                           <MarkdownRenderer content={currentRoom.notes} />
+                        {currentRoom.isSolved ? (
+                            currentRoom.solvedNotes ? (
+                                <MarkdownRenderer content={currentRoom.solvedNotes} />
+                            ) : (
+                                <span className="text-slate-400 italic">No solved description for this room.</span>
+                            )
                         ) : (
-                           <span className="text-slate-400 italic">No description for this room.</span>
+                            currentRoom.notes ? (
+                               <MarkdownRenderer content={currentRoom.notes} />
+                            ) : (
+                               <span className="text-slate-400 italic">No description for this room.</span>
+                            )
                         )}
                     </div>
                 </div>

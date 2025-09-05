@@ -18,6 +18,7 @@ const Editor: React.FC = () => {
   const [editingRoomName, setEditingRoomName] = useState('');
   const [editingRoomAct, setEditingRoomAct] = useState(1);
   const [editingRoomNotes, setEditingRoomNotes] = useState('');
+  const [editingRoomSolvedNotes, setEditingRoomSolvedNotes] = useState('');
   const [editingRoomObjects, setEditingRoomObjects] = useState<InventoryObject[]>([]);
   const [editingRoomPuzzles, setEditingRoomPuzzles] = useState<Puzzle[]>([]);
   const [editingRoomActions, setEditingRoomActions] = useState<Action[]>([]);
@@ -27,6 +28,7 @@ const Editor: React.FC = () => {
   const [openPuzzlePuzzlesDropdown, setOpenPuzzlePuzzlesDropdown] = useState<string | null>(null);
   const [draggedRoomIndex, setDraggedRoomIndex] = useState<number | null>(null);
   const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
+  const [previewSolved, setPreviewSolved] = useState(false);
 
 
   const objectsDropdownRef = useRef<HTMLDivElement>(null);
@@ -37,6 +39,7 @@ const Editor: React.FC = () => {
   const puzzlesContainerRef = useRef<HTMLDivElement>(null);
   const actionsContainerRef = useRef<HTMLDivElement>(null);
   const descriptionTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const solvedDescriptionTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (id) {
@@ -50,6 +53,7 @@ const Editor: React.FC = () => {
               const currentRoom = data.rooms[0];
               setEditingRoomName(currentRoom.name);
               setEditingRoomNotes(currentRoom.notes);
+              setEditingRoomSolvedNotes(currentRoom.solvedNotes || '');
               setEditingRoomAct(currentRoom.act || 1);
               setEditingRoomObjects(currentRoom.objects || []);
               setEditingRoomPuzzles(currentRoom.puzzles || []);
@@ -114,6 +118,7 @@ const Editor: React.FC = () => {
   
   useDebouncedUpdater(editingRoomName, 'name');
   useDebouncedUpdater(editingRoomNotes, 'notes');
+  useDebouncedUpdater(editingRoomSolvedNotes, 'solvedNotes');
   useDebouncedUpdater(editingRoomAct, 'act');
   useDebouncedUpdater(editingRoomObjects, 'objects');
   useDebouncedUpdater(editingRoomPuzzles, 'puzzles');
@@ -124,15 +129,17 @@ const Editor: React.FC = () => {
     const room = game?.rooms[index];
     setEditingRoomName(room?.name || '');
     setEditingRoomNotes(room?.notes || '');
+    setEditingRoomSolvedNotes(room?.solvedNotes || '');
     setEditingRoomAct(room?.act || 1);
     setEditingRoomObjects(room?.objects || []);
     setEditingRoomPuzzles(room?.puzzles || []);
     setEditingRoomActions(room?.actions || []);
+    setPreviewSolved(false);
   };
 
   const addRoom = () => {
     if (!game) return;
-    const newRoom: RoomType = { id: generateUUID(), name: `Room ${game.rooms.length + 1}`, image: null, mapImage: null, notes: '', backgroundColor: '#000000', isFullScreenImage: false, act: game.rooms[selectedRoomIndex]?.act || 1, objects: [], puzzles: [], actions: [] };
+    const newRoom: RoomType = { id: generateUUID(), name: `Room ${game.rooms.length + 1}`, image: null, mapImage: null, notes: '', backgroundColor: '#000000', isFullScreenImage: false, act: game.rooms[selectedRoomIndex]?.act || 1, objects: [], puzzles: [], actions: [], isSolved: false, solvedImage: null, solvedNotes: '' };
     const newRooms = [...game.rooms, newRoom];
     updateGame({ ...game, rooms: newRooms });
     selectRoom(newRooms.length - 1);
@@ -161,7 +168,7 @@ const Editor: React.FC = () => {
     updateGame({ ...game, rooms: newRooms });
   }
 
-  const handleFileUpload = async (file: File, property: 'image' | 'mapImage') => {
+  const handleFileUpload = async (file: File, property: 'image' | 'mapImage' | 'solvedImage') => {
       if (!game) return;
       try {
           // TODO: Add a loading state indicator
@@ -273,6 +280,7 @@ const Editor: React.FC = () => {
         ...game,
         rooms: game.rooms.map(room => ({
             ...room,
+            isSolved: false,
             objects: room.objects.map(obj => ({
                 ...obj,
                 showInInventory: false,
@@ -351,13 +359,16 @@ const Editor: React.FC = () => {
     setDropTargetIndex(null);
   };
 
-  const applyFormatting = (format: 'bold' | 'italic' | 'highlight', colorCode?: 'y' | 'c' | 'm' | 'l') => {
-    const textarea = descriptionTextareaRef.current;
+  const applyFormatting = (format: 'bold' | 'italic' | 'highlight', type: 'notes' | 'solvedNotes', colorCode?: 'y' | 'c' | 'm' | 'l') => {
+    const textarea = type === 'notes' ? descriptionTextareaRef.current : solvedDescriptionTextareaRef.current;
+    const value = type === 'notes' ? editingRoomNotes : editingRoomSolvedNotes;
+    const setter = type === 'notes' ? setEditingRoomNotes : setEditingRoomSolvedNotes;
+
     if (!textarea) return;
 
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
-    const selectedText = editingRoomNotes.substring(start, end);
+    const selectedText = value.substring(start, end);
 
     let prefix = '';
     let suffix = '';
@@ -383,8 +394,8 @@ const Editor: React.FC = () => {
     if (format === 'highlight' && (!selectedText || !colorCode)) return;
 
     const newText = `${prefix}${selectedText}${suffix}`;
-    const updatedNotes = editingRoomNotes.substring(0, start) + newText + editingRoomNotes.substring(end);
-    setEditingRoomNotes(updatedNotes);
+    const updatedNotes = value.substring(0, start) + newText + value.substring(end);
+    setter(updatedNotes);
 
     textarea.focus();
     setTimeout(() => {
@@ -534,8 +545,20 @@ const Editor: React.FC = () => {
         {/* Main Area - Editor */}
         <main className="flex-1 flex flex-col p-4 md:p-8 bg-slate-200 dark:bg-slate-900 overflow-y-auto">
             <div className='w-full max-w-4xl mx-auto'>
+              <div className="flex justify-end mb-2">
+                <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer">
+                    <span>Preview Solved State</span>
+                    <input
+                        type="checkbox"
+                        className="sr-only peer"
+                        checked={previewSolved}
+                        onChange={(e) => setPreviewSolved(e.target.checked)}
+                    />
+                    <div className="relative w-11 h-6 bg-slate-300 dark:bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-600"></div>
+                </label>
+              </div>
               <div className="relative w-full aspect-video">
-                <Room room={currentRoom} inventoryItems={inventoryItems} visibleMapImages={allMapImages} />
+                <Room room={{...currentRoom, isSolved: previewSolved}} inventoryItems={inventoryItems} visibleMapImages={allMapImages} />
                 <div className={`absolute inset-0 flex ${currentRoom.isFullScreenImage ? 'pointer-events-none' : ''}`}>
                   <div className={`h-full group relative ${currentRoom.isFullScreenImage ? 'w-full' : 'w-[70%]'}`}>
                       <label className={`w-full h-full cursor-pointer flex items-center justify-center bg-black/0 hover:bg-black/30 transition-colors duration-300 ${currentRoom.isFullScreenImage ? 'pointer-events-auto' : ''}`}>
@@ -904,19 +927,19 @@ const Editor: React.FC = () => {
                 </Accordion>
                 <Accordion title="Room Description" defaultOpen={true}>
                     <div className="flex items-center gap-1 border border-slate-300 dark:border-slate-600 rounded-t-lg bg-slate-50 dark:bg-slate-700/50 p-1">
-                        <button onClick={() => applyFormatting('bold')} title="Bold" className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded font-bold">B</button>
-                        <button onClick={() => applyFormatting('italic')} title="Italic" className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded italic">I</button>
+                        <button onClick={() => applyFormatting('bold', 'notes')} title="Bold" className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded font-bold">B</button>
+                        <button onClick={() => applyFormatting('italic', 'notes')} title="Italic" className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded italic">I</button>
                         <div className="h-5 w-px bg-slate-300 dark:bg-slate-600 mx-1"></div>
-                        <button onClick={() => applyFormatting('highlight', 'y')} title="Highlight Yellow" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
+                        <button onClick={() => applyFormatting('highlight', 'notes', 'y')} title="Highlight Yellow" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
                             <div className="w-4 h-4 rounded-sm bg-yellow-400 border border-yellow-500"></div>
                         </button>
-                        <button onClick={() => applyFormatting('highlight', 'c')} title="Highlight Cyan" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
+                        <button onClick={() => applyFormatting('highlight', 'notes', 'c')} title="Highlight Cyan" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
                             <div className="w-4 h-4 rounded-sm bg-cyan-400 border border-cyan-500"></div>
                         </button>
-                        <button onClick={() => applyFormatting('highlight', 'm')} title="Highlight Pink" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
+                        <button onClick={() => applyFormatting('highlight', 'notes', 'm')} title="Highlight Pink" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
                             <div className="w-4 h-4 rounded-sm bg-pink-400 border border-pink-500"></div>
                         </button>
-                        <button onClick={() => applyFormatting('highlight', 'l')} title="Highlight Lime" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
+                        <button onClick={() => applyFormatting('highlight', 'notes', 'l')} title="Highlight Lime" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
                             <div className="w-4 h-4 rounded-sm bg-lime-400 border border-lime-500"></div>
                         </button>
                     </div>
@@ -927,6 +950,40 @@ const Editor: React.FC = () => {
                         placeholder="Add room description here..."
                         className="w-full h-40 px-3 py-2 border border-t-0 border-slate-300 dark:border-slate-600 rounded-b-lg bg-slate-50 dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
                     />
+                </Accordion>
+                <Accordion title="Solved State">
+                    <div className="space-y-4">
+                        <div>
+                            <h3 className="font-semibold text-sm mb-2 text-slate-600 dark:text-slate-400">Solved Image</h3>
+                            {currentRoom.solvedImage ? (
+                                <div className="flex items-center gap-2">
+                                    <img src={`/api/assets/${currentRoom.solvedImage}`} alt="Solved state preview" className="w-24 h-24 object-cover rounded-md border border-slate-300 dark:border-slate-600" />
+                                    <button onClick={() => changeRoomProperty('solvedImage', null)} className="text-red-500 hover:text-red-700 text-xs self-start">Clear</button>
+                                </div>
+                            ) : (
+                                <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'solvedImage')} className="text-xs w-full" />
+                            )}
+                        </div>
+                        <div>
+                            <h3 className="font-semibold text-sm mb-2 text-slate-600 dark:text-slate-400">Solved Description</h3>
+                             <div className="flex items-center gap-1 border border-slate-300 dark:border-slate-600 rounded-t-lg bg-slate-50 dark:bg-slate-700/50 p-1">
+                                <button onClick={() => applyFormatting('bold', 'solvedNotes')} title="Bold" className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded font-bold">B</button>
+                                <button onClick={() => applyFormatting('italic', 'solvedNotes')} title="Italic" className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded italic">I</button>
+                                <div className="h-5 w-px bg-slate-300 dark:bg-slate-600 mx-1"></div>
+                                <button onClick={() => applyFormatting('highlight', 'solvedNotes', 'y')} title="Highlight Yellow" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"><div className="w-4 h-4 rounded-sm bg-yellow-400 border border-yellow-500"></div></button>
+                                <button onClick={() => applyFormatting('highlight', 'solvedNotes', 'c')} title="Highlight Cyan" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"><div className="w-4 h-4 rounded-sm bg-cyan-400 border border-cyan-500"></div></button>
+                                <button onClick={() => applyFormatting('highlight', 'solvedNotes', 'm')} title="Highlight Pink" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"><div className="w-4 h-4 rounded-sm bg-pink-400 border border-pink-500"></div></button>
+                                <button onClick={() => applyFormatting('highlight', 'solvedNotes', 'l')} title="Highlight Lime" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"><div className="w-4 h-4 rounded-sm bg-lime-400 border border-lime-500"></div></button>
+                            </div>
+                            <textarea
+                                ref={solvedDescriptionTextareaRef}
+                                value={editingRoomSolvedNotes}
+                                onChange={e => setEditingRoomSolvedNotes(e.target.value)}
+                                placeholder="Add solved description (optional)..."
+                                className="w-full h-40 px-3 py-2 border border-t-0 border-slate-300 dark:border-slate-600 rounded-b-lg bg-slate-50 dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
+                            />
+                        </div>
+                    </div>
                 </Accordion>
                  <Accordion title="Actions">
                      <button onClick={deleteRoom} className="w-full flex items-center gap-2 p-2 bg-red-50 dark:bg-red-900/50 text-red-600 dark:text-red-300 rounded-md hover:bg-red-100 dark:hover:bg-red-900 transition text-sm">

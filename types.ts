@@ -42,6 +42,9 @@ export interface Room {
   objects: InventoryObject[];
   puzzles: Puzzle[];
   actions: Action[];
+  isSolved: boolean;
+  solvedImage: string | null; // Asset ID
+  solvedNotes: string;
 }
 
 export interface Game {

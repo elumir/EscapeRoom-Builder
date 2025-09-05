@@ -10,7 +10,9 @@ interface RoomProps {
 }
 
 const Room: React.FC<RoomProps> = ({ room, inventoryItems, visibleMapImages, className, overlayImageUrl }) => {
-  const { image, backgroundColor, isFullScreenImage } = room;
+  const { backgroundColor, isFullScreenImage } = room;
+
+  const displayImage = room.isSolved && room.solvedImage ? room.solvedImage : room.image;
 
   const isLightBg = !isFullScreenImage && ['#ffffff', '#fbbf24', '#34d399'].includes(backgroundColor);
   
@@ -37,8 +39,8 @@ const Room: React.FC<RoomProps> = ({ room, inventoryItems, visibleMapImages, cla
       style={{ backgroundColor: isFullScreenImage ? '#000' : backgroundColor }}
     >
       <div className={imageContainerClass}>
-        {image ? (
-          <img src={`/api/assets/${image}`} alt="" className="w-full h-full object-cover" />
+        {displayImage ? (
+          <img src={`/api/assets/${displayImage}`} alt="" className="w-full h-full object-cover" />
         ) : (
           <div className="text-slate-400 dark:text-slate-500 flex items-center justify-center w-full h-full">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-16 h-16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
