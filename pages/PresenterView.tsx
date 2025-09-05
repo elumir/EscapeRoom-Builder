@@ -382,7 +382,7 @@ const PresenterView: React.FC = () => {
                       </svg>
                   </div>
                   <h2 className="text-2xl font-bold mb-4 text-green-400">
-                    {solvedPuzzleInfo.answer ? 'Correct!' : 'Puzzle Solved!'}
+                    {solvedPuzzleInfo.answer ? 'Correct!' : 'Complete'}
                   </h2>
                   {solvedPuzzleInfo.solvedText && (
                       <blockquote className="mb-6 p-4 bg-slate-700/50 border-l-4 border-slate-600 text-slate-300 italic text-left">
