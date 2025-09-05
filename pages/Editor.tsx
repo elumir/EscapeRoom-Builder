@@ -1,13 +1,79 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import * as gameService from '../services/presentationService';
-import type { Game, Room as RoomType, InventoryObject, Puzzle, Action, Asset } from '../types';
+import type { Game, Room as RoomType, InventoryObject, Puzzle, Action, Asset, DetailedAsset } from '../types';
 import Room from '../components/Slide';
 import Icon from '../components/Icon';
 import Accordion from '../components/Accordion';
 import { generateUUID } from '../utils/uuid';
 
 type Status = 'loading' | 'success' | 'error';
+
+const formatTime = (seconds: number) => {
+    if (isNaN(seconds) || seconds < 0) return '0:00';
+    const minutes = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
+};
+
+const AudioPlayer: React.FC<{ asset: DetailedAsset }> = ({ asset }) => {
+    const audioRef = useRef<HTMLAudioElement | null>(null);
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [progress, setProgress] = useState(0);
+
+    useEffect(() => {
+        const audio = new Audio(asset.objectURL);
+        audioRef.current = audio;
+
+        const setAudioTime = () => setProgress(audio.currentTime);
+        const handleAudioEnd = () => setIsPlaying(false);
+
+        audio.addEventListener('timeupdate', setAudioTime);
+        audio.addEventListener('ended', handleAudioEnd);
+
+        return () => {
+            audio.pause();
+            audio.removeEventListener('timeupdate', setAudioTime);
+            audio.removeEventListener('ended', handleAudioEnd);
+        };
+    }, [asset.objectURL]);
+
+    const togglePlayPause = () => {
+        if (audioRef.current) {
+            if (isPlaying) {
+                audioRef.current.pause();
+            } else {
+                audioRef.current.play().catch(e => console.error("Error playing audio:", e));
+            }
+            setIsPlaying(!isPlaying);
+        }
+    };
+
+    return (
+        <div className="flex items-center gap-2 w-full bg-slate-700/50 p-2 rounded-md">
+            <button onClick={togglePlayPause} className="p-2 bg-slate-700 rounded-full hover:bg-slate-600 flex-shrink-0">
+                <Icon as={isPlaying ? 'pause' : 'play'} className="w-4 h-4" />
+            </button>
+            <div className="flex-grow flex items-center gap-2 text-xs text-slate-400">
+                <span>{formatTime(progress)}</span>
+                <input
+                    type="range"
+                    value={progress}
+                    max={asset.duration || 0}
+                    onChange={(e) => {
+                        if (audioRef.current) {
+                            audioRef.current.currentTime = Number(e.target.value);
+                            setProgress(Number(e.target.value));
+                        }
+                    }}
+                    className="w-full h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-brand-500 [&::-webkit-slider-thumb]:rounded-full"
+                />
+                <span>{formatTime(asset.duration || 0)}</span>
+            </div>
+        </div>
+    );
+};
+
 
 const Editor: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -35,9 +101,10 @@ const Editor: React.FC = () => {
   const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
   const [previewSolved, setPreviewSolved] = useState(false);
   const [modalContent, setModalContent] = useState<{type: 'notes' | 'solvedNotes', content: string} | null>(null);
-  const [assetLibrary, setAssetLibrary] = useState<Asset[]>([]);
-  const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
-  const [assetModalTarget, setAssetModalTarget] = useState<'image' | 'mapImage' | 'solvedImage' | null>(null);
+  const [selectAssetModal, setSelectAssetModal] = useState<{ open: boolean; target: 'image' | 'mapImage' | 'solvedImage' | null; assets: Asset[]}>({ open: false, target: null, assets: [] });
+  const [isAssetLibraryModalOpen, setIsAssetLibraryModalOpen] = useState(false);
+  const [detailedAssets, setDetailedAssets] = useState<DetailedAsset[]>([]);
+  const [isLoadingAssets, setIsLoadingAssets] = useState(false);
 
 
   const objectsDropdownRef = useRef<HTMLDivElement>(null);
@@ -72,8 +139,6 @@ const Editor: React.FC = () => {
               setEditingRoomPuzzles(currentRoom.puzzles || []);
               setEditingRoomActions(currentRoom.actions || []);
           }
-          const assets = await gameService.getAssetsForGame(id);
-          setAssetLibrary(assets);
           setStatus('success');
         } else {
           setStatus('error');
@@ -198,26 +263,24 @@ const Editor: React.FC = () => {
           const newRooms = [...game.rooms];
           newRooms[selectedRoomIndex] = { ...newRooms[selectedRoomIndex], [property]: assetId };
           updateGame({ ...game, rooms: newRooms });
-          
-          const assets = await gameService.getAssetsForGame(game.id);
-          setAssetLibrary(assets);
       } catch (error) {
           console.error(`${property} upload failed:`, error);
           alert(`Failed to upload ${property}. Please try again.`);
       }
   };
   
-  const openAssetLibrary = (target: 'image' | 'mapImage' | 'solvedImage') => {
-      setAssetModalTarget(target);
-      setIsAssetModalOpen(true);
+  const openAssetSelector = async (target: 'image' | 'mapImage' | 'solvedImage') => {
+      if (!game) return;
+      const assets = await gameService.getAssetsForGame(game.id);
+      const imageAssets = assets.filter(a => a.mime_type.startsWith('image/'));
+      setSelectAssetModal({ open: true, target, assets: imageAssets });
   };
 
   const handleSelectAsset = (assetId: string) => {
-      if (assetModalTarget) {
-          changeRoomProperty(assetModalTarget, assetId);
+      if (selectAssetModal.target) {
+          changeRoomProperty(selectAssetModal.target, assetId);
       }
-      setIsAssetModalOpen(false);
-      setAssetModalTarget(null);
+      setSelectAssetModal({ open: false, target: null, assets: [] });
   };
 
   const addObject = () => {
@@ -495,6 +558,120 @@ const Editor: React.FC = () => {
     updateGame(updatedGame);
   };
 
+  const handleOpenAssetLibrary = async () => {
+    if (!game) return;
+    setIsAssetLibraryModalOpen(true);
+    setIsLoadingAssets(true);
+
+    try {
+        const assets = await gameService.getAssetsForGame(game.id);
+        const detailedAssetPromises = assets.map(async (asset): Promise<DetailedAsset> => {
+            const response = await fetch(`/api/assets/${asset.id}`);
+            const blob = await response.blob();
+            const objectURL = URL.createObjectURL(blob);
+            
+            const baseDetail = { ...asset, objectURL };
+
+            if (asset.mime_type.startsWith('image/')) {
+                return new Promise((resolve) => {
+                    const img = document.createElement('img');
+                    img.onload = () => {
+                        resolve({ ...baseDetail, dimensions: { width: img.width, height: img.height } });
+                    };
+                    img.onerror = () => resolve(baseDetail); // Resolve without dimensions on error
+                    img.src = objectURL;
+                });
+            } else if (asset.mime_type.startsWith('audio/')) {
+                return new Promise((resolve) => {
+                    const audio = document.createElement('audio');
+                    audio.onloadedmetadata = () => {
+                        resolve({ ...baseDetail, duration: audio.duration });
+                    };
+                    audio.onerror = () => resolve(baseDetail); // Resolve without duration on error
+                    audio.src = objectURL;
+                });
+            }
+            return baseDetail;
+        });
+
+        const resolvedAssets = await Promise.all(detailedAssetPromises);
+        setDetailedAssets(resolvedAssets);
+    } catch (error) {
+        console.error("Failed to load detailed assets:", error);
+    } finally {
+        setIsLoadingAssets(false);
+    }
+  };
+  
+  const handleDeleteAsset = async (assetId: string) => {
+    if (!game || !window.confirm('Are you sure you want to permanently delete this asset? This will remove it from any room, puzzle, or action using it.')) {
+        return;
+    }
+
+    const success = await gameService.deleteAsset(assetId);
+    if (success) {
+        // Remove from local detailed asset list
+        setDetailedAssets(prev => prev.filter(a => a.id !== assetId));
+
+        // Create a deep copy to modify
+        const updatedGame = JSON.parse(JSON.stringify(game)) as Game;
+        
+        // Scrub the asset ID from all rooms
+        updatedGame.rooms.forEach(room => {
+            if (room.image === assetId) room.image = null;
+            if (room.mapImage === assetId) room.mapImage = null;
+            if (room.solvedImage === assetId) room.solvedImage = null;
+
+            room.puzzles.forEach(puzzle => {
+                if (puzzle.image === assetId) puzzle.image = null;
+                if (puzzle.sound === assetId) puzzle.sound = null;
+            });
+            
+            (room.actions || []).forEach(action => {
+                if (action.image === assetId) action.image = null;
+            });
+        });
+
+        updateGame(updatedGame);
+    } else {
+        alert('Failed to delete asset. Please try again.');
+    }
+  };
+
+  const assetCategories = useMemo(() => {
+    if (!game) return {};
+
+    const roomImageIds = new Set<string>();
+    const mapImageIds = new Set<string>();
+    const otherImageIds = new Set<string>();
+    const soundIds = new Set<string>();
+
+    game.rooms.forEach(room => {
+        if (room.image) roomImageIds.add(room.image);
+        if (room.solvedImage) roomImageIds.add(room.solvedImage);
+        if (room.mapImage) mapImageIds.add(room.mapImage);
+
+        room.puzzles.forEach(puzzle => {
+            if (puzzle.image) otherImageIds.add(puzzle.image);
+            if (puzzle.sound) soundIds.add(puzzle.sound);
+        });
+
+        (room.actions || []).forEach(action => {
+            if (action.image) otherImageIds.add(action.image);
+        });
+    });
+
+    const allUsedIds = new Set([...roomImageIds, ...mapImageIds, ...otherImageIds, ...soundIds]);
+
+    return {
+        roomImages: detailedAssets.filter(a => roomImageIds.has(a.id)),
+        mapImages: detailedAssets.filter(a => mapImageIds.has(a.id)),
+        otherImages: detailedAssets.filter(a => otherImageIds.has(a.id)),
+        sounds: detailedAssets.filter(a => soundIds.has(a.id)),
+        unused: detailedAssets.filter(a => !allUsedIds.has(a.id)),
+    };
+  }, [game, detailedAssets]);
+
 
   const COLORS = ['#000000', '#ffffff', '#f87171', '#fbbf24', '#34d399', '#60a5fa', '#a78bfa'];
 
@@ -709,20 +886,20 @@ const Editor: React.FC = () => {
             </div>
         </div>
       )}
-      {isAssetModalOpen && (
+      {selectAssetModal.open && (
             <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60] backdrop-blur-sm">
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-2xl w-full max-w-4xl h-[80vh] flex flex-col">
                     <div className="flex justify-between items-center mb-4">
-                        <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">Asset Library</h2>
-                        <button onClick={() => setIsAssetModalOpen(false)} className="p-1.5 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700">
+                        <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">Select an Image</h2>
+                        <button onClick={() => setSelectAssetModal({ ...selectAssetModal, open: false })} className="p-1.5 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700">
                             <Icon as="close" className="w-5 h-5" />
                         </button>
                     </div>
-                    {assetLibrary.length > 0 ? (
+                    {selectAssetModal.assets.length > 0 ? (
                         <div className="flex-grow overflow-y-auto pr-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                            {assetLibrary.filter(asset => asset.mime_type.startsWith('image/')).map(asset => (
+                            {selectAssetModal.assets.map(asset => (
                                 <div key={asset.id} className="aspect-square group relative rounded-md overflow-hidden" onClick={() => handleSelectAsset(asset.id)}>
-                                    <img src={`/api/assets/${asset.id}`} alt="Game asset" className="w-full h-full object-cover"/>
+                                    <img src={`/api/assets/${asset.id}`} alt={asset.name || "Game asset"} className="w-full h-full object-cover"/>
                                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors flex items-center justify-center cursor-pointer">
                                         <p className="text-white font-bold opacity-0 group-hover:opacity-100 transition-opacity">Select</p>
                                     </div>
@@ -736,7 +913,61 @@ const Editor: React.FC = () => {
                     )}
                 </div>
             </div>
-        )}
+      )}
+      {isAssetLibraryModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[70] backdrop-blur-sm">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-2xl w-full max-w-7xl h-[90vh] flex flex-col">
+                <div className="flex justify-between items-center mb-4 flex-shrink-0">
+                    <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200">Asset Library</h2>
+                    <button onClick={() => setIsAssetLibraryModalOpen(false)} className="p-1.5 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700">
+                        <Icon as="close" className="w-5 h-5" />
+                    </button>
+                </div>
+                {isLoadingAssets ? (
+                     <div className="flex-grow flex items-center justify-center text-slate-500 dark:text-slate-400">Loading assets...</div>
+                ) : (
+                    <div className="flex-grow overflow-y-auto pr-4 space-y-6">
+                        {(Object.keys(assetCategories) as (keyof typeof assetCategories)[]).map(key => {
+                            const assets = assetCategories[key];
+                            if (!assets || assets.length === 0) return null;
+                            const title = { roomImages: "Room & Solved Images", mapImages: "Map Images", otherImages: "Other Images (Puzzles, Actions)", sounds: "Sound Files", unused: "Unused Assets" }[key];
+                            
+                            return (
+                                <div key={key}>
+                                    <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-3 sticky top-0 bg-white dark:bg-slate-800 py-2 border-b border-slate-200 dark:border-slate-700">{title} ({assets.length})</h3>
+                                    <div className={`${key === 'sounds' ? 'space-y-3' : 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4'}`}>
+                                        {assets.map(asset => (
+                                            <div key={asset.id} className="group relative rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-2 flex flex-col gap-2">
+                                                {asset.mime_type.startsWith('image/') ? (
+                                                    <div className="aspect-square w-full bg-slate-200 dark:bg-slate-700 rounded-md overflow-hidden">
+                                                        <img src={asset.objectURL} alt={asset.name || 'Asset'} className="w-full h-full object-cover"/>
+                                                    </div>
+                                                ) : (
+                                                    <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-md p-2">
+                                                        <AudioPlayer asset={asset} />
+                                                    </div>
+                                                )}
+                                                <div className="text-xs text-slate-500 dark:text-slate-400 break-all">
+                                                    <p className="font-semibold text-slate-600 dark:text-slate-300 truncate">{asset.name || 'Untitled'}</p>
+                                                    {asset.dimensions && <span>{asset.dimensions.width}x{asset.dimensions.height}px</span>}
+                                                </div>
+                                                <button 
+                                                    onClick={() => handleDeleteAsset(asset.id)}
+                                                    className="absolute top-1 right-1 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600" 
+                                                    title="Delete Asset">
+                                                    <Icon as="trash" className="w-4 h-4"/>
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+            </div>
+        </div>
+      )}
       <header className="bg-white dark:bg-slate-800 shadow-md p-2 flex justify-between items-center z-10">
         <div className="flex items-center gap-4">
           <Link to="/" className="text-xl font-bold text-brand-600 dark:text-brand-400 p-2">Studio</Link>
@@ -748,6 +979,12 @@ const Editor: React.FC = () => {
           />
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={handleOpenAssetLibrary}
+            className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
+          >
+            Asset Library
+          </button>
           <button
             onClick={() => setIsSettingsModalOpen(true)}
             className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
@@ -838,7 +1075,7 @@ const Editor: React.FC = () => {
                                     <p className="text-sm">Click or drag & drop</p>
                                 </div>
                                 <button
-                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('image'); }}
+                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetSelector('image'); }}
                                     className="pointer-events-auto flex items-center gap-2 text-sm px-3 py-1.5 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors"
                                 >
                                     <Icon as="gallery" className="w-4 h-4" />
@@ -850,7 +1087,7 @@ const Editor: React.FC = () => {
                       {currentRoom.image && (
                           <div className="absolute bottom-0 left-0 right-0 bg-black/60 p-2 flex justify-end items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
                               <button
-                                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('image'); }}
+                                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetSelector('image'); }}
                                   className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors"
                                   title="Select an existing image"
                               >
@@ -879,7 +1116,7 @@ const Editor: React.FC = () => {
                                         <p className="text-xs">Map Image</p>
                                     </div>
                                     <button
-                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('mapImage'); }}
+                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetSelector('mapImage'); }}
                                         className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors"
                                     >
                                         <Icon as="gallery" className="w-3.5 h-3.5" />
@@ -891,7 +1128,7 @@ const Editor: React.FC = () => {
                            {currentRoom.mapImage && (
                               <div className="absolute bottom-0 left-0 right-0 bg-black/60 p-2 flex justify-end items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
                                   <button
-                                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('mapImage'); }}
+                                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetSelector('mapImage'); }}
                                       className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors"
                                       title="Select an existing image"
                                   >
@@ -1446,7 +1683,7 @@ const Editor: React.FC = () => {
                                                     <p className="font-bold text-xs">Upload New</p>
                                                 </div>
                                                 <button
-                                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('solvedImage'); }}
+                                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetSelector('solvedImage'); }}
                                                     className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors text-center"
                                                 >
                                                   <Icon as="gallery" className="w-3.5 h-3.5" />
@@ -1459,7 +1696,7 @@ const Editor: React.FC = () => {
                                 {currentRoom.solvedImage && (
                                     <div className="absolute inset-0 bg-black/60 p-1 flex flex-col justify-center items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
                                         <button
-                                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('solvedImage'); }}
+                                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetSelector('solvedImage'); }}
                                             className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors"
                                             title="Select an existing image"
                                         >

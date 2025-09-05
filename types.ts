@@ -62,5 +62,12 @@ export interface Game {
 
 export interface Asset {
   id: string;
+  name: string;
   mime_type: string;
+}
+
+export interface DetailedAsset extends Asset {
+  objectURL: string;
+  dimensions?: { width: number; height: number };
+  duration?: number;
 }

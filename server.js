@@ -4,14 +4,17 @@ const mysql = require('mysql2/promise');
 const path = require('path');
 const cors = require('cors');
 const crypto = require('crypto');
+const multer = require('multer');
 
 const app = express();
 const port = process.env.PORT || 8080;
 
+// Multer setup for in-memory file storage
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage, limits: { fileSize: 50 * 1024 * 1024 } }); // 50MB limit
+
 // Middleware
 app.use(cors());
-// Middleware for raw binary body (for asset uploads)
-app.use(express.raw({ limit: '50mb', type: ['image/*', 'audio/*'] }));
 // Middleware for JSON body (for presentation data)
 app.use(express.json({ limit: '50mb' }));
 
@@ -170,7 +173,7 @@ app.delete('/api/presentations/:id', async (req, res) => {
 app.get('/api/presentations/:presentationId/assets', async (req, res) => {
     try {
         const { presentationId } = req.params;
-        const [rows] = await dbPool.query('SELECT id, mime_type FROM assets WHERE presentation_id = ? ORDER BY created_at DESC', [presentationId]);
+        const [rows] = await dbPool.query('SELECT id, name, mime_type FROM assets WHERE presentation_id = ? ORDER BY created_at DESC', [presentationId]);
         res.json(rows);
     } catch (error) {
         console.error(`Failed to fetch assets for presentation ${req.params.presentationId}:`, error);
@@ -179,19 +182,20 @@ app.get('/api/presentations/:presentationId/assets', async (req, res) => {
 });
 
 // Upload a new asset for a presentation
-app.post('/api/presentations/:presentationId/assets', async (req, res) => {
+app.post('/api/presentations/:presentationId/assets', upload.single('asset'), async (req, res) => {
     try {
         const { presentationId } = req.params;
-        const mimeType = req.headers['content-type'];
-        const data = req.body;
+        const file = req.file;
 
-        if (!presentationId || !mimeType || !data) {
-            return res.status(400).json({ error: 'Missing presentation ID, content-type, or file data.' });
+        if (!presentationId || !file) {
+            return res.status(400).json({ error: 'Missing presentation ID or file data.' });
         }
 
         const assetId = crypto.randomUUID();
-        const sql = 'INSERT INTO assets (id, presentation_id, mime_type, data) VALUES (?, ?, ?, ?)';
-        await dbPool.query(sql, [assetId, presentationId, mimeType, data]);
+        const { originalname, mimetype, buffer } = file;
+        
+        const sql = 'INSERT INTO assets (id, presentation_id, name, mime_type, data) VALUES (?, ?, ?, ?, ?)';
+        await dbPool.query(sql, [assetId, presentationId, originalname, mimetype, buffer]);
         
         res.status(201).json({ assetId });
 
@@ -220,6 +224,22 @@ app.get('/api/assets/:assetId', async (req, res) => {
     } catch (error) {
         console.error(`Failed to fetch asset ${req.params.assetId}:`, error);
         res.status(500).json({ error: 'Database query failed' });
+    }
+});
+
+// Delete an asset by ID
+app.delete('/api/assets/:assetId', async (req, res) => {
+    try {
+        const { assetId } = req.params;
+        const [result] = await dbPool.query('DELETE FROM assets WHERE id = ?', [assetId]);
+        if (result.affectedRows > 0) {
+            res.status(204).send(); // No content
+        } else {
+            res.status(404).json({ error: 'Asset not found for deletion' });
+        }
+    } catch (error) {
+        console.error(`Failed to delete asset ${req.params.assetId}:`, error);
+        res.status(500).json({ error: 'Database delete failed' });
     }
 });
 
