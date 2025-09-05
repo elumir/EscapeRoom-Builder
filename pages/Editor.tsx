@@ -329,7 +329,12 @@ const Editor: React.FC = () => {
 
   const deletePuzzle = (index: number) => {
     setEditingRoomPuzzles(editingRoomPuzzles.filter((_, i) => i !== index));
-  }
+  };
+
+  const handleDeletePuzzle = (e: React.MouseEvent, index: number) => {
+    e.stopPropagation();
+    deletePuzzle(index);
+  };
 
   const addAction = () => {
     const newAction: Action = { id: generateUUID(), name: 'New Action', description: 'Description...', image: null, showImageOverlay: false, isComplete: false };
@@ -1338,26 +1343,28 @@ const Editor: React.FC = () => {
             </div>
 
             <div className="w-full max-w-4xl mx-auto mt-6 bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md">
-                <h3 className="font-semibold mb-3 text-slate-700 dark:text-slate-300">Puzzles</h3>
+                <h3 className="font-semibold mb-1 text-slate-700 dark:text-slate-300">Puzzles</h3>
+                <p className="text-xs italic text-slate-500 dark:text-slate-400 mb-3">Puzzles lock other elements.</p>
                  <div className="space-y-2 max-h-96 overflow-y-auto pr-2" ref={puzzlesContainerRef}>
                     {editingRoomPuzzles.length > 0 ? editingRoomPuzzles.map((puzzle, index) => (
-                        <div key={puzzle.id} className={`flex items-center justify-between p-2 rounded-lg border border-slate-200 dark:border-slate-700 ${index % 2 === 0 ? '' : 'bg-slate-50 dark:bg-slate-700/50'}`}>
+                        <div
+                            key={puzzle.id}
+                            onClick={() => {
+                                setPuzzleModalState({ puzzle: { ...puzzle }, index });
+                                setModalPuzzleObjectsSearch('');
+                                setModalPuzzlePuzzlesSearch('');
+                                setModalPuzzleRoomsSearch('');
+                                setModalPuzzleRoomSolvesSearch('');
+                            }}
+                            className={`flex items-center justify-between p-2 rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer transition-colors hover:bg-slate-100 dark:hover:bg-slate-700 ${index % 2 === 0 ? '' : 'bg-slate-50 dark:bg-slate-700/50'}`}
+                        >
                             <span className="font-semibold text-sm text-slate-800 dark:text-slate-200 truncate pr-4">{puzzle.name}</span>
                             <div className="flex items-center gap-2 flex-shrink-0">
                                 <button
-                                    onClick={() => {
-                                        setPuzzleModalState({ puzzle: { ...puzzle }, index });
-                                        setModalPuzzleObjectsSearch('');
-                                        setModalPuzzlePuzzlesSearch('');
-                                        setModalPuzzleRoomsSearch('');
-                                        setModalPuzzleRoomSolvesSearch('');
-                                    }}
-                                    className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-600"
-                                    title="Edit in larger view"
+                                    onClick={(e) => handleDeletePuzzle(e, index)}
+                                    className="text-red-500 hover:text-red-700 dark:hover:text-red-400 p-1.5 rounded-full hover:bg-red-100 dark:hover:bg-red-900/50 flex items-center justify-center"
+                                    title="Delete Puzzle"
                                 >
-                                    <Icon as="expand" className="w-4 h-4" />
-                                </button>
-                                <button onClick={() => deletePuzzle(index)} className="text-red-500 hover:text-red-700 dark:hover:text-red-400 p-1.5 rounded-full hover:bg-red-100 dark:hover:bg-red-900/50 flex items-center justify-center">
                                     <Icon as="trash" className="w-4 h-4" />
                                 </button>
                             </div>
