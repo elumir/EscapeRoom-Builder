@@ -829,20 +829,22 @@ const PresenterView: React.FC = () => {
                             </div>
                         )}
                     </div>
-                    <div className="prose prose-invert prose-lg max-w-none text-slate-200">
-                        {currentRoom.isSolved ? (
-                            currentRoom.solvedNotes ? (
-                                <MarkdownRenderer content={currentRoom.solvedNotes} />
+                    <div className="bg-slate-800 p-6 rounded-lg border border-slate-700">
+                        <div className="prose prose-invert prose-lg max-w-none text-slate-200">
+                            {currentRoom.isSolved ? (
+                                currentRoom.solvedNotes ? (
+                                    <MarkdownRenderer content={currentRoom.solvedNotes} />
+                                ) : (
+                                    <span className="text-slate-400 italic">No solved description for this room.</span>
+                                )
                             ) : (
-                                <span className="text-slate-400 italic">No solved description for this room.</span>
-                            )
-                        ) : (
-                            currentRoom.notes ? (
-                               <MarkdownRenderer content={currentRoom.notes} />
-                            ) : (
-                               <span className="text-slate-400 italic">No description for this room.</span>
-                            )
-                        )}
+                                currentRoom.notes ? (
+                                   <MarkdownRenderer content={currentRoom.notes} />
+                                ) : (
+                                   <span className="text-slate-400 italic">No description for this room.</span>
+                                )
+                            )}
+                        </div>
                     </div>
                 </div>
                 
