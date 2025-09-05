@@ -667,6 +667,8 @@ const Editor: React.FC = () => {
     obj.name.toLowerCase().includes(objectRemoveSearch.toLowerCase()) || 
     obj.roomName.toLowerCase().includes(objectRemoveSearch.toLowerCase())
   );
+  
+  const hasSolvedState = currentRoom.solvedImage || (currentRoom.solvedNotes && currentRoom.solvedNotes.trim() !== '');
 
   return (
     <div className="flex flex-col h-screen bg-slate-200 dark:bg-slate-900">
@@ -1261,17 +1263,19 @@ const Editor: React.FC = () => {
         {/* Main Area - Editor */}
         <main className="flex-1 flex flex-col p-4 md:p-8 bg-slate-200 dark:bg-slate-900 overflow-y-auto">
             <div className='w-full max-w-4xl mx-auto'>
-              <div className="flex justify-end mb-2">
-                <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer">
-                    <span>Preview Solved State</span>
-                    <input
-                        type="checkbox"
-                        className="sr-only peer"
-                        checked={previewSolved}
-                        onChange={(e) => setPreviewSolved(e.target.checked)}
-                    />
-                    <div className="relative w-11 h-6 bg-slate-300 dark:bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-600"></div>
-                </label>
+              <div className="flex justify-end mb-2 h-6">
+                {hasSolvedState && (
+                  <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer">
+                      <span>Preview Solved State</span>
+                      <input
+                          type="checkbox"
+                          className="sr-only peer"
+                          checked={previewSolved}
+                          onChange={(e) => setPreviewSolved(e.target.checked)}
+                      />
+                      <div className="relative w-11 h-6 bg-slate-300 dark:bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-600"></div>
+                  </label>
+                )}
               </div>
               <div className="relative w-full aspect-video">
                 <Room room={{...currentRoom, isSolved: previewSolved}} inventoryItems={inventoryItems} visibleMapImages={visibleMapImages} globalBackgroundColor={game.globalBackgroundColor} />
