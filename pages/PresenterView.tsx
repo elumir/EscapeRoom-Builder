@@ -33,6 +33,7 @@ const PresenterView: React.FC = () => {
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [activeActionTab, setActiveActionTab] = useState<'open' | 'complete'>('open');
   const [activePuzzleTab, setActivePuzzleTab] = useState<'open' | 'complete'>('open');
+  const [selectedAct, setSelectedAct] = useState(1);
   
   const { 
     lockingPuzzlesByRoomId, 
@@ -391,6 +392,37 @@ const PresenterView: React.FC = () => {
     }, {} as Record<number, (Game['rooms'][0] & { originalIndex: number })[]>);
   }, [game]);
 
+  const availableActs = useMemo(() => {
+    if (!game) return [1];
+    const acts = new Set(game.rooms.map(r => r.act || 1));
+    return Array.from(acts).sort((a, b) => a - b);
+  }, [game]);
+
+  useEffect(() => {
+    if (game?.rooms[currentRoomIndex]) {
+      const currentAct = game.rooms[currentRoomIndex].act || 1;
+      if (availableActs.includes(currentAct)) {
+        setSelectedAct(currentAct);
+      }
+    }
+  }, [currentRoomIndex, game, availableActs]);
+
+  const currentActIndex = availableActs.indexOf(selectedAct);
+  const canGoToPrevAct = currentActIndex > 0;
+  const canGoToNextAct = currentActIndex < availableActs.length - 1;
+
+  const handlePrevAct = () => {
+    if (canGoToPrevAct) {
+      setSelectedAct(availableActs[currentActIndex - 1]);
+    }
+  };
+
+  const handleNextAct = () => {
+    if (canGoToNextAct) {
+      setSelectedAct(availableActs[currentActIndex + 1]);
+    }
+  };
+
   if (status === 'loading') {
     return <div className="h-screen bg-slate-800 text-white flex items-center justify-center">Loading Presenter View...</div>;
   }
@@ -406,6 +438,7 @@ const PresenterView: React.FC = () => {
   const completedActions = (currentRoom?.actions || []).filter(action => action.isComplete);
   const openPuzzles = (currentRoom?.puzzles || []).filter(puzzle => !puzzle.isSolved);
   const completedPuzzles = (currentRoom?.puzzles || []).filter(puzzle => puzzle.isSolved);
+  const roomsForSelectedAct = roomsByAct[selectedAct] || [];
 
   return (
     <div className="h-screen bg-slate-800 text-white flex flex-col">
@@ -586,37 +619,57 @@ const PresenterView: React.FC = () => {
             <div className="flex-grow overflow-y-auto pr-2">
                 {activeTab === 'rooms' && (
                     <div>
-                        {Object.entries(roomsByAct).sort(([a], [b]) => Number(a) - Number(b)).map(([act, rooms]) => (
-                            <div key={`act-${act}`} className="space-y-2 mb-4">
-                                <h3 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-2 pt-2">Act {act}</h3>
-                                {rooms.map((room) => {
-                                    const index = room.originalIndex;
-                                    const isLocked = lockingPuzzlesByRoomId.has(room.id);
-                                    const lockingPuzzleName = lockingPuzzlesByRoomId.get(room.id);
-                                    return (
-                                        <button
-                                            key={room.id}
-                                            onClick={() => goToRoom(index)}
-                                            disabled={isLocked}
-                                            title={isLocked ? `Locked by: ${lockingPuzzleName}` : ''}
-                                            className={`w-full text-left p-3 rounded-lg transition-colors flex flex-col items-start ${
-                                                currentRoomIndex === index
-                                                    ? 'bg-brand-600 text-white font-bold shadow-lg'
-                                                    : 'bg-slate-700'
-                                            } ${isLocked ? 'opacity-50 cursor-not-allowed hover:bg-slate-700' : 'hover:bg-slate-600'}`}
-                                        >
-                                            <div className="w-full flex items-center justify-between">
-                                                <span className="text-lg truncate">{room.name}</span>
-                                                {isLocked && <Icon as="lock" className="w-4 h-4 text-slate-400 flex-shrink-0 ml-2" />}
-                                            </div>
-                                            {isLocked && (
-                                                <span className="text-xs text-red-400 mt-1 truncate">Locked by: {lockingPuzzleName}</span>
-                                            )}
-                                        </button>
-                                    );
-                                })}
+                        {availableActs.length > 1 && (
+                            <div className="flex items-center justify-between p-2 bg-slate-700/50 rounded-md mb-4">
+                                <button
+                                    onClick={handlePrevAct}
+                                    disabled={!canGoToPrevAct}
+                                    className="p-2 rounded-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-600"
+                                    aria-label="Previous Act"
+                                >
+                                    <Icon as="prev" className="w-5 h-5" />
+                                </button>
+                                <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wider">
+                                    Act {selectedAct}
+                                </h3>
+                                <button
+                                    onClick={handleNextAct}
+                                    disabled={!canGoToNextAct}
+                                    className="p-2 rounded-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-600"
+                                    aria-label="Next Act"
+                                >
+                                    <Icon as="next" className="w-5 h-5" />
+                                </button>
                             </div>
-                        ))}
+                        )}
+                        <div className="space-y-2">
+                            {roomsForSelectedAct.map((room) => {
+                                const index = room.originalIndex;
+                                const isLocked = lockingPuzzlesByRoomId.has(room.id);
+                                const lockingPuzzleName = lockingPuzzlesByRoomId.get(room.id);
+                                return (
+                                    <button
+                                        key={room.id}
+                                        onClick={() => goToRoom(index)}
+                                        disabled={isLocked}
+                                        title={isLocked ? `Locked by: ${lockingPuzzleName}` : ''}
+                                        className={`w-full text-left p-3 rounded-lg transition-colors flex flex-col items-start ${
+                                            currentRoomIndex === index
+                                                ? 'bg-brand-600 text-white font-bold shadow-lg'
+                                                : 'bg-slate-700'
+                                        } ${isLocked ? 'opacity-50 cursor-not-allowed hover:bg-slate-700' : 'hover:bg-slate-600'}`}
+                                    >
+                                        <div className="w-full flex items-center justify-between">
+                                            <span className="text-lg truncate">{room.name}</span>
+                                            {isLocked && <Icon as="lock" className="w-4 h-4 text-slate-400 flex-shrink-0 ml-2" />}
+                                        </div>
+                                        {isLocked && (
+                                            <span className="text-xs text-red-400 mt-1 truncate">Locked by: {lockingPuzzleName}</span>
+                                        )}
+                                    </button>
+                                );
+                            })}
+                        </div>
                     </div>
                 )}
                 {activeTab === 'inventory' && (
