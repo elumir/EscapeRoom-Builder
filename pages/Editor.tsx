@@ -853,10 +853,10 @@ const Editor: React.FC = () => {
                               <button
                                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('image'); }}
                                   className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors"
-                                  title="Choose from Library"
+                                  title="Select an existing image"
                               >
                                   <Icon as="gallery" className="w-3.5 h-3.5" />
-                                  Library
+                                  Select an existing image
                               </button>
                               <button
                                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); changeRoomProperty('image', null); }}
@@ -890,22 +890,22 @@ const Editor: React.FC = () => {
                               )}
                           </label>
                            {currentRoom.mapImage && (
-                              <div className="absolute bottom-0 left-0 right-0 bg-black/60 p-1 flex justify-end items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                              <div className="absolute bottom-0 left-0 right-0 bg-black/60 p-2 flex justify-end items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
                                   <button
                                       onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('mapImage'); }}
-                                      className="pointer-events-auto flex items-center gap-1 text-xs px-1.5 py-0.5 bg-slate-200 text-slate-800 rounded-sm hover:bg-slate-300"
-                                      title="Choose from Library"
+                                      className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors"
+                                      title="Select an existing image"
                                   >
-                                      <Icon as="gallery" className="w-3 h-3" />
-                                      Library
+                                      <Icon as="gallery" className="w-3.5 h-3.5" />
+                                      Select an existing image
                                   </button>
                                   <button
                                       onClick={(e) => { e.preventDefault(); e.stopPropagation(); changeRoomProperty('mapImage', null); }}
-                                      className="pointer-events-auto p-1 bg-red-500 text-white rounded-sm hover:bg-red-600"
+                                      className="pointer-events-auto p-1.5 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
                                       aria-label="Clear map image"
                                       title="Clear Image"
                                   >
-                                      <Icon as="trash" className="w-3.5 h-3.5" />
+                                      <Icon as="trash" className="w-4 h-4" />
                                   </button>
                               </div>
                           )}
@@ -1458,20 +1458,21 @@ const Editor: React.FC = () => {
                                     )}
                                 </label>
                                 {currentRoom.solvedImage && (
-                                    <div className="absolute bottom-0 left-0 right-0 bg-black/60 p-1 flex justify-end items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                                    <div className="absolute inset-0 bg-black/60 p-1 flex flex-col justify-center items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
                                         <button
                                             onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('solvedImage'); }}
-                                            className="pointer-events-auto p-1 bg-slate-200 text-slate-800 rounded-sm hover:bg-slate-300"
-                                            title="Choose from Library"
+                                            className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors"
+                                            title="Select an existing image"
                                         >
                                             <Icon as="gallery" className="w-3.5 h-3.5" />
+                                            Select an existing image
                                         </button>
                                         <button
                                             onClick={(e) => { e.preventDefault(); e.stopPropagation(); changeRoomProperty('solvedImage', null); }}
-                                            className="pointer-events-auto p-1 bg-red-500 text-white rounded-sm hover:bg-red-600"
+                                            className="pointer-events-auto p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
                                             title="Clear Image"
                                         >
-                                            <Icon as="trash" className="w-3.5 h-3.5" />
+                                            <Icon as="trash" className="w-4 h-4" />
                                         </button>
                                     </div>
                                 )}
