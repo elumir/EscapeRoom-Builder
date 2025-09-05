@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import * as gameService from '../services/presentationService';
-import type { Game, Room as RoomType, InventoryObject, Puzzle, Action } from '../types';
+import type { Game, Room as RoomType, InventoryObject, Puzzle, Action, Asset } from '../types';
 import Room from '../components/Slide';
 import Icon from '../components/Icon';
 import Accordion from '../components/Accordion';
@@ -35,6 +35,9 @@ const Editor: React.FC = () => {
   const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
   const [previewSolved, setPreviewSolved] = useState(false);
   const [modalContent, setModalContent] = useState<{type: 'notes' | 'solvedNotes', content: string} | null>(null);
+  const [assetLibrary, setAssetLibrary] = useState<Asset[]>([]);
+  const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
+  const [assetModalTarget, setAssetModalTarget] = useState<'image' | 'mapImage' | 'solvedImage' | null>(null);
 
 
   const objectsDropdownRef = useRef<HTMLDivElement>(null);
@@ -69,6 +72,8 @@ const Editor: React.FC = () => {
               setEditingRoomPuzzles(currentRoom.puzzles || []);
               setEditingRoomActions(currentRoom.actions || []);
           }
+          const assets = await gameService.getAssetsForGame(id);
+          setAssetLibrary(assets);
           setStatus('success');
         } else {
           setStatus('error');
@@ -189,15 +194,30 @@ const Editor: React.FC = () => {
   const handleFileUpload = async (file: File, property: 'image' | 'mapImage' | 'solvedImage') => {
       if (!game) return;
       try {
-          // TODO: Add a loading state indicator
           const { assetId } = await gameService.uploadAsset(game.id, file);
           const newRooms = [...game.rooms];
           newRooms[selectedRoomIndex] = { ...newRooms[selectedRoomIndex], [property]: assetId };
           updateGame({ ...game, rooms: newRooms });
+          
+          const assets = await gameService.getAssetsForGame(game.id);
+          setAssetLibrary(assets);
       } catch (error) {
           console.error(`${property} upload failed:`, error);
           alert(`Failed to upload ${property}. Please try again.`);
       }
+  };
+  
+  const openAssetLibrary = (target: 'image' | 'mapImage' | 'solvedImage') => {
+      setAssetModalTarget(target);
+      setIsAssetModalOpen(true);
+  };
+
+  const handleSelectAsset = (assetId: string) => {
+      if (assetModalTarget) {
+          changeRoomProperty(assetModalTarget, assetId);
+      }
+      setIsAssetModalOpen(false);
+      setAssetModalTarget(null);
   };
 
   const addObject = () => {
@@ -243,7 +263,6 @@ const Editor: React.FC = () => {
       }
       if (game) {
         try {
-            // TODO: Add loading state
             const { assetId } = await gameService.uploadAsset(game.id, file);
             handlePuzzleChange(index, field, assetId);
         } catch (error) {
@@ -690,6 +709,34 @@ const Editor: React.FC = () => {
             </div>
         </div>
       )}
+      {isAssetModalOpen && (
+            <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60] backdrop-blur-sm">
+                <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-2xl w-full max-w-4xl h-[80vh] flex flex-col">
+                    <div className="flex justify-between items-center mb-4">
+                        <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">Asset Library</h2>
+                        <button onClick={() => setIsAssetModalOpen(false)} className="p-1.5 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700">
+                            <Icon as="close" className="w-5 h-5" />
+                        </button>
+                    </div>
+                    {assetLibrary.length > 0 ? (
+                        <div className="flex-grow overflow-y-auto pr-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                            {assetLibrary.filter(asset => asset.mime_type.startsWith('image/')).map(asset => (
+                                <div key={asset.id} className="aspect-square group relative rounded-md overflow-hidden" onClick={() => handleSelectAsset(asset.id)}>
+                                    <img src={`/api/assets/${asset.id}`} alt="Game asset" className="w-full h-full object-cover"/>
+                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors flex items-center justify-center cursor-pointer">
+                                        <p className="text-white font-bold opacity-0 group-hover:opacity-100 transition-opacity">Select</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="flex-grow flex items-center justify-center text-slate-500 dark:text-slate-400">
+                            <p>No image assets uploaded for this game yet.</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+        )}
       <header className="bg-white dark:bg-slate-800 shadow-md p-2 flex justify-between items-center z-10">
         <div className="flex items-center gap-4">
           <Link to="/" className="text-xl font-bold text-brand-600 dark:text-brand-400 p-2">Studio</Link>
@@ -785,46 +832,64 @@ const Editor: React.FC = () => {
                   <div className={`h-full group relative ${currentRoom.isFullScreenImage ? 'w-full' : 'w-[70%]'}`}>
                       <label className={`w-full h-full cursor-pointer flex items-center justify-center bg-black/0 hover:bg-black/30 transition-colors duration-300 ${currentRoom.isFullScreenImage ? 'pointer-events-auto' : ''}`}>
                         <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'image')} className="sr-only" />
-                          <div className="text-white text-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-                              <p className="font-bold text-lg">{currentRoom.image ? "Change Image" : "Upload Image"}</p>
-                              <p className="text-sm">Click or drag & drop</p>
-                          </div>
+                          {!currentRoom.image && (
+                            <div className="text-white text-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                                <p className="font-bold text-lg">Upload Image</p>
+                                <p className="text-sm">Click or drag & drop</p>
+                            </div>
+                          )}
                       </label>
                       {currentRoom.image && (
-                          <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                changeRoomProperty('image', null);
-                              }}
-                              className="absolute top-2 right-2 z-10 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-red-600"
-                              aria-label="Clear room image"
-                          >
-                              <Icon as="trash" className="w-4 h-4" />
-                          </button>
+                          <div className="absolute bottom-0 left-0 right-0 bg-black/60 p-2 flex justify-end items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                              <button
+                                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('image'); }}
+                                  className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors"
+                                  title="Choose from Library"
+                              >
+                                  <Icon as="gallery" className="w-3.5 h-3.5" />
+                                  Library
+                              </button>
+                              <button
+                                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); changeRoomProperty('image', null); }}
+                                  className="pointer-events-auto p-1.5 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
+                                  aria-label="Clear room image"
+                                  title="Clear Image"
+                              >
+                                  <Icon as="trash" className="w-4 h-4" />
+                              </button>
+                          </div>
                       )}
                   </div>
                    <div className={`h-full ${currentRoom.isFullScreenImage ? 'hidden' : 'w-[30%]'}`}>
                      <div className="h-1/2 relative group">
                           <label className="w-full h-full cursor-pointer flex items-center justify-center bg-black/0 hover:bg-black/30 transition-colors duration-300">
                               <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'mapImage')} className="sr-only" />
-                              <div className="text-white text-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none p-2">
-                                  <p className="font-bold text-sm">{currentRoom.mapImage ? "Change" : "Upload"}</p>
-                                  <p className="text-xs">Map Image</p>
-                              </div>
+                              {!currentRoom.mapImage && (
+                                <div className="text-white text-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none p-2">
+                                    <p className="font-bold text-sm">Upload</p>
+                                    <p className="text-xs">Map Image</p>
+                                </div>
+                              )}
                           </label>
                            {currentRoom.mapImage && (
-                              <button
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    changeRoomProperty('mapImage', null);
-                                  }}
-                                  className="absolute top-2 right-2 z-10 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-red-600"
-                                  aria-label="Clear map image"
-                              >
-                                  <Icon as="trash" className="w-4 h-4" />
-                              </button>
+                              <div className="absolute bottom-0 left-0 right-0 bg-black/60 p-1 flex justify-end items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                                  <button
+                                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('mapImage'); }}
+                                      className="pointer-events-auto flex items-center gap-1 text-xs px-1.5 py-0.5 bg-slate-200 text-slate-800 rounded-sm hover:bg-slate-300"
+                                      title="Choose from Library"
+                                  >
+                                      <Icon as="gallery" className="w-3 h-3" />
+                                      Library
+                                  </button>
+                                  <button
+                                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); changeRoomProperty('mapImage', null); }}
+                                      className="pointer-events-auto p-1 bg-red-500 text-white rounded-sm hover:bg-red-600"
+                                      aria-label="Clear map image"
+                                      title="Clear Image"
+                                  >
+                                      <Icon as="trash" className="w-3.5 h-3.5" />
+                                  </button>
+                              </div>
                           )}
                      </div>
                   </div>
@@ -1345,14 +1410,37 @@ const Editor: React.FC = () => {
                     <div className="space-y-4">
                         <div>
                             <h3 className="font-semibold text-sm mb-2 text-slate-600 dark:text-slate-400">Solved Image</h3>
-                            {currentRoom.solvedImage ? (
-                                <div className="flex items-center gap-2">
-                                    <img src={`/api/assets/${currentRoom.solvedImage}`} alt="Solved state preview" className="w-24 h-24 object-cover rounded-md border border-slate-300 dark:border-slate-600" />
-                                    <button onClick={() => changeRoomProperty('solvedImage', null)} className="text-red-500 hover:text-red-700 text-xs self-start">Clear</button>
-                                </div>
-                            ) : (
-                                <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'solvedImage')} className="text-xs w-full" />
-                            )}
+                            <div className="relative group w-24 h-24">
+                                <label className="absolute inset-0 cursor-pointer bg-black/0 hover:bg-black/30 transition-colors rounded-md flex items-center justify-center">
+                                    <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'solvedImage')} className="sr-only" />
+                                    {!currentRoom.solvedImage && (
+                                        <div className="text-slate-400 group-hover:text-white transition-colors">
+                                            <Icon as="gallery" className="w-8 h-8"/>
+                                        </div>
+                                    )}
+                                </label>
+                                {currentRoom.solvedImage && (
+                                    <img src={`/api/assets/${currentRoom.solvedImage}`} alt="Solved state preview" className="w-full h-full object-cover rounded-md border border-slate-300 dark:border-slate-600" />
+                                )}
+                                {currentRoom.solvedImage && (
+                                    <div className="absolute bottom-0 left-0 right-0 bg-black/60 p-1 flex justify-end items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                                        <button
+                                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('solvedImage'); }}
+                                            className="pointer-events-auto p-1 bg-slate-200 text-slate-800 rounded-sm hover:bg-slate-300"
+                                            title="Choose from Library"
+                                        >
+                                            <Icon as="gallery" className="w-3.5 h-3.5" />
+                                        </button>
+                                        <button
+                                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); changeRoomProperty('solvedImage', null); }}
+                                            className="pointer-events-auto p-1 bg-red-500 text-white rounded-sm hover:bg-red-600"
+                                            title="Clear Image"
+                                        >
+                                            <Icon as="trash" className="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                         <div>
                             <h3 className="font-semibold text-sm mb-2 text-slate-600 dark:text-slate-400 flex items-center gap-2">

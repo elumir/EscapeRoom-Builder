@@ -1,4 +1,4 @@
-import type { Game, Room } from '../types';
+import type { Game, Room, Asset } from '../types';
 import { generateUUID } from '../utils/uuid';
 
 const API_BASE_URL = '/api';
@@ -115,5 +115,15 @@ export const uploadAsset = async (gameId: string, file: File): Promise<{ assetId
     } catch (error) {
         console.error("Failed to upload asset:", error);
         throw error;
+    }
+};
+
+export const getAssetsForGame = async (gameId: string): Promise<Asset[]> => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/presentations/${gameId}/assets`);
+        return await handleResponse(response) || [];
+    } catch (error) {
+        console.error("Failed to fetch assets for game:", error);
+        return [];
     }
 };

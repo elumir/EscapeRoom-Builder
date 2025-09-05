@@ -166,6 +166,18 @@ app.delete('/api/presentations/:id', async (req, res) => {
 
 // === ASSET ROUTES ===
 
+// GET all assets for a presentation
+app.get('/api/presentations/:presentationId/assets', async (req, res) => {
+    try {
+        const { presentationId } = req.params;
+        const [rows] = await dbPool.query('SELECT id, mime_type FROM assets WHERE presentation_id = ? ORDER BY created_at DESC', [presentationId]);
+        res.json(rows);
+    } catch (error) {
+        console.error(`Failed to fetch assets for presentation ${req.params.presentationId}:`, error);
+        res.status(500).json({ error: 'Database query failed' });
+    }
+});
+
 // Upload a new asset for a presentation
 app.post('/api/presentations/:presentationId/assets', async (req, res) => {
     try {

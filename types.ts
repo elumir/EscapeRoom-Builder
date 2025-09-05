@@ -59,3 +59,8 @@ export interface Game {
   rooms: Room[];
   visitedRoomIds: string[];
 }
+
+export interface Asset {
+  id: string;
+  mime_type: string;
+}
