@@ -1,13 +1,76 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import * as gameService from '../services/presentationService';
-import type { Game, Room as RoomType, InventoryObject, Puzzle, Action, Asset } from '../types';
+import type { Game, Room as RoomType, InventoryObject, Puzzle, Action, Asset, DetailedAsset } from '../types';
 import Room from '../components/Slide';
 import Icon from '../components/Icon';
 import Accordion from '../components/Accordion';
 import { generateUUID } from '../utils/uuid';
 
 type Status = 'loading' | 'success' | 'error';
+
+const formatTime = (seconds: number) => {
+    if (isNaN(seconds) || seconds < 0) return '0:00';
+    const minutes = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
+};
+
+const MiniAudioPlayer: React.FC<{ asset: DetailedAsset }> = ({ asset }) => {
+    const audioRef = useRef<HTMLAudioElement | null>(null);
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [progress, setProgress] = useState(0);
+
+    useEffect(() => {
+        const audio = new Audio(asset.url);
+        audioRef.current = audio;
+
+        const setAudioTime = () => setProgress(audio.currentTime);
+        const handleAudioEnd = () => {
+            setIsPlaying(false);
+            setProgress(0);
+            audio.currentTime = 0;
+        };
+
+        audio.addEventListener('timeupdate', setAudioTime);
+        audio.addEventListener('ended', handleAudioEnd);
+
+        return () => {
+            audio.pause();
+            audio.removeEventListener('timeupdate', setAudioTime);
+            audio.removeEventListener('ended', handleAudioEnd);
+        };
+    }, [asset.url]);
+
+    const handlePlayPause = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (audioRef.current) {
+            if (isPlaying) {
+                audioRef.current.pause();
+            } else {
+                audioRef.current.play().catch(console.error);
+            }
+            setIsPlaying(!isPlaying);
+        }
+    };
+
+    return (
+        <div className="w-full flex items-center gap-2 text-xs">
+            <button
+                onClick={handlePlayPause}
+                className="p-1.5 bg-slate-600/50 text-white rounded-full hover:bg-slate-500/50 transition-colors"
+                aria-label={isPlaying ? 'Pause' : 'Play'}
+            >
+                <Icon as={isPlaying ? 'pause' : 'play'} className="w-3 h-3" />
+            </button>
+            <div className="relative flex-grow h-1 bg-slate-500/50 rounded-full">
+                <div className="absolute top-0 left-0 h-1 bg-brand-400 rounded-full" style={{ width: `${(progress / (asset.duration || 1)) * 100}%` }} />
+            </div>
+            <span className="text-slate-400 font-mono">{formatTime(progress)}</span>
+        </div>
+    );
+};
+
 
 const Editor: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -38,6 +101,9 @@ const Editor: React.FC = () => {
   const [assetLibrary, setAssetLibrary] = useState<Asset[]>([]);
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
   const [assetModalTarget, setAssetModalTarget] = useState<'image' | 'mapImage' | 'solvedImage' | null>(null);
+  const [isAssetLibraryOpen, setIsAssetLibraryOpen] = useState(false);
+  const [detailedAssets, setDetailedAssets] = useState<DetailedAsset[]>([]);
+  const [assetLoadingStatus, setAssetLoadingStatus] = useState<'idle' | 'loading' | 'loaded'>('idle');
 
 
   const objectsDropdownRef = useRef<HTMLDivElement>(null);
@@ -201,6 +267,7 @@ const Editor: React.FC = () => {
           
           const assets = await gameService.getAssetsForGame(game.id);
           setAssetLibrary(assets);
+          setAssetLoadingStatus('idle'); // Invalidate detailed asset cache
       } catch (error) {
           console.error(`${property} upload failed:`, error);
           alert(`Failed to upload ${property}. Please try again.`);
@@ -515,6 +582,98 @@ const Editor: React.FC = () => {
     return game.rooms.flatMap(r => r.objects.map(o => ({ ...o, roomName: r.name })));
   }, [game]);
 
+  const handleOpenAssetLibrary = useCallback(() => {
+    setIsAssetLibraryOpen(true);
+    if (assetLoadingStatus === 'idle') {
+        setAssetLoadingStatus('loading');
+        const promises = assetLibrary.map(async (asset): Promise<DetailedAsset | null> => {
+            try {
+                const response = await fetch(`/api/assets/${asset.id}`);
+                if (!response.ok) throw new Error('Failed to fetch asset blob');
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                const detailedAsset: DetailedAsset = { ...asset, url, name: (asset as any).name || 'Untitled' };
+
+                if (asset.mime_type.startsWith('image/')) {
+                    return new Promise((resolve) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            detailedAsset.width = img.naturalWidth;
+                            detailedAsset.height = img.naturalHeight;
+                            resolve(detailedAsset);
+                        };
+                        img.onerror = () => resolve(detailedAsset); // Resolve even if dimensions fail
+                        img.src = url;
+                    });
+                } else if (asset.mime_type.startsWith('audio/')) {
+                    return new Promise((resolve) => {
+                        const audio = document.createElement('audio');
+                        audio.onloadedmetadata = () => {
+                            detailedAsset.duration = audio.duration;
+                            resolve(detailedAsset);
+                        };
+                        audio.onerror = () => resolve(detailedAsset); // Resolve even if duration fails
+                        audio.src = url;
+                    });
+                }
+                return detailedAsset;
+            } catch (error) {
+                console.error(`Failed to load details for asset ${asset.id}`, error);
+                return null;
+            }
+        });
+
+        Promise.all(promises).then(results => {
+            setDetailedAssets(results.filter((a): a is DetailedAsset => a !== null));
+            setAssetLoadingStatus('loaded');
+        });
+    }
+  }, [assetLibrary, assetLoadingStatus]);
+  
+  const handleDeleteAsset = async (assetId: string) => {
+    if (!game) return;
+    if (!window.confirm("Are you sure you want to permanently delete this asset? This cannot be undone and will remove the asset from all rooms.")) {
+      return;
+    }
+    try {
+      await gameService.deleteAsset(assetId);
+
+      // Clean up game state
+      const cleanedGame = { ...game };
+      cleanedGame.rooms = cleanedGame.rooms.map(room => {
+        const newRoom = { ...room };
+        if (newRoom.image === assetId) newRoom.image = null;
+        if (newRoom.mapImage === assetId) newRoom.mapImage = null;
+        if (newRoom.solvedImage === assetId) newRoom.solvedImage = null;
+        
+        newRoom.puzzles = newRoom.puzzles.map(p => {
+            const newPuzzle = { ...p };
+            if (newPuzzle.image === assetId) newPuzzle.image = null;
+            if (newPuzzle.sound === assetId) newPuzzle.sound = null;
+            return newPuzzle;
+        });
+
+        newRoom.actions = (newRoom.actions || []).map(a => {
+            const newAction = { ...a };
+            if (newAction.image === assetId) newAction.image = null;
+            return newAction;
+        });
+
+        return newRoom;
+      });
+      updateGame(cleanedGame);
+      
+      // Clean up local state
+      setAssetLibrary(prev => prev.filter(a => a.id !== assetId));
+      setDetailedAssets(prev => prev.filter(a => a.id !== assetId));
+
+    } catch (error) {
+      console.error("Failed to delete asset:", error);
+      alert("Could not delete asset. Please try again.");
+    }
+  };
+
+
   if (status === 'loading') {
     return <div className="flex items-center justify-center h-screen">Loading game...</div>;
   }
@@ -713,7 +872,7 @@ const Editor: React.FC = () => {
             <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60] backdrop-blur-sm">
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-2xl w-full max-w-4xl h-[80vh] flex flex-col">
                     <div className="flex justify-between items-center mb-4">
-                        <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">Asset Library</h2>
+                        <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">Select Existing Asset</h2>
                         <button onClick={() => setIsAssetModalOpen(false)} className="p-1.5 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700">
                             <Icon as="close" className="w-5 h-5" />
                         </button>
@@ -737,6 +896,77 @@ const Editor: React.FC = () => {
                 </div>
             </div>
         )}
+        {isAssetLibraryOpen && (
+            <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60] backdrop-blur-sm">
+                <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-2xl w-full max-w-6xl h-[90vh] flex flex-col">
+                    <div className="flex justify-between items-center mb-4">
+                        <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">Asset Library</h2>
+                        <button onClick={() => setIsAssetLibraryOpen(false)} className="p-1.5 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700">
+                            <Icon as="close" className="w-5 h-5" />
+                        </button>
+                    </div>
+                    {assetLoadingStatus === 'loading' && (
+                        <div className="flex-grow flex items-center justify-center">
+                            <p className="text-slate-500 dark:text-slate-400">Loading asset details...</p>
+                        </div>
+                    )}
+                    {assetLoadingStatus === 'loaded' && (
+                        assetLibrary.length > 0 ? (
+                             <div className="flex-grow overflow-y-auto pr-2 -mr-2">
+                                <div className="mb-4">
+                                    <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-2">Images</h3>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                                        {detailedAssets.filter(a => a.mime_type.startsWith('image/')).map(asset => (
+                                            <div key={asset.id} className="group relative rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/50 p-2 flex flex-col gap-2">
+                                                <div className="aspect-square w-full rounded-md overflow-hidden bg-slate-200 dark:bg-slate-800">
+                                                    <img src={asset.url} alt={asset.name} className="w-full h-full object-contain" />
+                                                </div>
+                                                <div className="text-xs">
+                                                    <p className="font-semibold text-slate-600 dark:text-slate-300 truncate" title={asset.name}>{asset.name}</p>
+                                                    {asset.width && asset.height && <p className="text-slate-500 dark:text-slate-400">{asset.width} x {asset.height} px</p>}
+                                                </div>
+                                                <button
+                                                    onClick={() => handleDeleteAsset(asset.id)}
+                                                    className="absolute top-1 right-1 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-red-600"
+                                                    aria-label="Delete asset"
+                                                >
+                                                    <Icon as="trash" className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="mt-6">
+                                    <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-2">Sounds</h3>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                                        {detailedAssets.filter(a => a.mime_type.startsWith('audio/')).map(asset => (
+                                            <div key={asset.id} className="group relative rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/50 p-2 flex flex-col justify-between gap-2">
+                                                <div className="text-xs">
+                                                    <p className="font-semibold text-slate-600 dark:text-slate-300 break-all" title={asset.name}>{asset.name}</p>
+                                                    {asset.duration && <p className="text-slate-500 dark:text-slate-400">Duration: {formatTime(asset.duration)}</p>}
+                                                </div>
+                                                <MiniAudioPlayer asset={asset} />
+                                                <button
+                                                    onClick={() => handleDeleteAsset(asset.id)}
+                                                    className="absolute top-1 right-1 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-red-600"
+                                                    aria-label="Delete asset"
+                                                >
+                                                    <Icon as="trash" className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                             </div>
+                        ) : (
+                            <div className="flex-grow flex items-center justify-center text-slate-500 dark:text-slate-400">
+                                <p>No assets uploaded for this game yet.</p>
+                            </div>
+                        )
+                    )}
+                </div>
+            </div>
+        )}
       <header className="bg-white dark:bg-slate-800 shadow-md p-2 flex justify-between items-center z-10">
         <div className="flex items-center gap-4">
           <Link to="/" className="text-xl font-bold text-brand-600 dark:text-brand-400 p-2">Studio</Link>
@@ -748,6 +978,13 @@ const Editor: React.FC = () => {
           />
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={handleOpenAssetLibrary}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
+          >
+            <Icon as="gallery" className="w-5 h-5" />
+            Asset Library
+          </button>
           <button
             onClick={() => setIsSettingsModalOpen(true)}
             className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
