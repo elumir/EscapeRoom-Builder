@@ -442,6 +442,7 @@ const PresenterView: React.FC = () => {
   }
   
   const currentRoom = game.rooms[currentRoomIndex];
+  const hasSolvedState = currentRoom?.solvedImage || (currentRoom?.solvedNotes && currentRoom.solvedNotes.trim() !== '');
   const availableObjects = currentRoom?.objects.filter(o => !o.showInInventory) || [];
   
   const openActions = (currentRoom?.actions || []).filter(action => !action.isComplete);
@@ -727,16 +728,18 @@ const PresenterView: React.FC = () => {
                 <div>
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-lg font-semibold text-slate-300">Room Description</h2>
-                        <label className={`flex items-center gap-2 text-sm ${currentRoom.isSolved ? 'text-slate-400' : 'text-green-300'} cursor-pointer`}>
-                            <span>Mark Room as Solved</span>
-                            <input
-                                type="checkbox"
-                                checked={currentRoom.isSolved}
-                                onChange={(e) => handleToggleRoomSolved(currentRoom.id, e.target.checked)}
-                                className="sr-only peer"
-                            />
-                            <div className="relative w-11 h-6 bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
-                        </label>
+                        {hasSolvedState && (
+                            <label className={`flex items-center gap-2 text-sm ${currentRoom.isSolved ? 'text-slate-400' : 'text-green-300'} cursor-pointer`}>
+                                <span>Mark Room as Solved</span>
+                                <input
+                                    type="checkbox"
+                                    checked={currentRoom.isSolved}
+                                    onChange={(e) => handleToggleRoomSolved(currentRoom.id, e.target.checked)}
+                                    className="sr-only peer"
+                                />
+                                <div className="relative w-11 h-6 bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                            </label>
+                        )}
                     </div>
                     <div className="prose prose-invert prose-lg max-w-none text-slate-200">
                         {currentRoom.isSolved ? (
