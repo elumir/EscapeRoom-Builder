@@ -9,6 +9,7 @@ export const usePresenterState = (game: Game | null) => {
                 lockingPuzzlesByRoomId: new Map<string, string>(),
                 lockingPuzzlesByPuzzleId: new Map<string, string>(),
                 lockingPuzzlesByRoomSolveId: new Map<string, string>(),
+                lockingPuzzlesByActionId: new Map<string, string>(),
                 inventoryObjects: [],
                 discardedObjects: [],
             };
@@ -19,6 +20,7 @@ export const usePresenterState = (game: Game | null) => {
         const lockingPuzzlesByRoomId = new Map<string, string>();
         const lockingPuzzlesByPuzzleId = new Map<string, string>();
         const lockingPuzzlesByRoomSolveId = new Map<string, string>();
+        const lockingPuzzlesByActionId = new Map<string, string>();
 
         allUnsolvedPuzzles.forEach(puzzle => {
             (puzzle.lockedRoomIds || []).forEach(roomId => {
@@ -36,6 +38,11 @@ export const usePresenterState = (game: Game | null) => {
                     lockingPuzzlesByRoomSolveId.set(roomId, puzzle.name);
                 }
             });
+            (puzzle.lockedActionIds || []).forEach(actionId => {
+                if (!lockingPuzzlesByActionId.has(actionId)) {
+                    lockingPuzzlesByActionId.set(actionId, puzzle.name);
+                }
+            });
         });
 
         const allObjectsWithRoomName = game.rooms.flatMap(r => r.objects.map(o => ({ ...o, roomName: r.name })));
@@ -48,6 +55,7 @@ export const usePresenterState = (game: Game | null) => {
             lockingPuzzlesByRoomId,
             lockingPuzzlesByPuzzleId,
             lockingPuzzlesByRoomSolveId,
+            lockingPuzzlesByActionId,
             inventoryObjects,
             discardedObjects,
         };

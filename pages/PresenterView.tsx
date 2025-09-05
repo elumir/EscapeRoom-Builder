@@ -40,6 +40,7 @@ const PresenterView: React.FC = () => {
     lockingPuzzlesByRoomId, 
     lockingPuzzlesByPuzzleId,
     lockingPuzzlesByRoomSolveId,
+    lockingPuzzlesByActionId,
     allUnsolvedPuzzles, 
     inventoryObjects,
     discardedObjects,
@@ -912,14 +913,19 @@ const PresenterView: React.FC = () => {
                     <div className="space-y-4">
                         {activeActionTab === 'open' && (
                             openActions.length > 0 ? (
-                                openActions.map(action => (
+                                openActions.map(action => {
+                                    const lockingPuzzleName = lockingPuzzlesByActionId.get(action.id);
+                                    return (
                                     <ActionItem 
                                         key={action.id} 
                                         action={action} 
                                         onToggleImage={handleToggleActionImage}
                                         onToggleComplete={handleToggleActionComplete}
+                                        isLocked={!!lockingPuzzleName}
+                                        lockingPuzzleName={lockingPuzzleName}
                                     />
-                                ))
+                                );
+                               })
                             ) : (
                                 <p className="text-slate-400 italic text-sm p-4">No open actions in this room.</p>
                             )
@@ -932,6 +938,8 @@ const PresenterView: React.FC = () => {
                                         action={action} 
                                         onToggleImage={handleToggleActionImage}
                                         onToggleComplete={handleToggleActionComplete}
+                                        // Completed actions can't be locked, but passing for prop consistency
+                                        isLocked={false} 
                                     />
                                 ))
                             ) : (
