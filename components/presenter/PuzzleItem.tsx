@@ -191,7 +191,7 @@ const PuzzleItem: React.FC<{
                           />
                           <div className="relative w-9 h-5 bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-sky-600"></div>
                       </label>
-                      <span className="text-slate-400 text-[9px]">Show Image</span>
+                      <span className="text-slate-400 text-[9px]">Show Puzzle</span>
                   </div>
                 )}
             </div>
@@ -219,7 +219,7 @@ const PuzzleItem: React.FC<{
                 </div>
                 {puzzle.image && (
                     <label className={`flex items-center gap-2 text-sm text-sky-300 ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
-                        <span>Show Image</span>
+                        <span>Show Puzzle</span>
                         <input
                             type="checkbox"
                             checked={puzzle.showImageOverlay}
