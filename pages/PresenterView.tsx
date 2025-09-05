@@ -799,22 +799,31 @@ const PresenterView: React.FC = () => {
                         )}
                         <div className="space-y-2">
                             {roomsForSelectedAct
-                                .filter(room => !lockingPuzzlesByRoomId.has(room.id))
                                 .map((room) => {
                                 const index = room.originalIndex;
+                                const isLocked = lockingPuzzlesByRoomId.has(room.id);
+                                const lockingPuzzleName = lockingPuzzlesByRoomId.get(room.id);
                                 return (
                                     <button
                                         key={room.id}
-                                        onClick={() => goToRoom(index)}
+                                        onClick={() => !isLocked && goToRoom(index)}
+                                        disabled={isLocked}
                                         className={`w-full text-left p-3 rounded-lg transition-colors flex flex-col items-start ${
                                             currentRoomIndex === index
                                                 ? 'bg-brand-600 text-white font-bold shadow-lg'
+                                                : isLocked
+                                                ? 'bg-slate-700 opacity-50 cursor-not-allowed'
                                                 : 'bg-slate-700 hover:bg-slate-600'
                                         }`}
+                                        title={isLocked ? `Locked by: ${lockingPuzzleName}` : ''}
                                     >
                                         <div className="w-full flex items-center justify-between">
                                             <span className="text-lg truncate">{room.name}</span>
+                                            {isLocked && <Icon as="lock" className="w-4 h-4 text-slate-400 flex-shrink-0" />}
                                         </div>
+                                        {isLocked && (
+                                            <span className="text-xs text-red-400 mt-1 truncate">Locked by: {lockingPuzzleName}</span>
+                                        )}
                                     </button>
                                 );
                             })}
