@@ -656,22 +656,24 @@ const PresenterView: React.FC = () => {
                 
                 {currentRoom.actions && currentRoom.actions.length > 0 && (
                   <div className="mt-8 pt-6 border-t border-slate-700">
-                    <h2 className="text-lg font-semibold text-slate-300">When players ask to...</h2>
-                    <div className="mt-4 border-b border-slate-700 flex">
-                        <button
-                            onClick={() => setActiveActionTab('open')}
-                            className={`px-4 py-2 text-sm font-medium transition-colors ${activeActionTab === 'open' ? 'border-b-2 border-brand-500 text-white' : 'text-slate-400 hover:text-slate-200'}`}
-                        >
-                            Open <span className="text-xs bg-slate-700 px-1.5 py-0.5 rounded-full">{openActions.length}</span>
-                        </button>
-                        <button
-                            onClick={() => setActiveActionTab('complete')}
-                            className={`px-4 py-2 text-sm font-medium transition-colors ${activeActionTab === 'complete' ? 'border-b-2 border-brand-500 text-white' : 'text-slate-400 hover:text-slate-200'}`}
-                        >
-                            Complete <span className="text-xs bg-slate-700 px-1.5 py-0.5 rounded-full">{completedActions.length}</span>
-                        </button>
+                    <div className="flex justify-between items-baseline mb-4 border-b border-slate-700">
+                        <h2 className="text-lg font-semibold text-slate-300">When players ask to...</h2>
+                        <div className="flex">
+                            <button
+                                onClick={() => setActiveActionTab('open')}
+                                className={`px-4 py-2 text-sm font-medium transition-colors ${activeActionTab === 'open' ? 'border-b-2 border-brand-500 text-white' : 'text-slate-400 hover:text-slate-200'}`}
+                            >
+                                Open <span className="text-xs bg-slate-700 px-1.5 py-0.5 rounded-full">{openActions.length}</span>
+                            </button>
+                            <button
+                                onClick={() => setActiveActionTab('complete')}
+                                className={`px-4 py-2 text-sm font-medium transition-colors ${activeActionTab === 'complete' ? 'border-b-2 border-brand-500 text-white' : 'text-slate-400 hover:text-slate-200'}`}
+                            >
+                                Complete <span className="text-xs bg-slate-700 px-1.5 py-0.5 rounded-full">{completedActions.length}</span>
+                            </button>
+                        </div>
                     </div>
-                    <div className="space-y-4 mt-4">
+                    <div className="space-y-4">
                         {activeActionTab === 'open' && (
                             openActions.length > 0 ? (
                                 openActions.map(action => (
@@ -706,22 +708,24 @@ const PresenterView: React.FC = () => {
                 
                 {currentRoom.puzzles && currentRoom.puzzles.length > 0 && (
                   <div className="mt-8 pt-6 border-t border-slate-700">
-                    <h2 className="text-lg font-semibold text-slate-300">Puzzles</h2>
-                    <div className="mt-4 border-b border-slate-700 flex">
-                        <button
-                            onClick={() => setActivePuzzleTab('open')}
-                            className={`px-4 py-2 text-sm font-medium transition-colors ${activePuzzleTab === 'open' ? 'border-b-2 border-brand-500 text-white' : 'text-slate-400 hover:text-slate-200'}`}
-                        >
-                            Open <span className="text-xs bg-slate-700 px-1.5 py-0.5 rounded-full">{openPuzzles.length}</span>
-                        </button>
-                        <button
-                            onClick={() => setActivePuzzleTab('complete')}
-                            className={`px-4 py-2 text-sm font-medium transition-colors ${activePuzzleTab === 'complete' ? 'border-b-2 border-brand-500 text-white' : 'text-slate-400 hover:text-slate-200'}`}
-                        >
-                            Complete <span className="text-xs bg-slate-700 px-1.5 py-0.5 rounded-full">{completedPuzzles.length}</span>
-                        </button>
+                    <div className="flex justify-between items-baseline mb-4 border-b border-slate-700">
+                        <h2 className="text-lg font-semibold text-slate-300">Puzzles</h2>
+                        <div className="flex">
+                            <button
+                                onClick={() => setActivePuzzleTab('open')}
+                                className={`px-4 py-2 text-sm font-medium transition-colors ${activePuzzleTab === 'open' ? 'border-b-2 border-brand-500 text-white' : 'text-slate-400 hover:text-slate-200'}`}
+                            >
+                                Open <span className="text-xs bg-slate-700 px-1.5 py-0.5 rounded-full">{openPuzzles.length}</span>
+                            </button>
+                            <button
+                                onClick={() => setActivePuzzleTab('complete')}
+                                className={`px-4 py-2 text-sm font-medium transition-colors ${activePuzzleTab === 'complete' ? 'border-b-2 border-brand-500 text-white' : 'text-slate-400 hover:text-slate-200'}`}
+                            >
+                                Complete <span className="text-xs bg-slate-700 px-1.5 py-0.5 rounded-full">{completedPuzzles.length}</span>
+                            </button>
+                        </div>
                     </div>
-                    <div className="space-y-4 mt-4">
+                    <div className="space-y-4">
                         {activePuzzleTab === 'open' && (
                              openPuzzles.length > 0 ? (
                                 openPuzzles.map(puzzle => {
