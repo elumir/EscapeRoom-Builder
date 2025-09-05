@@ -25,10 +25,6 @@ const Editor: React.FC = () => {
   const [editingRoomActions, setEditingRoomActions] = useState<Action[]>([]);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
-  const [openPuzzleObjectsDropdown, setOpenPuzzleObjectsDropdown] = useState<string | null>(null);
-  const [openPuzzleRoomsDropdown, setOpenPuzzleRoomsDropdown] = useState<string | null>(null);
-  const [openPuzzlePuzzlesDropdown, setOpenPuzzlePuzzlesDropdown] = useState<string | null>(null);
-  const [openPuzzleRoomSolvesDropdown, setOpenPuzzleRoomSolvesDropdown] = useState<string | null>(null);
   const [openObjectRemoveDropdown, setOpenObjectRemoveDropdown] = useState<boolean>(false);
   const [objectRemoveSearch, setObjectRemoveSearch] = useState('');
   const [draggedRoomIndex, setDraggedRoomIndex] = useState<number | null>(null);
@@ -47,11 +43,6 @@ const Editor: React.FC = () => {
   const [openModalPuzzlePuzzlesDropdown, setOpenModalPuzzlePuzzlesDropdown] = useState(false);
   const [openModalPuzzleRoomSolvesDropdown, setOpenModalPuzzleRoomSolvesDropdown] = useState(false);
 
-
-  const objectsDropdownRef = useRef<HTMLDivElement>(null);
-  const roomsDropdownRef = useRef<HTMLDivElement>(null);
-  const puzzlesDropdownRef = useRef<HTMLDivElement>(null);
-  const roomSolvesDropdownRef = useRef<HTMLDivElement>(null);
   const objectRemoveDropdownRef = useRef<HTMLDivElement>(null);
   const modalObjectsDropdownRef = useRef<HTMLDivElement>(null);
   const modalRoomsDropdownRef = useRef<HTMLDivElement>(null);
@@ -97,18 +88,6 @@ const Editor: React.FC = () => {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-        if (objectsDropdownRef.current && !objectsDropdownRef.current.contains(event.target as Node)) {
-            setOpenPuzzleObjectsDropdown(null);
-        }
-        if (roomsDropdownRef.current && !roomsDropdownRef.current.contains(event.target as Node)) {
-            setOpenPuzzleRoomsDropdown(null);
-        }
-        if (puzzlesDropdownRef.current && !puzzlesDropdownRef.current.contains(event.target as Node)) {
-            setOpenPuzzlePuzzlesDropdown(null);
-        }
-        if (roomSolvesDropdownRef.current && !roomSolvesDropdownRef.current.contains(event.target as Node)) {
-            setOpenPuzzleRoomSolvesDropdown(null);
-        }
         if (objectRemoveDropdownRef.current && !objectRemoveDropdownRef.current.contains(event.target as Node)) {
             setOpenObjectRemoveDropdown(false);
         }
@@ -341,34 +320,6 @@ const Editor: React.FC = () => {
     setTimeout(() => {
         puzzlesContainerRef.current?.lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'end' });
     }, 100);
-  }
-
-  const handlePuzzleChange = (index: number, field: keyof Puzzle, value: string | boolean | string[] | null) => {
-    const newPuzzles = [...editingRoomPuzzles];
-    let processedValue = value;
-    if (field === 'answer' && typeof value === 'string') {
-        processedValue = value.toLowerCase().replace(/[^a-z0-9]/g, '');
-    }
-    newPuzzles[index] = { ...newPuzzles[index], [field]: processedValue };
-    setEditingRoomPuzzles(newPuzzles);
-  }
-  
-  const handlePuzzleFileChange = async (index: number, field: 'image' | 'sound', file: File | null) => {
-      if (!file) {
-        handlePuzzleChange(index, field, null);
-        return;
-      }
-      if (game) {
-        try {
-            const { assetId } = await gameService.uploadAsset(game.id, file);
-            handlePuzzleChange(index, field, assetId);
-            const assets = await gameService.getAssetsForGame(game.id);
-            setAssetLibrary(assets);
-        } catch (error) {
-            console.error(`Puzzle ${field} upload failed:`, error);
-            alert(`Failed to upload puzzle ${field}. Please try again.`);
-        }
-      }
   }
 
   const deletePuzzle = (index: number) => {
@@ -1307,266 +1258,17 @@ const Editor: React.FC = () => {
 
             <div className="w-full max-w-4xl mx-auto mt-6 bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md">
                 <h3 className="font-semibold mb-3 text-slate-700 dark:text-slate-300">Puzzles</h3>
-                 <div className="space-y-4 max-h-96 overflow-y-auto pr-2" ref={puzzlesContainerRef}>
+                 <div className="space-y-2 max-h-96 overflow-y-auto pr-2" ref={puzzlesContainerRef}>
                     {editingRoomPuzzles.length > 0 ? editingRoomPuzzles.map((puzzle, index) => (
-                        <div key={puzzle.id} className={`p-3 border rounded-lg ${index % 2 === 0 ? 'bg-transparent' : 'bg-slate-50 dark:bg-slate-700/50'} border-slate-200 dark:border-slate-700`}>
-                            <div className="flex items-center justify-between mb-2 gap-2">
-                                <div className="flex items-center gap-2 flex-grow">
-                                    <input 
-                                        type="text" 
-                                        value={puzzle.name}
-                                        onChange={(e) => handlePuzzleChange(index, 'name', e.target.value)}
-                                        placeholder="Puzzle Name"
-                                        className="font-semibold px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm w-1/2"
-                                    />
-                                    <input
-                                        type="text"
-                                        value={puzzle.answer}
-                                        onChange={(e) => handlePuzzleChange(index, 'answer', e.target.value)}
-                                        placeholder="Answer (optional)"
-                                        className="font-mono px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm w-1/2"
-                                    />
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <button onClick={() => setPuzzleModalState({ puzzle: { ...puzzle }, index })} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1 rounded-full" title="Edit in larger view">
-                                        <Icon as="expand" className="w-4 h-4" />
-                                    </button>
-                                    <button onClick={() => deletePuzzle(index)} className="text-red-500 hover:text-red-700 dark:hover:text-red-400 p-1 rounded-full flex items-center justify-center">
-                                        <Icon as="trash" className="w-4 h-4" />
-                                    </button>
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-3">
-                                <textarea 
-                                    value={puzzle.unsolvedText}
-                                    onChange={(e) => handlePuzzleChange(index, 'unsolvedText', e.target.value)}
-                                    placeholder="Unsolved Text"
-                                    rows={3}
-                                    className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm resize-none"
-                                />
-                                <textarea 
-                                    value={puzzle.solvedText}
-                                    onChange={(e) => handlePuzzleChange(index, 'solvedText', e.target.value)}
-                                    placeholder="Solved Text"
-                                    rows={3}
-                                    className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm resize-none"
-                                />
-                            </div>
-                            <div className="grid grid-cols-2 gap-3 mt-2 text-sm">
-                               <div>
-                                 <label className="block mb-1 text-slate-600 dark:text-slate-400">Image</label>
-                                 {puzzle.image ? (
-                                    <div className="flex items-center gap-2">
-                                        <img src={`/api/assets/${puzzle.image}`} alt="Puzzle preview" className="w-16 h-16 object-cover rounded-md border border-slate-300 dark:border-slate-600" />
-                                        <button onClick={() => handlePuzzleFileChange(index, 'image', null)} className="text-red-500 hover:text-red-700 text-xs">Clear</button>
-                                    </div>
-                                 ) : (
-                                    <input type="file" accept="image/*" onChange={(e) => handlePuzzleFileChange(index, 'image', e.target.files?.[0] || null)} className="text-xs w-full" />
-                                 )}
-                               </div>
-                               <div>
-                                 <label className="block mb-1 text-slate-600 dark:text-slate-400">Sound</label>
-                                 {puzzle.sound ? (
-                                     <div className="flex items-center gap-2 text-xs">
-                                        <span>Audio file uploaded.</span>
-                                        <button onClick={() => handlePuzzleFileChange(index, 'sound', null)} className="text-red-500 hover:text-red-700">Clear</button>
-                                    </div>
-                                 ) : (
-                                    <input type="file" accept="audio/*" onChange={(e) => handlePuzzleFileChange(index, 'sound', e.target.files?.[0] || null)} className="text-xs w-full"/>
-                                 )}
-                               </div>
-                            </div>
-                            <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
-                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                                    <div>
-                                        <h4 className="font-semibold text-sm mb-1 text-slate-600 dark:text-slate-400">Locked Objects</h4>
-                                        <div className="relative">
-                                            <button
-                                                type="button"
-                                                onClick={() => setOpenPuzzleObjectsDropdown(openPuzzleObjectsDropdown === puzzle.id ? null : puzzle.id)}
-                                                className="w-full text-left px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 flex justify-between items-center text-sm"
-                                            >
-                                                <span>{`${puzzle.lockedObjectIds?.length || 0} object(s) selected`}</span>
-                                                <svg className={`w-4 h-4 transition-transform ${openPuzzleObjectsDropdown === puzzle.id ? 'rotate-180' : ''}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
-                                            </button>
-                                            {openPuzzleObjectsDropdown === puzzle.id && (
-                                                <div ref={objectsDropdownRef} className="absolute z-20 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                                                    <div className="space-y-1 p-2">
-                                                        {game.rooms.map(room => (
-                                                            <div key={room.id}>
-                                                                <h5 className="text-xs font-bold text-slate-500 dark:text-slate-400 sticky top-0 bg-white dark:bg-slate-800 py-1 px-2 -mx-2">{room.name}</h5>
-                                                                {room.objects.length > 0 ? (
-                                                                    room.objects.map(obj => (
-                                                                        <label key={obj.id} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 pl-2 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md p-1">
-                                                                            <input
-                                                                                type="checkbox"
-                                                                                className="rounded border-slate-400 text-brand-600 focus:ring-brand-500"
-                                                                                checked={puzzle.lockedObjectIds?.includes(obj.id)}
-                                                                                onChange={(e) => {
-                                                                                    const newLockedIds = e.target.checked
-                                                                                        ? [...(puzzle.lockedObjectIds || []), obj.id]
-                                                                                        : (puzzle.lockedObjectIds || []).filter(id => id !== obj.id);
-                                                                                    handlePuzzleChange(index, 'lockedObjectIds', newLockedIds);
-                                                                                }}
-                                                                            />
-                                                                            {obj.name}
-                                                                        </label>
-                                                                    ))
-                                                                ) : (
-                                                                    <p className="text-xs text-slate-500 italic pl-2">No objects in this room.</p>
-                                                                )}
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <h4 className="font-semibold text-sm mb-1 text-slate-600 dark:text-slate-400">Locked Puzzles</h4>
-                                        <div className="relative">
-                                            <button
-                                                type="button"
-                                                onClick={() => setOpenPuzzlePuzzlesDropdown(openPuzzlePuzzlesDropdown === puzzle.id ? null : puzzle.id)}
-                                                className="w-full text-left px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 flex justify-between items-center text-sm"
-                                            >
-                                                <span>{`${puzzle.lockedPuzzleIds?.length || 0} puzzle(s) selected`}</span>
-                                                <svg className={`w-4 h-4 transition-transform ${openPuzzlePuzzlesDropdown === puzzle.id ? 'rotate-180' : ''}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
-                                            </button>
-                                            {openPuzzlePuzzlesDropdown === puzzle.id && (
-                                                <div ref={puzzlesDropdownRef} className="absolute z-20 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                                                    <div className="space-y-1 p-2">
-                                                        {game.rooms.map(room => (
-                                                            <div key={room.id}>
-                                                                <h5 className="text-xs font-bold text-slate-500 dark:text-slate-400 sticky top-0 bg-white dark:bg-slate-800 py-1 px-2 -mx-2">{room.name}</h5>
-                                                                {room.puzzles.filter(p => p.id !== puzzle.id).length > 0 ? (
-                                                                    room.puzzles.filter(p => p.id !== puzzle.id).map(p => (
-                                                                        <label key={p.id} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 pl-2 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md p-1">
-                                                                            <input
-                                                                                type="checkbox"
-                                                                                className="rounded border-slate-400 text-brand-600 focus:ring-brand-500"
-                                                                                checked={puzzle.lockedPuzzleIds?.includes(p.id)}
-                                                                                onChange={(e) => {
-                                                                                    const newLockedIds = e.target.checked
-                                                                                        ? [...(puzzle.lockedPuzzleIds || []), p.id]
-                                                                                        : (puzzle.lockedPuzzleIds || []).filter(id => id !== p.id);
-                                                                                    handlePuzzleChange(index, 'lockedPuzzleIds', newLockedIds);
-                                                                                }}
-                                                                            />
-                                                                            {p.name}
-                                                                        </label>
-                                                                    ))
-                                                                ) : (
-                                                                    <p className="text-xs text-slate-500 italic pl-2">No other puzzles in this room.</p>
-                                                                )}
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <h4 className="font-semibold text-sm mb-1 text-slate-600 dark:text-slate-400">Locked Rooms</h4>
-                                        <div className="relative">
-                                            <button
-                                                type="button"
-                                                onClick={() => setOpenPuzzleRoomsDropdown(openPuzzleRoomsDropdown === puzzle.id ? null : puzzle.id)}
-                                                className="w-full text-left px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 flex justify-between items-center text-sm"
-                                            >
-                                                <span>{`${puzzle.lockedRoomIds?.length || 0} room(s) selected`}</span>
-                                                <svg className={`w-4 h-4 transition-transform ${openPuzzleRoomsDropdown === puzzle.id ? 'rotate-180' : ''}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
-                                            </button>
-                                            {openPuzzleRoomsDropdown === puzzle.id && (
-                                                <div ref={roomsDropdownRef} className="absolute z-20 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                                                    <div className="space-y-1 p-2">
-                                                        {game.rooms.filter(room => room.id !== currentRoom.id).map(room => (
-                                                            <label key={room.id} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 pl-2 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md p-1">
-                                                                <input
-                                                                    type="checkbox"
-                                                                    className="rounded border-slate-400 text-brand-600 focus:ring-brand-500"
-                                                                    checked={puzzle.lockedRoomIds?.includes(room.id)}
-                                                                    onChange={(e) => {
-                                                                        const newLockedIds = e.target.checked
-                                                                            ? [...(puzzle.lockedRoomIds || []), room.id]
-                                                                            : (puzzle.lockedRoomIds || []).filter(id => id !== room.id);
-                                                                        handlePuzzleChange(index, 'lockedRoomIds', newLockedIds);
-                                                                    }}
-                                                                />
-                                                                {room.name}
-                                                            </label>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <h4 className="font-semibold text-sm mb-1 text-slate-600 dark:text-slate-400">Locked Room Solves</h4>
-                                        <div className="relative">
-                                            <button
-                                                type="button"
-                                                onClick={() => setOpenPuzzleRoomSolvesDropdown(openPuzzleRoomSolvesDropdown === puzzle.id ? null : puzzle.id)}
-                                                className="w-full text-left px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 flex justify-between items-center text-sm"
-                                            >
-                                                <span>{`${puzzle.lockedRoomSolveIds?.length || 0} selected`}</span>
-                                                <svg className={`w-4 h-4 transition-transform ${openPuzzleRoomSolvesDropdown === puzzle.id ? 'rotate-180' : ''}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
-                                            </button>
-                                            {openPuzzleRoomSolvesDropdown === puzzle.id && (
-                                                <div ref={roomSolvesDropdownRef} className="absolute z-20 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                                                    <div className="space-y-1 p-2">
-                                                        {game.rooms.map(room => (
-                                                            <label key={room.id} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 pl-2 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md p-1">
-                                                                <input
-                                                                    type="checkbox"
-                                                                    className="rounded border-slate-400 text-brand-600 focus:ring-brand-500"
-                                                                    checked={puzzle.lockedRoomSolveIds?.includes(room.id)}
-                                                                    onChange={(e) => {
-                                                                        const newLockedIds = e.target.checked
-                                                                            ? [...(puzzle.lockedRoomSolveIds || []), room.id]
-                                                                            : (puzzle.lockedRoomSolveIds || []).filter(id => id !== room.id);
-                                                                        handlePuzzleChange(index, 'lockedRoomSolveIds', newLockedIds);
-                                                                    }}
-                                                                />
-                                                                {room.name}
-                                                            </label>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                             <div className="mt-4 space-y-2">
-                                <div>
-                                    <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            className="rounded border-slate-400 text-brand-600 focus:ring-brand-500 disabled:opacity-50"
-                                            checked={puzzle.autoAddLockedObjects || false}
-                                            onChange={(e) => handlePuzzleChange(index, 'autoAddLockedObjects', e.target.checked)}
-                                            disabled={!puzzle.lockedObjectIds || puzzle.lockedObjectIds.length === 0}
-                                        />
-                                        <span className={(!puzzle.lockedObjectIds || puzzle.lockedObjectIds.length === 0) ? 'text-slate-400 dark:text-slate-500' : ''}>
-                                            Automatically add its locked objects in this room to inventory upon solving.
-                                        </span>
-                                    </label>
-                                </div>
-                                <div>
-                                    <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            className="rounded border-slate-400 text-brand-600 focus:ring-brand-500 disabled:opacity-50"
-                                            checked={puzzle.autoSolveRooms || false}
-                                            onChange={(e) => handlePuzzleChange(index, 'autoSolveRooms', e.target.checked)}
-                                            disabled={!puzzle.lockedRoomSolveIds || puzzle.lockedRoomSolveIds.length === 0}
-                                        />
-                                        <span className={(!puzzle.lockedRoomSolveIds || puzzle.lockedRoomSolveIds.length === 0) ? 'text-slate-400 dark:text-slate-500' : ''}>
-                                            Automatically set its locked Room Solves to solved.
-                                        </span>
-                                    </label>
-                                </div>
+                        <div key={puzzle.id} className={`flex items-center justify-between p-2 rounded-lg ${index % 2 === 0 ? 'bg-transparent' : 'bg-slate-50 dark:bg-slate-700/50'}`}>
+                            <span className="font-semibold text-sm text-slate-800 dark:text-slate-200 truncate pr-4">{puzzle.name}</span>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                                <button onClick={() => setPuzzleModalState({ puzzle: { ...puzzle }, index })} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-600" title="Edit in larger view">
+                                    <Icon as="expand" className="w-4 h-4" />
+                                </button>
+                                <button onClick={() => deletePuzzle(index)} className="text-red-500 hover:text-red-700 dark:hover:text-red-400 p-1.5 rounded-full hover:bg-red-100 dark:hover:bg-red-900/50 flex items-center justify-center">
+                                    <Icon as="trash" className="w-4 h-4" />
+                                </button>
                             </div>
                         </div>
                     )) : (
