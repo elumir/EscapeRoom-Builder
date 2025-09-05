@@ -41,7 +41,7 @@ const PresenterView: React.FC = () => {
     lockingPuzzlesByPuzzleId,
     lockingPuzzlesByRoomSolveId,
     lockingPuzzlesByActionId,
-    allUnsolvedPuzzles, 
+    lockingPuzzlesByObjectId,
     inventoryObjects,
     discardedObjects,
   } = usePresenterState(game);
@@ -541,13 +541,9 @@ const PresenterView: React.FC = () => {
   const availableObjects = (currentRoom?.objects || []).filter(o => 
     !o.showInInventory && 
     !o.wasEverInInventory &&
-    !allUnsolvedPuzzles.some(p => p.lockedObjectIds?.includes(o.id))
+    !lockingPuzzlesByObjectId.has(o.id)
   );
   
-  const unlockedInventoryObjects = inventoryObjects.filter(obj => 
-    !allUnsolvedPuzzles.some(p => p.lockedObjectIds?.includes(obj.id))
-  );
-
   const openActions = (currentRoom?.actions || []).filter(action => 
     !action.isComplete && 
     !lockingPuzzlesByActionId.has(action.id)
@@ -811,8 +807,6 @@ const PresenterView: React.FC = () => {
                                         className={`w-full text-left p-3 rounded-lg transition-colors flex flex-col items-start ${
                                             currentRoomIndex === index
                                                 ? 'bg-brand-600 text-white font-bold shadow-lg'
-                                                : isLocked
-                                                ? 'bg-slate-700 opacity-50 cursor-not-allowed'
                                                 : 'bg-slate-700 hover:bg-slate-600'
                                         }`}
                                         title={isLocked ? `Locked by: ${lockingPuzzleName}` : ''}
@@ -832,7 +826,7 @@ const PresenterView: React.FC = () => {
                 )}
                 {activeTab === 'inventory' && (
                     <div className="space-y-4">
-                        {unlockedInventoryObjects.length > 0 ? (
+                        {inventoryObjects.length > 0 ? (
                             <>
                                 <div className="flex justify-between items-center mb-1">
                                     <p className="text-xs text-slate-400 italic">Toggle to discard object.</p>
@@ -845,12 +839,13 @@ const PresenterView: React.FC = () => {
                                         <Icon as={areAllDescriptionsVisible ? 'eye-slash' : 'eye'} className="w-5 h-5" />
                                     </button>
                                 </div>
-                                {unlockedInventoryObjects.map(obj => {
+                                {inventoryObjects.map(obj => {
                                     return (
                                         <ObjectItem 
                                             key={obj.id} 
                                             obj={obj} 
-                                            onToggle={handleToggleObject} 
+                                            onToggle={handleToggleObject}
+                                            lockingPuzzleName={lockingPuzzlesByObjectId.get(obj.id)}
                                             showVisibilityToggle={true}
                                             isDescriptionVisible={visibleDescriptionIds.has(obj.id)}
                                             onToggleDescription={handleToggleDescriptionVisibility}
