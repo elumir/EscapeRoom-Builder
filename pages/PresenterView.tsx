@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import * as gameService from '../services/presentationService';
 import type { Game, Puzzle } from '../types';
@@ -50,18 +50,50 @@ const PresenterView: React.FC = () => {
     prevInventoryCountRef.current = inventoryObjects.length;
   }, [inventoryObjects.length, activeTab]);
 
+  // This effect handles making new items' descriptions visible by default.
+  const inventoryObjectIds = useMemo(() => new Set(inventoryObjects.map(o => o.id)), [inventoryObjects]);
+  const prevInventoryObjectIdsRef = useRef<Set<string>>(new Set());
+
   useEffect(() => {
-    // This effect runs when the active tab changes.
-    if (activeTab === 'rooms') {
-      // When switching to the rooms tab, hide all inventory descriptions.
-      const inventoryIds = new Set(inventoryObjects.map(o => o.id));
-      setVisibleDescriptionIds(currentVisibleIds => {
-        const newVisibleIds = new Set(currentVisibleIds);
-        inventoryIds.forEach(id => newVisibleIds.delete(id));
-        return newVisibleIds;
-      });
-    }
-  }, [activeTab, inventoryObjects]);
+      // Determine which IDs are new since the last render.
+      const newIds = [...inventoryObjectIds].filter(id => !prevInventoryObjectIdsRef.current.has(id));
+      
+      // If there are new items, add them to the visible set.
+      if (newIds.length > 0) {
+          setVisibleDescriptionIds(currentVisible => {
+              const newSet = new Set(currentVisible);
+              newIds.forEach(id => newSet.add(id));
+              return newSet;
+          });
+      }
+      
+      // Update the ref for the next render.
+      prevInventoryObjectIdsRef.current = inventoryObjectIds;
+  }, [inventoryObjectIds]);
+
+  const handleToggleAllInventoryDescriptions = useCallback(() => {
+      const allIds = inventoryObjects.map(obj => obj.id);
+      // Determine if the action should be to show all or hide all
+      const shouldShowAll = allIds.some(id => !visibleDescriptionIds.has(id));
+
+      if (shouldShowAll) {
+           // Show them all by adding all inventory IDs to the existing set
+          setVisibleDescriptionIds(currentVisible => new Set([...currentVisible, ...allIds]));
+      } else {
+          // Hide them all by removing inventory IDs from the existing set
+          setVisibleDescriptionIds(currentVisible => {
+              const newVisible = new Set(currentVisible);
+              allIds.forEach(id => newVisible.delete(id));
+              return newVisible;
+          });
+      }
+  }, [inventoryObjects, visibleDescriptionIds]);
+
+  const areAllDescriptionsVisible = useMemo(() => {
+      if (inventoryObjects.length === 0) return false;
+      const allIds = inventoryObjects.map(obj => obj.id);
+      return allIds.every(id => visibleDescriptionIds.has(id));
+  }, [inventoryObjects, visibleDescriptionIds]);
 
 
   const isPresentationWindowOpen = presentationWindow && !presentationWindow.closed;
@@ -565,7 +597,17 @@ const PresenterView: React.FC = () => {
                     <div className="space-y-4">
                         {inventoryObjects.length > 0 ? (
                             <>
-                                <p className="text-xs text-slate-400 italic">Toggle to move object back to room.</p>
+                                <div className="flex justify-between items-center mb-1">
+                                    <p className="text-xs text-slate-400 italic">Toggle to move object back to room.</p>
+                                    <button
+                                        onClick={handleToggleAllInventoryDescriptions}
+                                        title={areAllDescriptionsVisible ? "Hide all descriptions" : "Show all descriptions"}
+                                        aria-label={areAllDescriptionsVisible ? "Hide all descriptions" : "Show all descriptions"}
+                                        className="text-slate-400 hover:text-white p-1 rounded-full"
+                                    >
+                                        <Icon as={areAllDescriptionsVisible ? 'eye-slash' : 'eye'} className="w-5 h-5" />
+                                    </button>
+                                </div>
                                 {inventoryObjects.map(obj => {
                                     const lockingPuzzle = allUnsolvedPuzzles.find(p => p.lockedObjectIds?.includes(obj.id));
                                     return (
