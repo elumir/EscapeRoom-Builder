@@ -1079,9 +1079,31 @@ const Editor: React.FC = () => {
                                         />
                                     </div>
                                     <div className="overflow-y-auto p-2">
-                                      {game.rooms.filter(room => room.name.toLowerCase().includes(modalPuzzleRoomSolvesSearch.toLowerCase())).map(room => (
-                                        <label key={room.id} className="flex items-center gap-2 text-sm p-1 cursor-pointer"><input type="checkbox" checked={modalPuzzleData.lockedRoomSolveIds?.includes(room.id)} onChange={e => handleModalPuzzleChange('lockedRoomSolveIds', e.target.checked ? [...modalPuzzleData.lockedRoomSolveIds, room.id] : modalPuzzleData.lockedRoomSolveIds.filter(id => id !== room.id))} />{room.name}</label>
-                                      ))}
+                                      {(() => {
+                                        const filteredRooms = game.rooms.filter(room => 
+                                          (room.solvedImage || (room.solvedNotes && room.solvedNotes.trim() !== '')) && 
+                                          room.name.toLowerCase().includes(modalPuzzleRoomSolvesSearch.toLowerCase())
+                                        );
+
+                                        if (filteredRooms.length === 0) {
+                                          return (
+                                            <p className="text-xs text-slate-500 dark:text-slate-400 italic p-2">
+                                              No rooms with a defined Solved State found.
+                                            </p>
+                                          );
+                                        }
+                                        
+                                        return filteredRooms.map(room => (
+                                          <label key={room.id} className="flex items-center gap-2 text-sm p-1 cursor-pointer">
+                                            <input 
+                                              type="checkbox" 
+                                              checked={modalPuzzleData.lockedRoomSolveIds?.includes(room.id)} 
+                                              onChange={e => handleModalPuzzleChange('lockedRoomSolveIds', e.target.checked ? [...modalPuzzleData.lockedRoomSolveIds, room.id] : modalPuzzleData.lockedRoomSolveIds.filter(id => id !== room.id))} 
+                                            />
+                                            {room.name}
+                                          </label>
+                                        ));
+                                      })()}
                                     </div>
                                 </div>
                             )}
@@ -1231,7 +1253,7 @@ const Editor: React.FC = () => {
                                   className="pointer-events-auto p-1.5 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
                                   aria-label="Clear room image"
                                   title="Clear Image"
-                              >
+                                >
                                   <Icon as="trash" className="w-4 h-4" />
                               </button>
                           </div>
