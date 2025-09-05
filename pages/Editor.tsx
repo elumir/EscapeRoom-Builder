@@ -48,6 +48,8 @@ const Editor: React.FC = () => {
   const [modalPuzzlePuzzlesSearch, setModalPuzzlePuzzlesSearch] = useState('');
   const [modalPuzzleRoomsSearch, setModalPuzzleRoomsSearch] = useState('');
   const [modalPuzzleRoomSolvesSearch, setModalPuzzleRoomSolvesSearch] = useState('');
+  const [actionModalState, setActionModalState] = useState<{ action: Action; index: number } | null>(null);
+  const [modalActionData, setModalActionData] = useState<Action | null>(null);
 
 
   const objectRemoveDropdownRef = useRef<HTMLDivElement>(null);
@@ -159,6 +161,10 @@ const Editor: React.FC = () => {
   useEffect(() => {
     setModalPuzzleData(puzzleModalState ? puzzleModalState.puzzle : null);
   }, [puzzleModalState]);
+
+  useEffect(() => {
+    setModalActionData(actionModalState ? actionModalState.action : null);
+  }, [actionModalState]);
 
   const selectRoom = (index: number) => {
     setSelectedRoomIndex(index);
@@ -366,39 +372,52 @@ const Editor: React.FC = () => {
   };
 
   const addAction = () => {
-    const newAction: Action = { id: generateUUID(), name: 'New Action', description: 'Description...', image: null, showImageOverlay: false, isComplete: false };
-    setEditingRoomActions([...editingRoomActions, newAction]);
-    setTimeout(() => {
-        actionsContainerRef.current?.lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-    }, 100);
+    const newAction: Action = { id: generateUUID(), name: '', description: '', image: null, showImageOverlay: false, isComplete: false };
+    const newActions = [...editingRoomActions, newAction];
+    setEditingRoomActions(newActions);
+    
+    // Automatically open the modal for the new action
+    const newActionIndex = newActions.length - 1;
+    setActionModalState({ action: { ...newAction }, index: newActionIndex });
   };
 
-  const handleActionChange = (index: number, field: keyof Action, value: string | boolean | null) => {
-      const newActions = [...editingRoomActions];
-      newActions[index] = { ...newActions[index], [field]: value };
-      setEditingRoomActions(newActions);
+  const handleModalActionChange = (field: keyof Action, value: string | boolean | null) => {
+      if (!modalActionData) return;
+      setModalActionData({ ...modalActionData, [field]: value });
   };
 
-  const handleActionFileChange = async (index: number, file: File | null) => {
+  const handleModalActionFileChange = async (file: File | null) => {
+      if (!game || !modalActionData) return;
       if (!file) {
-          handleActionChange(index, 'image', null);
+          handleModalActionChange('image', null);
           return;
       }
-      if (game) {
-          try {
-              const { assetId } = await gameService.uploadAsset(game.id, file);
-              handleActionChange(index, 'image', assetId);
-              const assets = await gameService.getAssetsForGame(game.id);
-              setAssetLibrary(assets);
-          } catch (error) {
-              console.error(`Action image upload failed:`, error);
-              alert(`Failed to upload action image. Please try again.`);
-          }
+      try {
+          const { assetId } = await gameService.uploadAsset(game.id, file);
+          handleModalActionChange('image', assetId);
+          const assets = await gameService.getAssetsForGame(game.id);
+          setAssetLibrary(assets);
+      } catch (error) {
+          console.error(`Action image upload failed:`, error);
+          alert(`Failed to upload action image. Please try again.`);
       }
+  };
+
+  const handleSaveActionFromModal = () => {
+      if (!actionModalState || !modalActionData) return;
+      const newActions = [...editingRoomActions];
+      newActions[actionModalState.index] = modalActionData;
+      setEditingRoomActions(newActions);
+      setActionModalState(null);
   };
 
   const deleteAction = (index: number) => {
       setEditingRoomActions(editingRoomActions.filter((_, i) => i !== index));
+  };
+  
+  const handleDeleteAction = (e: React.MouseEvent, index: number) => {
+    e.stopPropagation();
+    deleteAction(index);
   };
   
   const handleModalPuzzleChange = (field: keyof Puzzle, value: string | boolean | string[] | null) => {
@@ -1181,6 +1200,55 @@ const Editor: React.FC = () => {
             </div>
         </div>
       )}
+      {actionModalState && modalActionData && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60] backdrop-blur-sm">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-2xl w-full max-w-2xl flex flex-col">
+                <div className="flex-shrink-0 flex justify-between items-center mb-4 pb-4 border-b border-slate-200 dark:border-slate-700">
+                    <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">Edit Action</h2>
+                    <button onClick={() => setActionModalState(null)} className="p-1.5 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700">
+                        <Icon as="close" className="w-5 h-5" />
+                    </button>
+                </div>
+                <div className="flex-grow space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Action Name</label>
+                        <input
+                            type="text"
+                            value={modalActionData.name}
+                            onChange={(e) => handleModalActionChange('name', e.target.value)}
+                            placeholder="e.g., Look under the rug"
+                            className="w-full font-semibold px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Description / Host Response</label>
+                        <textarea
+                            value={modalActionData.description}
+                            onChange={(e) => handleModalActionChange('description', e.target.value)}
+                            placeholder="e.g., You lift the corner of the rug and find a small, tarnished brass key."
+                            rows={5}
+                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm resize-y"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Image (Full Screen Overlay)</label>
+                        {modalActionData.image ? (
+                            <div className="flex items-center gap-2">
+                                <img src={`/api/assets/${modalActionData.image}`} alt="Action preview" className="w-24 h-24 object-cover rounded-md border border-slate-300 dark:border-slate-600" />
+                                <button onClick={() => handleModalActionFileChange(null)} className="text-red-500 hover:text-red-700 text-xs self-end p-1">Clear Image</button>
+                            </div>
+                        ) : (
+                            <input type="file" accept="image/*" onChange={(e) => handleModalActionFileChange(e.target.files?.[0] || null)} className="text-sm w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100" />
+                        )}
+                    </div>
+                </div>
+                <div className="flex-shrink-0 mt-6 pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-4">
+                    <button onClick={() => setActionModalState(null)} className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">Cancel</button>
+                    <button onClick={handleSaveActionFromModal} className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors">Save & Close</button>
+                </div>
+            </div>
+        </div>
+      )}
       <header className="bg-white dark:bg-slate-800 shadow-md p-2 flex justify-between items-center z-10">
         <div className="flex items-center gap-4">
           <Link to="/" className="text-xl font-bold text-brand-600 dark:text-brand-400 p-2">Studio</Link>
@@ -1375,7 +1443,7 @@ const Editor: React.FC = () => {
                         type="text" 
                         value={obj.name}
                         onChange={(e) => handleObjectChange(index, 'name', e.target.value)}
-                        placeholder="Cue Name"
+                        placeholder="Object name"
                         className="col-span-4 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
                       />
                       <input 
@@ -1437,38 +1505,24 @@ const Editor: React.FC = () => {
             <div className="w-full max-w-4xl mx-auto mt-6 bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md">
                 <h3 className="font-semibold mb-1 text-slate-700 dark:text-slate-300">When players ask to...</h3>
                 <p className="text-xs italic text-slate-500 dark:text-slate-400 mb-3">Define host responses for things players might ask to do (e.g., "look under the rug").</p>
-                <div className="space-y-4 max-h-96 overflow-y-auto pr-2" ref={actionsContainerRef}>
+                <div className="space-y-2 max-h-96 overflow-y-auto pr-2" ref={actionsContainerRef}>
                     {editingRoomActions.length > 0 ? editingRoomActions.map((action, index) => (
-                        <div key={action.id} className="p-3 border border-slate-200 dark:border-slate-700 rounded-lg">
-                            <div className="flex items-center justify-between mb-2">
-                                <input 
-                                    type="text" 
-                                    value={action.name}
-                                    onChange={(e) => handleActionChange(index, 'name', e.target.value)}
-                                    placeholder="Action Name"
-                                    className="font-semibold px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm w-1/3"
-                                />
-                                <button onClick={() => deleteAction(index)} className="text-red-500 hover:text-red-700 dark:hover:text-red-400 p-1 rounded-full flex items-center justify-center">
+                        <div
+                            key={action.id}
+                            onClick={() => setActionModalState({ action: { ...action }, index })}
+                            className={`flex items-center justify-between p-2 rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer transition-colors hover:bg-slate-100 dark:hover:bg-slate-700 ${index % 2 === 0 ? '' : 'bg-slate-50 dark:bg-slate-700/50'}`}
+                        >
+                            <span className="font-semibold text-sm text-slate-800 dark:text-slate-200 truncate pr-4">
+                                {action.name || <span className="italic text-slate-500 dark:text-slate-400">Untitled Action</span>}
+                            </span>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                                <button
+                                    onClick={(e) => handleDeleteAction(e, index)}
+                                    className="text-red-500 hover:text-red-700 dark:hover:text-red-400 p-1.5 rounded-full hover:bg-red-100 dark:hover:bg-red-900/50 flex items-center justify-center"
+                                    title="Delete Action"
+                                >
                                     <Icon as="trash" className="w-4 h-4" />
                                 </button>
-                            </div>
-                            <textarea 
-                                value={action.description}
-                                onChange={(e) => handleActionChange(index, 'description', e.target.value)}
-                                placeholder="Description / Host Response"
-                                rows={3}
-                                className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm resize-none"
-                            />
-                            <div className="mt-2 text-sm">
-                                <label className="block mb-1 text-slate-600 dark:text-slate-400">Image (Full Screen Overlay)</label>
-                                {action.image ? (
-                                    <div className="flex items-center gap-2">
-                                        <img src={`/api/assets/${action.image}`} alt="Action preview" className="w-16 h-16 object-cover rounded-md border border-slate-300 dark:border-slate-600" />
-                                        <button onClick={() => handleActionFileChange(index, null)} className="text-red-500 hover:text-red-700 text-xs">Clear</button>
-                                    </div>
-                                ) : (
-                                    <input type="file" accept="image/*" onChange={(e) => handleActionFileChange(index, e.target.files?.[0] || null)} className="text-xs w-full" />
-                                )}
                             </div>
                         </div>
                     )) : (
