@@ -7,10 +7,13 @@ interface RoomProps {
   visibleMapImages: (string | null)[];
   className?: string;
   overlayImageUrl?: string | null;
+  globalBackgroundColor?: string | null;
 }
 
-const Room: React.FC<RoomProps> = ({ room, inventoryItems, visibleMapImages, className, overlayImageUrl }) => {
-  const { backgroundColor, isFullScreenImage } = room;
+const Room: React.FC<RoomProps> = ({ room, inventoryItems, visibleMapImages, className, overlayImageUrl, globalBackgroundColor }) => {
+  const { backgroundColor: roomBackgroundColor, isFullScreenImage } = room;
+
+  const backgroundColor = globalBackgroundColor ?? roomBackgroundColor;
 
   const displayImage = room.isSolved && room.solvedImage ? room.solvedImage : room.image;
 

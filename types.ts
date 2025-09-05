@@ -52,6 +52,7 @@ export interface Room {
 export interface Game {
   id:string;
   title: string;
+  globalBackgroundColor?: string | null;
   rooms: Room[];
   visitedRoomIds: string[];
 }

@@ -165,6 +165,7 @@ const Dashboard: React.FC = () => {
                                                 room={g.rooms[0] || fallbackRoom}
                                                 inventoryItems={inventoryItems}
                                                 visibleMapImages={allMapImages}
+                                                globalBackgroundColor={g.globalBackgroundColor}
                                               />
                                             </div>
                                             <h3 className="text-lg font-semibold px-4 pt-2 truncate text-slate-800 dark:text-slate-200 group-hover:text-brand-600 dark:group-hover:text-brand-400">{g.title}</h3>

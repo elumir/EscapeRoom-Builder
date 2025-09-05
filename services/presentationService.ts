@@ -73,6 +73,7 @@ export const createGame = async (title: string): Promise<Game> => {
     const newGame: Game = {
         id: generateUUID(),
         title,
+        globalBackgroundColor: '#000000',
         rooms: [newRoom],
         visitedRoomIds: [],
     };

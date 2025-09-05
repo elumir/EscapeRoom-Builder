@@ -83,6 +83,7 @@ const PresentationView: React.FC = () => {
           visibleMapImages={visibleMapImages}
           overlayImageUrl={overlayImageUrl}
           className="w-full h-full shadow-none" 
+          globalBackgroundColor={game.globalBackgroundColor}
         />
       </div>
     </div>

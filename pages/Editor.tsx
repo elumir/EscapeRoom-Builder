@@ -23,6 +23,7 @@ const Editor: React.FC = () => {
   const [editingRoomPuzzles, setEditingRoomPuzzles] = useState<Puzzle[]>([]);
   const [editingRoomActions, setEditingRoomActions] = useState<Action[]>([]);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [openPuzzleObjectsDropdown, setOpenPuzzleObjectsDropdown] = useState<string | null>(null);
   const [openPuzzleRoomsDropdown, setOpenPuzzleRoomsDropdown] = useState<string | null>(null);
   const [openPuzzlePuzzlesDropdown, setOpenPuzzlePuzzlesDropdown] = useState<string | null>(null);
@@ -409,6 +410,12 @@ const Editor: React.FC = () => {
     }, 0);
   };
 
+  const handleGlobalColorChange = (color: string | null) => {
+    if (!game) return;
+    const updatedGame = { ...game, globalBackgroundColor: color };
+    updateGame(updatedGame);
+  };
+
 
   const COLORS = ['#000000', '#ffffff', '#f87171', '#fbbf24', '#34d399', '#60a5fa', '#a78bfa'];
 
@@ -483,6 +490,57 @@ const Editor: React.FC = () => {
             </div>
         </div>
        )}
+       {isSettingsModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 backdrop-blur-sm">
+            <div className="bg-white dark:bg-slate-800 p-8 rounded-lg shadow-2xl w-full max-w-md border border-slate-200 dark:border-slate-700">
+                <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200">Game Settings</h2>
+                    <button onClick={() => setIsSettingsModalOpen(false)} className="p-1.5 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700">
+                        <Icon as="close" className="w-5 h-5" />
+                    </button>
+                </div>
+                
+                <div className="space-y-6">
+                    <div>
+                        <div className="flex justify-between items-center mb-2">
+                            <h3 className="font-semibold text-slate-700 dark:text-slate-300">Global Background Color</h3>
+                            {game.globalBackgroundColor && (
+                                <button 
+                                    onClick={() => handleGlobalColorChange(null)}
+                                    className="text-sm text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 underline"
+                                >
+                                    Use Per-Room Colors
+                                </button>
+                            )}
+                        </div>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
+                            Set one background color for all rooms. Clear it to use individual colors for each room.
+                        </p>
+                        <div className="flex flex-wrap gap-2 p-3 bg-slate-100 dark:bg-slate-700/50 rounded-lg">
+                            {COLORS.map(color => (
+                                <button 
+                                    key={color} 
+                                    onClick={() => handleGlobalColorChange(color)} 
+                                    className={`w-10 h-10 rounded-full border-2 ${game.globalBackgroundColor === color ? 'border-brand-500 ring-2 ring-brand-500' : 'border-slate-300 dark:border-slate-600'}`} 
+                                    style={{backgroundColor: color}}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="mt-8 flex justify-end">
+                    <button 
+                        type="button" 
+                        onClick={() => setIsSettingsModalOpen(false)} 
+                        className="px-6 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors"
+                    >
+                        Done
+                    </button>
+                </div>
+            </div>
+        </div>
+       )}
       <header className="bg-white dark:bg-slate-800 shadow-md p-2 flex justify-between items-center z-10">
         <div className="flex items-center gap-4">
           <Link to="/" className="text-xl font-bold text-brand-600 dark:text-brand-400 p-2">Studio</Link>
@@ -494,6 +552,13 @@ const Editor: React.FC = () => {
           />
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsSettingsModalOpen(true)}
+            className="p-2 text-slate-500 dark:text-slate-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+            title="Game Settings"
+          >
+            <Icon as="settings" className="w-5 h-5" />
+          </button>
           <button onClick={() => setIsResetModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors duration-300 shadow">
             <Icon as="present" className="w-5 h-5" />
             Present
@@ -529,7 +594,7 @@ const Editor: React.FC = () => {
                             <div className="flex items-start gap-2">
                               <span className="text-xs font-bold text-slate-500 dark:text-slate-400 p-1">{index + 1}</span>
                               <div className="flex-1 transform scale-[0.95] origin-top-left">
-                                 <Room room={room} inventoryItems={inventoryItems} visibleMapImages={allMapImages} className="shadow-md" />
+                                 <Room room={room} inventoryItems={inventoryItems} visibleMapImages={allMapImages} className="shadow-md" globalBackgroundColor={game.globalBackgroundColor} />
                               </div>
                             </div>
                             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 p-1 bg-black/50 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
@@ -563,7 +628,7 @@ const Editor: React.FC = () => {
                 </label>
               </div>
               <div className="relative w-full aspect-video">
-                <Room room={{...currentRoom, isSolved: previewSolved}} inventoryItems={inventoryItems} visibleMapImages={allMapImages} />
+                <Room room={{...currentRoom, isSolved: previewSolved}} inventoryItems={inventoryItems} visibleMapImages={allMapImages} globalBackgroundColor={game.globalBackgroundColor} />
                 <div className={`absolute inset-0 flex ${currentRoom.isFullScreenImage ? 'pointer-events-none' : ''}`}>
                   <div className={`h-full group relative ${currentRoom.isFullScreenImage ? 'w-full' : 'w-[70%]'}`}>
                       <label className={`w-full h-full cursor-pointer flex items-center justify-center bg-black/0 hover:bg-black/30 transition-colors duration-300 ${currentRoom.isFullScreenImage ? 'pointer-events-auto' : ''}`}>
@@ -964,11 +1029,20 @@ const Editor: React.FC = () => {
                         </div>
                         <div>
                           <h3 className="font-semibold text-sm mb-2 text-slate-600 dark:text-slate-400">Background Color</h3>
-                          <div className="flex flex-wrap gap-2">
-                            {COLORS.map(color => (
-                              <button key={color} onClick={() => changeRoomProperty('backgroundColor', color)} className={`w-8 h-8 rounded-full border-2 ${currentRoom.backgroundColor === color ? 'border-brand-500 ring-2 ring-brand-500' : 'border-slate-300 dark:border-slate-600'}`} style={{backgroundColor: color}}/>
-                            ))}
-                          </div>
+                          {game.globalBackgroundColor ? (
+                            <div className="p-3 text-sm text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700/50 rounded-md border border-slate-200 dark:border-slate-600">
+                              A global background color is active. Change it in{' '}
+                              <button onClick={() => setIsSettingsModalOpen(true)} className="font-semibold text-brand-600 dark:text-brand-400 hover:underline">
+                                Game Settings
+                              </button>.
+                            </div>
+                          ) : (
+                            <div className="flex flex-wrap gap-2">
+                                {COLORS.map(color => (
+                                <button key={color} onClick={() => changeRoomProperty('backgroundColor', color)} className={`w-8 h-8 rounded-full border-2 ${currentRoom.backgroundColor === color ? 'border-brand-500 ring-2 ring-brand-500' : 'border-slate-300 dark:border-slate-600'}`} style={{backgroundColor: color}}/>
+                                ))}
+                            </div>
+                          )}
                         </div>
                         <div>
                             <label className="flex items-center justify-between gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer">
