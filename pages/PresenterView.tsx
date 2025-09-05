@@ -173,6 +173,11 @@ const PresenterView: React.FC = () => {
 
     if (!targetPuzzle || !targetRoomId) return;
 
+    // If we are solving a puzzle that has no answer, show the success modal.
+    if (newState && !targetPuzzle.answer) {
+        setSolvedPuzzleInfo(targetPuzzle);
+    }
+
     const shouldAutoAdd = newState && targetPuzzle.autoAddLockedObjects;
     const objectIdsToUpdate = shouldAutoAdd ? targetPuzzle.lockedObjectIds : [];
     
@@ -343,7 +348,9 @@ const PresenterView: React.FC = () => {
                           <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                       </svg>
                   </div>
-                  <h2 className="text-2xl font-bold mb-4 text-green-400">Correct!</h2>
+                  <h2 className="text-2xl font-bold mb-4 text-green-400">
+                    {solvedPuzzleInfo.answer ? 'Correct!' : 'Puzzle Solved!'}
+                  </h2>
                   {solvedPuzzleInfo.solvedText && (
                       <blockquote className="mb-6 p-4 bg-slate-700/50 border-l-4 border-slate-600 text-slate-300 italic text-left">
                           {solvedPuzzleInfo.solvedText}
