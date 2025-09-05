@@ -50,6 +50,7 @@ const Editor: React.FC = () => {
   const [modalPuzzleRoomSolvesSearch, setModalPuzzleRoomSolvesSearch] = useState('');
   const [actionModalState, setActionModalState] = useState<{ action: Action; index: number } | null>(null);
   const [modalActionData, setModalActionData] = useState<Action | null>(null);
+  const [collapsedActs, setCollapsedActs] = useState<Record<number, boolean>>({});
 
 
   const objectRemoveDropdownRef = useRef<HTMLDivElement>(null);
@@ -637,6 +638,13 @@ const Editor: React.FC = () => {
     if (!game) return;
     const updatedGame = { ...game, mapDisplayMode: mode };
     updateGame(updatedGame);
+  };
+
+  const toggleActCollapse = (actNumber: number) => {
+      setCollapsedActs(prev => ({
+          ...prev,
+          [actNumber]: !prev[actNumber]
+      }));
   };
 
 
@@ -1285,41 +1293,49 @@ const Editor: React.FC = () => {
             <div ref={roomsContainerRef}>
               {Object.entries(roomsByAct).sort(([a], [b]) => Number(a) - Number(b)).map(([act, rooms]) => (
                 <div key={`act-${act}`}>
-                  <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider px-1 py-2">Act {act}</h3>
-                  <div className="space-y-2">
-                    {rooms.map((room) => {
-                      const index = room.originalIndex;
-                      const roomMapPreview = game.mapDisplayMode === 'room-specific'
-                        ? [room.mapImage].filter(Boolean)
-                        : visibleMapImages;
-                      return (
-                        <div 
-                          key={room.id}
-                          draggable
-                          onDragStart={() => handleDragStart(index)}
-                          onDragOver={(e) => handleDragOver(e, index)}
-                          onDragLeave={handleDragLeave}
-                          onDrop={() => handleDrop(index)}
-                          onDragEnd={handleDragEnd}
-                          onClick={() => selectRoom(index)} 
-                          className={`relative group cursor-pointer rounded-md overflow-hidden border-2 ${selectedRoomIndex === index ? 'border-brand-500' : 'border-transparent hover:border-brand-300'} ${draggedRoomIndex === index ? 'opacity-50' : ''}`}
-                          >
-                            {dropTargetIndex === index && draggedRoomIndex !== index && (
-                              <div className="absolute top-0 left-0 w-full h-1 bg-brand-500 z-10" />
-                            )}
-                            <div className="flex items-start gap-2">
-                              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 p-1">{index + 1}</span>
-                              <div className="flex-1 transform scale-[0.95] origin-top-left">
-                                 <Room room={room} inventoryItems={inventoryItems} visibleMapImages={roomMapPreview} className="shadow-md" globalBackgroundColor={game.globalBackgroundColor} />
+                    <button 
+                      onClick={() => toggleActCollapse(Number(act))}
+                      className="w-full flex justify-between items-center text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider px-1 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md"
+                    >
+                        <span>Act {act}</span>
+                        <Icon as="chevron-down" className={`w-4 h-4 transition-transform ${!collapsedActs[Number(act)] ? 'rotate-180' : ''}`} />
+                    </button>
+                  {!collapsedActs[Number(act)] && (
+                    <div className="space-y-2 mt-1">
+                      {rooms.map((room) => {
+                        const index = room.originalIndex;
+                        const roomMapPreview = game.mapDisplayMode === 'room-specific'
+                          ? [room.mapImage].filter(Boolean)
+                          : visibleMapImages;
+                        return (
+                          <div 
+                            key={room.id}
+                            draggable
+                            onDragStart={() => handleDragStart(index)}
+                            onDragOver={(e) => handleDragOver(e, index)}
+                            onDragLeave={handleDragLeave}
+                            onDrop={() => handleDrop(index)}
+                            onDragEnd={handleDragEnd}
+                            onClick={() => selectRoom(index)} 
+                            className={`relative group cursor-pointer rounded-md overflow-hidden border-2 ${selectedRoomIndex === index ? 'border-brand-500' : 'border-transparent hover:border-brand-300'} ${draggedRoomIndex === index ? 'opacity-50' : ''}`}
+                            >
+                              {dropTargetIndex === index && draggedRoomIndex !== index && (
+                                <div className="absolute top-0 left-0 w-full h-1 bg-brand-500 z-10" />
+                              )}
+                              <div className="flex items-start gap-2">
+                                <span className="text-xs font-bold text-slate-500 dark:text-slate-400 p-1">{index + 1}</span>
+                                <div className="flex-1 transform scale-[0.95] origin-top-left">
+                                   <Room room={room} inventoryItems={inventoryItems} visibleMapImages={roomMapPreview} className="shadow-md" globalBackgroundColor={game.globalBackgroundColor} />
+                                </div>
                               </div>
-                            </div>
-                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 p-1 bg-black/50 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                              <Icon as="reorder" className="w-5 h-5" />
-                            </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 p-1 bg-black/50 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                <Icon as="reorder" className="w-5 h-5" />
+                              </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
