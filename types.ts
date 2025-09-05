@@ -32,8 +32,10 @@ export interface Puzzle {
   lockedPuzzleIds: string[];
   lockedRoomSolveIds: string[];
   lockedActionIds: string[];
+  completedActionIds: string[];
   autoAddLockedObjects: boolean;
   autoSolveRooms: boolean;
+  autoCompleteActions: boolean;
 }
 
 export interface Action {

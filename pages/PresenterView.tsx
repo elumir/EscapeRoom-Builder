@@ -267,6 +267,9 @@ const PresenterView: React.FC = () => {
     const shouldAutoSolveRooms = newState && targetPuzzle.autoSolveRooms;
     const roomIdsToAutoSolve = shouldAutoSolveRooms ? targetPuzzle.lockedRoomSolveIds : [];
     
+    const shouldAutoCompleteActions = newState && targetPuzzle.autoCompleteActions;
+    const actionIdsToComplete = shouldAutoCompleteActions ? (targetPuzzle.completedActionIds || []) : [];
+
     const updatedRooms = game.rooms.map(room => {
         let newObjects = room.objects;
         // Auto-add objects to inventory if configured
@@ -276,6 +279,17 @@ const PresenterView: React.FC = () => {
                     return { ...obj, showInInventory: true, wasEverInInventory: true };
                 }
                 return obj;
+            });
+        }
+        
+        // Auto-complete actions if configured
+        let newActions = room.actions || [];
+        if (shouldAutoCompleteActions && newActions.length > 0) {
+            newActions = newActions.map(action => {
+                if (actionIdsToComplete.includes(action.id)) {
+                    return { ...action, isComplete: true, showImageOverlay: false };
+                }
+                return action;
             });
         }
 
@@ -294,7 +308,7 @@ const PresenterView: React.FC = () => {
             newIsSolvedState = true;
         }
         
-        return { ...room, objects: newObjects, puzzles: newPuzzles, isSolved: newIsSolvedState };
+        return { ...room, objects: newObjects, puzzles: newPuzzles, actions: newActions, isSolved: newIsSolvedState };
     });
     
     const updatedGame = { ...game, rooms: updatedRooms };

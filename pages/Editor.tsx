@@ -45,11 +45,13 @@ const Editor: React.FC = () => {
   const [openModalPuzzlePuzzlesDropdown, setOpenModalPuzzlePuzzlesDropdown] = useState(false);
   const [openModalPuzzleRoomSolvesDropdown, setOpenModalPuzzleRoomSolvesDropdown] = useState(false);
   const [openModalPuzzleActionsDropdown, setOpenModalPuzzleActionsDropdown] = useState(false);
+  const [openModalPuzzleCompletedActionsDropdown, setOpenModalPuzzleCompletedActionsDropdown] = useState(false);
   const [modalPuzzleObjectsSearch, setModalPuzzleObjectsSearch] = useState('');
   const [modalPuzzlePuzzlesSearch, setModalPuzzlePuzzlesSearch] = useState('');
   const [modalPuzzleRoomsSearch, setModalPuzzleRoomsSearch] = useState('');
   const [modalPuzzleRoomSolvesSearch, setModalPuzzleRoomSolvesSearch] = useState('');
   const [modalPuzzleActionsSearch, setModalPuzzleActionsSearch] = useState('');
+  const [modalPuzzleCompletedActionsSearch, setModalPuzzleCompletedActionsSearch] = useState('');
   const [actionModalState, setActionModalState] = useState<{ action: Action; index: number } | null>(null);
   const [modalActionData, setModalActionData] = useState<Action | null>(null);
   const [collapsedActs, setCollapsedActs] = useState<Record<number, boolean>>({});
@@ -61,6 +63,7 @@ const Editor: React.FC = () => {
   const modalPuzzlesDropdownRef = useRef<HTMLDivElement>(null);
   const modalRoomSolvesDropdownRef = useRef<HTMLDivElement>(null);
   const modalActionsDropdownRef = useRef<HTMLDivElement>(null);
+  const modalCompletedActionsDropdownRef = useRef<HTMLDivElement>(null);
   const roomsContainerRef = useRef<HTMLDivElement>(null);
   const objectsContainerRef = useRef<HTMLDivElement>(null);
   const puzzlesContainerRef = useRef<HTMLDivElement>(null);
@@ -118,6 +121,9 @@ const Editor: React.FC = () => {
         }
         if (modalActionsDropdownRef.current && !modalActionsDropdownRef.current.contains(event.target as Node)) {
             setOpenModalPuzzleActionsDropdown(false);
+        }
+        if (modalCompletedActionsDropdownRef.current && !modalCompletedActionsDropdownRef.current.contains(event.target as Node)) {
+            setOpenModalPuzzleCompletedActionsDropdown(false);
         }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -360,7 +366,7 @@ const Editor: React.FC = () => {
   }
 
   const addPuzzle = () => {
-    const newPuzzle: Puzzle = { id: generateUUID(), name: 'New Puzzle', answer: '', isSolved: false, unsolvedText: '', solvedText: '', image: null, sound: null, showImageOverlay: false, lockedObjectIds: [], lockedRoomIds: [], lockedPuzzleIds: [], lockedRoomSolveIds: [], lockedActionIds: [], autoAddLockedObjects: false, autoSolveRooms: false };
+    const newPuzzle: Puzzle = { id: generateUUID(), name: 'New Puzzle', answer: '', isSolved: false, unsolvedText: '', solvedText: '', image: null, sound: null, showImageOverlay: false, lockedObjectIds: [], lockedRoomIds: [], lockedPuzzleIds: [], lockedRoomSolveIds: [], lockedActionIds: [], completedActionIds: [], autoAddLockedObjects: false, autoSolveRooms: false, autoCompleteActions: false };
     const newPuzzles = [...editingRoomPuzzles, newPuzzle];
     setEditingRoomPuzzles(newPuzzles);
     
@@ -372,6 +378,7 @@ const Editor: React.FC = () => {
     setModalPuzzleRoomsSearch('');
     setModalPuzzleRoomSolvesSearch('');
     setModalPuzzleActionsSearch('');
+    setModalPuzzleCompletedActionsSearch('');
   };
 
   const deletePuzzle = (index: number) => {
@@ -1062,7 +1069,7 @@ const Editor: React.FC = () => {
                         </div>
                     </div>
                     <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
-                      <h3 className="text-base font-semibold text-slate-700 dark:text-slate-300 mb-2">Locking Logic</h3>
+                      <h3 className="text-base font-semibold text-slate-700 dark:text-slate-300 mb-2">Locking & Completion Logic</h3>
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                           {/* Locked Objects */}
                           <div className="relative" ref={modalObjectsDropdownRef}>
@@ -1254,11 +1261,56 @@ const Editor: React.FC = () => {
                                 </div>
                             )}
                           </div>
+                          {/* Completed Actions */}
+                          <div className="relative" ref={modalCompletedActionsDropdownRef}>
+                            <h4 className="font-semibold text-sm mb-1 text-slate-600 dark:text-slate-400">Completed Actions</h4>
+                            <button type="button" onClick={() => setOpenModalPuzzleCompletedActionsDropdown(prev => !prev)} className="w-full text-left px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 flex justify-between items-center text-sm">
+                                <span>{`${modalPuzzleData.completedActionIds?.length || 0} selected`}</span>
+                                <Icon as="chevron-down" className={`w-4 h-4 transition-transform ${openModalPuzzleCompletedActionsDropdown ? 'rotate-180' : ''}`} />
+                            </button>
+                            {openModalPuzzleCompletedActionsDropdown && (
+                                <div className="absolute z-10 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg flex flex-col max-h-60">
+                                    <div className="p-2 border-b border-slate-200 dark:border-slate-700">
+                                        <input
+                                            type="text"
+                                            value={modalPuzzleCompletedActionsSearch}
+                                            onChange={(e) => setModalPuzzleCompletedActionsSearch(e.target.value)}
+                                            placeholder="Search actions..."
+                                            className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
+                                        />
+                                    </div>
+                                    <div className="overflow-y-auto">
+                                      {game.rooms.map(room => {
+                                        const filteredActions = (room.actions || []).filter(a =>
+                                            (a.name || 'Untitled Action').toLowerCase().includes(modalPuzzleCompletedActionsSearch.toLowerCase())
+                                        );
+                                        if (filteredActions.length === 0) return null;
+                                        return (
+                                            <div key={room.id} className="p-2">
+                                                <h5 className="text-xs font-bold text-slate-500 dark:text-slate-400 sticky top-0 bg-white dark:bg-slate-800 py-1 px-2 -mx-2">{room.name}</h5>
+                                                {filteredActions.map(action => (
+                                                  <label key={action.id} className="flex items-center gap-2 text-sm p-1 cursor-pointer">
+                                                    <input
+                                                      type="checkbox"
+                                                      checked={modalPuzzleData.completedActionIds?.includes(action.id)}
+                                                      onChange={e => handleModalPuzzleChange('completedActionIds', e.target.checked ? [...(modalPuzzleData.completedActionIds || []), action.id] : (modalPuzzleData.completedActionIds || []).filter(id => id !== action.id))}
+                                                    />
+                                                    {action.name || <span className="italic">Untitled Action</span>}
+                                                  </label>
+                                                ))}
+                                            </div>
+                                        )
+                                      })}
+                                    </div>
+                                </div>
+                            )}
+                          </div>
                       </div>
                     </div>
                     <div className="pt-4 space-y-2">
                         <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer"><input type="checkbox" className="disabled:opacity-50" checked={modalPuzzleData.autoAddLockedObjects} onChange={e => handleModalPuzzleChange('autoAddLockedObjects', e.target.checked)} disabled={!modalPuzzleData.lockedObjectIds || modalPuzzleData.lockedObjectIds.length === 0} />Automatically add locked objects to inventory upon solving.</label>
                         <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer"><input type="checkbox" className="disabled:opacity-50" checked={modalPuzzleData.autoSolveRooms} onChange={e => handleModalPuzzleChange('autoSolveRooms', e.target.checked)} disabled={!modalPuzzleData.lockedRoomSolveIds || modalPuzzleData.lockedRoomSolveIds.length === 0} />Automatically set locked Room Solves to solved.</label>
+                        <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer"><input type="checkbox" className="disabled:opacity-50" checked={modalPuzzleData.autoCompleteActions} onChange={e => handleModalPuzzleChange('autoCompleteActions', e.target.checked)} disabled={!modalPuzzleData.completedActionIds || modalPuzzleData.completedActionIds.length === 0} />Automatically complete selected actions upon solving.</label>
                     </div>
                 </div>
                 <div className="flex-shrink-0 mt-6 pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-4">
@@ -1571,6 +1623,7 @@ const Editor: React.FC = () => {
                                 setModalPuzzleRoomsSearch('');
                                 setModalPuzzleRoomSolvesSearch('');
                                 setModalPuzzleActionsSearch('');
+                                setModalPuzzleCompletedActionsSearch('');
                             }}
                             className={`flex items-center justify-between p-2 rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer transition-colors hover:bg-slate-100 dark:hover:bg-slate-700 ${index % 2 === 0 ? '' : 'bg-slate-50 dark:bg-slate-700/50'}`}
                         >
