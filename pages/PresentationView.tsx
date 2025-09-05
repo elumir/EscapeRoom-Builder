@@ -69,10 +69,12 @@ const PresentationView: React.FC = () => {
     (currentRoom.actions || []).find(a => a.showImageOverlay)?.image ||
     null;
   
-  const visibleMapImages = game.rooms
-    .filter(r => game.visitedRoomIds.includes(r.id))
-    .map(r => r.mapImage)
-    .filter(Boolean);
+  const visibleMapImages = (game.mapDisplayMode === 'room-specific')
+    ? [currentRoom.mapImage].filter(Boolean)
+    : game.rooms
+      .filter(r => game.visitedRoomIds.includes(r.id))
+      .map(r => r.mapImage)
+      .filter(Boolean);
 
   return (
     <div className="w-screen h-screen bg-black flex items-center justify-center">

@@ -53,6 +53,7 @@ export interface Game {
   id:string;
   title: string;
   globalBackgroundColor?: string | null;
+  mapDisplayMode?: 'room-specific' | 'layered';
   rooms: Room[];
   visitedRoomIds: string[];
 }

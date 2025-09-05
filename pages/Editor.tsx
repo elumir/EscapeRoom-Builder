@@ -416,6 +416,12 @@ const Editor: React.FC = () => {
     updateGame(updatedGame);
   };
 
+  const handleMapDisplayModeChange = (mode: 'room-specific' | 'layered') => {
+    if (!game) return;
+    const updatedGame = { ...game, mapDisplayMode: mode };
+    updateGame(updatedGame);
+  };
+
 
   const COLORS = ['#000000', '#ffffff', '#f87171', '#fbbf24', '#34d399', '#60a5fa', '#a78bfa'];
 
@@ -450,8 +456,9 @@ const Editor: React.FC = () => {
     .filter(t => t.showInInventory)
     .map(t => t.name);
   
-  // In the editor, we can see all potential map images layered
-  const allMapImages = game.rooms.map(r => r.mapImage).filter(Boolean);
+  const visibleMapImages = game.mapDisplayMode === 'room-specific'
+    ? [currentRoom.mapImage].filter(Boolean)
+    : game.rooms.map(r => r.mapImage).filter(Boolean);
 
   return (
     <div className="flex flex-col h-screen bg-slate-200 dark:bg-slate-900">
@@ -527,6 +534,34 @@ const Editor: React.FC = () => {
                             ))}
                         </div>
                     </div>
+                     <div>
+                        <h3 className="font-semibold text-slate-700 dark:text-slate-300 mb-2">Map Display Mode</h3>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
+                            Choose how map images are shown to players.
+                        </p>
+                        <div className="flex rounded-lg bg-slate-100 dark:bg-slate-700/50 p-1">
+                            <button
+                                onClick={() => handleMapDisplayModeChange('room-specific')}
+                                className={`flex-1 text-center text-sm px-3 py-1.5 rounded-md transition-colors ${
+                                    game.mapDisplayMode === 'room-specific'
+                                    ? 'bg-white dark:bg-slate-600 shadow-sm text-slate-800 dark:text-slate-100 font-semibold'
+                                    : 'text-slate-600 dark:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-600/50'
+                                }`}
+                            >
+                                Room Specific
+                            </button>
+                            <button
+                                onClick={() => handleMapDisplayModeChange('layered')}
+                                className={`flex-1 text-center text-sm px-3 py-1.5 rounded-md transition-colors ${
+                                    (game.mapDisplayMode === 'layered' || !game.mapDisplayMode)
+                                    ? 'bg-white dark:bg-slate-600 shadow-sm text-slate-800 dark:text-slate-100 font-semibold'
+                                    : 'text-slate-600 dark:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-600/50'
+                                }`}
+                            >
+                                Layered
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <div className="mt-8 flex justify-end">
@@ -576,6 +611,9 @@ const Editor: React.FC = () => {
                   <div className="space-y-2">
                     {rooms.map((room) => {
                       const index = room.originalIndex;
+                      const roomMapPreview = game.mapDisplayMode === 'room-specific'
+                        ? [room.mapImage].filter(Boolean)
+                        : visibleMapImages;
                       return (
                         <div 
                           key={room.id}
@@ -594,7 +632,7 @@ const Editor: React.FC = () => {
                             <div className="flex items-start gap-2">
                               <span className="text-xs font-bold text-slate-500 dark:text-slate-400 p-1">{index + 1}</span>
                               <div className="flex-1 transform scale-[0.95] origin-top-left">
-                                 <Room room={room} inventoryItems={inventoryItems} visibleMapImages={allMapImages} className="shadow-md" globalBackgroundColor={game.globalBackgroundColor} />
+                                 <Room room={room} inventoryItems={inventoryItems} visibleMapImages={roomMapPreview} className="shadow-md" globalBackgroundColor={game.globalBackgroundColor} />
                               </div>
                             </div>
                             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 p-1 bg-black/50 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
@@ -628,7 +666,7 @@ const Editor: React.FC = () => {
                 </label>
               </div>
               <div className="relative w-full aspect-video">
-                <Room room={{...currentRoom, isSolved: previewSolved}} inventoryItems={inventoryItems} visibleMapImages={allMapImages} globalBackgroundColor={game.globalBackgroundColor} />
+                <Room room={{...currentRoom, isSolved: previewSolved}} inventoryItems={inventoryItems} visibleMapImages={visibleMapImages} globalBackgroundColor={game.globalBackgroundColor} />
                 <div className={`absolute inset-0 flex ${currentRoom.isFullScreenImage ? 'pointer-events-none' : ''}`}>
                   <div className={`h-full group relative ${currentRoom.isFullScreenImage ? 'w-full' : 'w-[70%]'}`}>
                       <label className={`w-full h-full cursor-pointer flex items-center justify-center bg-black/0 hover:bg-black/30 transition-colors duration-300 ${currentRoom.isFullScreenImage ? 'pointer-events-auto' : ''}`}>

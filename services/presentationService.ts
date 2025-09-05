@@ -74,6 +74,7 @@ export const createGame = async (title: string): Promise<Game> => {
         id: generateUUID(),
         title,
         globalBackgroundColor: '#000000',
+        mapDisplayMode: 'layered',
         rooms: [newRoom],
         visitedRoomIds: [],
     };

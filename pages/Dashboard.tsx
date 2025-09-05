@@ -153,8 +153,10 @@ const Dashboard: React.FC = () => {
                              .filter(t => t.showInInventory)
                              .map(t => t.name);
                             
-                           // For dashboard preview, show all map images to see the composite
-                           const allMapImages = g.rooms.map(r => r.mapImage).filter(Boolean);
+                           const firstRoom = g.rooms[0] || fallbackRoom;
+                           const visibleMapImages = g.mapDisplayMode === 'room-specific'
+                                ? [firstRoom.mapImage].filter(Boolean)
+                                : g.rooms.map(r => r.mapImage).filter(Boolean);
 
                             return (
                                 <div key={g.id} className="group relative bg-white dark:bg-slate-800 rounded-lg shadow-md overflow-hidden border border-slate-200 dark:border-slate-700 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col justify-between">
@@ -162,9 +164,9 @@ const Dashboard: React.FC = () => {
                                         <Link to={`/editor/${g.id}`} className="block hover:opacity-90 transition-opacity">
                                             <div className="p-2">
                                               <Room 
-                                                room={g.rooms[0] || fallbackRoom}
+                                                room={firstRoom}
                                                 inventoryItems={inventoryItems}
-                                                visibleMapImages={allMapImages}
+                                                visibleMapImages={visibleMapImages}
                                                 globalBackgroundColor={g.globalBackgroundColor}
                                               />
                                             </div>
