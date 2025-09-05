@@ -1,7 +1,3 @@
-
-
-
-
 import type { Game, Room } from '../types';
 import { generateUUID } from '../utils/uuid';
 
@@ -69,6 +65,7 @@ export const createGame = async (title: string): Promise<Game> => {
         isSolved: false,
         solvedImage: null,
         solvedNotes: '',
+        objectRemoveIds: [],
     };
     const newGame: Game = {
         id: generateUUID(),

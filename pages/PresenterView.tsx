@@ -167,12 +167,45 @@ const PresenterView: React.FC = () => {
       setCurrentRoomIndex(index);
       postMessage({ type: 'GOTO_ROOM', roomIndex: index });
 
-      const newRoomId = game.rooms[index].id;
+      const destinationRoom = game.rooms[index];
+      const newRoomId = destinationRoom.id;
+      const objectsToRemove = destinationRoom.objectRemoveIds || [];
+
+      let needsUpdate = false;
+      let updatedGame = { ...game };
+
+      // 1. Handle object removal if any are specified for the destination room
+      if (objectsToRemove.length > 0) {
+        let objectsWereRemoved = false;
+        const currentInventoryIds = new Set(
+            updatedGame.rooms.flatMap(r => r.objects).filter(o => o.showInInventory).map(o => o.id)
+        );
+
+        const idsToRemoveFromInventory = objectsToRemove.filter(id => currentInventoryIds.has(id));
+
+        if (idsToRemoveFromInventory.length > 0) {
+            updatedGame.rooms = updatedGame.rooms.map(room => ({
+                ...room,
+                objects: room.objects.map(obj => 
+                    idsToRemoveFromInventory.includes(obj.id) ? { ...obj, showInInventory: false } : obj
+                )
+            }));
+            objectsWereRemoved = true;
+        }
+        
+        if (objectsWereRemoved) {
+          needsUpdate = true;
+        }
+      }
+
+      // 2. Handle visiting the new room (adding to visited list)
       if (!game.visitedRoomIds.includes(newRoomId)) {
-        const updatedGame = {
-          ...game,
-          visitedRoomIds: [...game.visitedRoomIds, newRoomId],
-        };
+        updatedGame.visitedRoomIds = [...game.visitedRoomIds, newRoomId];
+        needsUpdate = true;
+      }
+
+      // 3. If any state changed, save and broadcast the update
+      if (needsUpdate) {
         updateAndBroadcast(updatedGame);
       }
     }

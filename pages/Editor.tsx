@@ -28,6 +28,8 @@ const Editor: React.FC = () => {
   const [openPuzzleRoomsDropdown, setOpenPuzzleRoomsDropdown] = useState<string | null>(null);
   const [openPuzzlePuzzlesDropdown, setOpenPuzzlePuzzlesDropdown] = useState<string | null>(null);
   const [openPuzzleRoomSolvesDropdown, setOpenPuzzleRoomSolvesDropdown] = useState<string | null>(null);
+  const [openObjectRemoveDropdown, setOpenObjectRemoveDropdown] = useState<boolean>(false);
+  const [objectRemoveSearch, setObjectRemoveSearch] = useState('');
   const [draggedRoomIndex, setDraggedRoomIndex] = useState<number | null>(null);
   const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
   const [previewSolved, setPreviewSolved] = useState(false);
@@ -37,6 +39,7 @@ const Editor: React.FC = () => {
   const roomsDropdownRef = useRef<HTMLDivElement>(null);
   const puzzlesDropdownRef = useRef<HTMLDivElement>(null);
   const roomSolvesDropdownRef = useRef<HTMLDivElement>(null);
+  const objectRemoveDropdownRef = useRef<HTMLDivElement>(null);
   const roomsContainerRef = useRef<HTMLDivElement>(null);
   const objectsContainerRef = useRef<HTMLDivElement>(null);
   const puzzlesContainerRef = useRef<HTMLDivElement>(null);
@@ -84,6 +87,9 @@ const Editor: React.FC = () => {
         }
         if (roomSolvesDropdownRef.current && !roomSolvesDropdownRef.current.contains(event.target as Node)) {
             setOpenPuzzleRoomSolvesDropdown(null);
+        }
+        if (objectRemoveDropdownRef.current && !objectRemoveDropdownRef.current.contains(event.target as Node)) {
+            setOpenObjectRemoveDropdown(false);
         }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -145,7 +151,7 @@ const Editor: React.FC = () => {
 
   const addRoom = () => {
     if (!game) return;
-    const newRoom: RoomType = { id: generateUUID(), name: `Room ${game.rooms.length + 1}`, image: null, mapImage: null, notes: '', backgroundColor: '#000000', isFullScreenImage: false, act: game.rooms[selectedRoomIndex]?.act || 1, objects: [], puzzles: [], actions: [], isSolved: false, solvedImage: null, solvedNotes: '' };
+    const newRoom: RoomType = { id: generateUUID(), name: `Room ${game.rooms.length + 1}`, image: null, mapImage: null, notes: '', backgroundColor: '#000000', isFullScreenImage: false, act: game.rooms[selectedRoomIndex]?.act || 1, objectRemoveIds: [], objects: [], puzzles: [], actions: [], isSolved: false, solvedImage: null, solvedNotes: '' };
     const newRooms = [...game.rooms, newRoom];
     updateGame({ ...game, rooms: newRooms });
     selectRoom(newRooms.length - 1);
@@ -437,6 +443,11 @@ const Editor: React.FC = () => {
     }, {} as Record<number, (RoomType & { originalIndex: number })[]>);
   }, [game]);
 
+  const allGameObjects = useMemo(() => {
+    if (!game) return [];
+    return game.rooms.flatMap(r => r.objects.map(o => ({ ...o, roomName: r.name })));
+  }, [game]);
+
   if (status === 'loading') {
     return <div className="flex items-center justify-center h-screen">Loading game...</div>;
   }
@@ -459,6 +470,11 @@ const Editor: React.FC = () => {
   const visibleMapImages = game.mapDisplayMode === 'room-specific'
     ? [currentRoom.mapImage].filter(Boolean)
     : game.rooms.map(r => r.mapImage).filter(Boolean);
+
+  const filteredObjectsForRemoval = allGameObjects.filter(obj => 
+    obj.name.toLowerCase().includes(objectRemoveSearch.toLowerCase()) || 
+    obj.roomName.toLowerCase().includes(objectRemoveSearch.toLowerCase())
+  );
 
   return (
     <div className="flex flex-col h-screen bg-slate-200 dark:bg-slate-900">
@@ -1081,6 +1097,56 @@ const Editor: React.FC = () => {
                                 ))}
                             </div>
                           )}
+                        </div>
+                         <div>
+                            <h3 className="font-semibold text-sm mb-2 text-slate-600 dark:text-slate-400">Object Removal</h3>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">Visiting this room will remove the selected objects from the live inventory.</p>
+                            <div className="relative">
+                                <button
+                                    type="button"
+                                    onClick={() => setOpenObjectRemoveDropdown(!openObjectRemoveDropdown)}
+                                    className="w-full text-left px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 flex justify-between items-center text-sm"
+                                >
+                                    <span>{`${currentRoom.objectRemoveIds?.length || 0} object(s) selected`}</span>
+                                    <Icon as="chevron-down" className={`w-4 h-4 transition-transform ${openObjectRemoveDropdown ? 'rotate-180' : ''}`} />
+                                </button>
+                                {openObjectRemoveDropdown && (
+                                    <div ref={objectRemoveDropdownRef} className="absolute z-20 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg">
+                                        <div className="p-2 border-b border-slate-200 dark:border-slate-700">
+                                            <input 
+                                                type="text"
+                                                value={objectRemoveSearch}
+                                                onChange={(e) => setObjectRemoveSearch(e.target.value)}
+                                                placeholder="Search objects..."
+                                                className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
+                                            />
+                                        </div>
+                                        <div className="max-h-48 overflow-y-auto p-2">
+                                            {filteredObjectsForRemoval.length > 0 ? filteredObjectsForRemoval.map(obj => (
+                                                <label key={obj.id} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md p-2">
+                                                    <input
+                                                        type="checkbox"
+                                                        className="rounded border-slate-400 text-brand-600 focus:ring-brand-500"
+                                                        checked={currentRoom.objectRemoveIds?.includes(obj.id)}
+                                                        onChange={(e) => {
+                                                            const newLockedIds = e.target.checked
+                                                                ? [...(currentRoom.objectRemoveIds || []), obj.id]
+                                                                : (currentRoom.objectRemoveIds || []).filter(id => id !== obj.id);
+                                                            changeRoomProperty('objectRemoveIds', newLockedIds);
+                                                        }}
+                                                    />
+                                                    <div>
+                                                        <span>{obj.name}</span>
+                                                        <span className="text-xs text-slate-500 dark:text-slate-400 ml-2">({obj.roomName})</span>
+                                                    </div>
+                                                </label>
+                                            )) : (
+                                                <p className="text-xs text-slate-500 dark:text-slate-400 italic p-2">No objects found.</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                         <div>
                             <label className="flex items-center justify-between gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer">
