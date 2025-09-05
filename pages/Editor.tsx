@@ -229,7 +229,7 @@ const Editor: React.FC = () => {
   }
 
   const addAction = () => {
-    const newAction: Action = { id: generateUUID(), name: 'New Action', description: 'Description...', image: null, showImageOverlay: false };
+    const newAction: Action = { id: generateUUID(), name: 'New Action', description: 'Description...', image: null, showImageOverlay: false, isComplete: false };
     setEditingRoomActions([...editingRoomActions, newAction]);
     setTimeout(() => {
         actionsContainerRef.current?.lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'end' });
@@ -281,6 +281,7 @@ const Editor: React.FC = () => {
             actions: (room.actions || []).map(a => ({
                 ...a,
                 showImageOverlay: false,
+                isComplete: false,
             })),
         })),
         visitedRoomIds: game.rooms.length > 0 ? [game.rooms[0].id] : [],

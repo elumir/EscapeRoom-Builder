@@ -283,6 +283,21 @@ const PresenterView: React.FC = () => {
     };
     updateAndBroadcast(updatedGame);
   };
+
+  const handleToggleActionComplete = (actionId: string, newState: boolean) => {
+    if (!game) return;
+
+    const updatedGame = {
+        ...game,
+        rooms: game.rooms.map(room => ({
+            ...room,
+            actions: (room.actions || []).map(action =>
+                action.id === actionId ? { ...action, isComplete: newState } : action
+            )
+        }))
+    };
+    updateAndBroadcast(updatedGame);
+  };
   
   const handleToggleDescriptionVisibility = (objectId: string) => {
       setVisibleDescriptionIds(prev => {
@@ -315,6 +330,7 @@ const PresenterView: React.FC = () => {
             actions: (room.actions || []).map(a => ({
                 ...a,
                 showImageOverlay: false,
+                isComplete: false,
             })),
         })),
         visitedRoomIds: game.rooms.length > 0 ? [game.rooms[0].id] : [],
@@ -599,6 +615,7 @@ const PresenterView: React.FC = () => {
                           key={action.id} 
                           action={action} 
                           onToggleImage={handleToggleActionImage}
+                          onToggleComplete={handleToggleActionComplete}
                         />
                       ))}
                     </div>

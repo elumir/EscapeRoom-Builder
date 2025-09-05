@@ -84,6 +84,7 @@ const Dashboard: React.FC = () => {
                 actions: (room.actions || []).map(a => ({
                     ...a,
                     showImageOverlay: false,
+                    isComplete: false,
                 })),
             })),
             visitedRoomIds: presentModalGame.rooms.length > 0 ? [presentModalGame.rooms[0].id] : [],

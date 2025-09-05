@@ -11,6 +11,7 @@ export interface Action {
   description: string;
   image: string | null; // Asset ID
   showImageOverlay: boolean;
+  isComplete?: boolean;
 }
 
 export interface Puzzle {
