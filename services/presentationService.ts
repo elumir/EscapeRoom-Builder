@@ -127,3 +127,16 @@ export const getAssetsForGame = async (gameId: string): Promise<Asset[]> => {
         return [];
     }
 };
+
+export const deleteAsset = async (gameId: string, assetId: string): Promise<boolean> => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/presentations/${gameId}/assets/${assetId}`, {
+            method: 'DELETE',
+        });
+        await handleResponse(response);
+        return true;
+    } catch(error) {
+        console.error("Failed to delete asset:", error);
+        return false;
+    }
+};

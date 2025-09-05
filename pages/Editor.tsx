@@ -38,6 +38,8 @@ const Editor: React.FC = () => {
   const [assetLibrary, setAssetLibrary] = useState<Asset[]>([]);
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
   const [assetModalTarget, setAssetModalTarget] = useState<'image' | 'mapImage' | 'solvedImage' | null>(null);
+  const [isAssetManagerOpen, setIsAssetManagerOpen] = useState(false);
+  const [deletingAssetId, setDeletingAssetId] = useState<string | null>(null);
 
 
   const objectsDropdownRef = useRef<HTMLDivElement>(null);
@@ -220,6 +222,75 @@ const Editor: React.FC = () => {
       setAssetModalTarget(null);
   };
 
+  const handleDeleteAsset = async (assetId: string) => {
+      if (!game || deletingAssetId) return;
+      if (!window.confirm('Are you sure you want to delete this asset? This cannot be undone and will remove the asset from all rooms, puzzles, and actions.')) return;
+
+      setDeletingAssetId(assetId);
+      try {
+          const success = await gameService.deleteAsset(game.id, assetId);
+
+          if (success) {
+              setAssetLibrary(prev => prev.filter(asset => asset.id !== assetId));
+
+              let gameWasModified = false;
+              const updatedGame: Game = {
+                  ...game,
+                  rooms: game.rooms.map(room => {
+                      let roomModified = false;
+                      const newRoom = { ...room };
+
+                      if (newRoom.image === assetId) { newRoom.image = null; roomModified = true; }
+                      if (newRoom.mapImage === assetId) { newRoom.mapImage = null; roomModified = true; }
+                      if (newRoom.solvedImage === assetId) { newRoom.solvedImage = null; roomModified = true; }
+
+                      const newPuzzles = newRoom.puzzles.map(puzzle => {
+                          let puzzleModified = false;
+                          const newPuzzle = { ...puzzle };
+                          if (newPuzzle.image === assetId) { newPuzzle.image = null; puzzleModified = true; }
+                          if (newPuzzle.sound === assetId) { newPuzzle.sound = null; puzzleModified = true; }
+                          if (puzzleModified) gameWasModified = true;
+                          return newPuzzle;
+                      });
+                      
+                      const newActions = (newRoom.actions || []).map(action => {
+                         let actionModified = false;
+                         const newAction = { ...action };
+                         if (newAction.image === assetId) { newAction.image = null; actionModified = true; }
+                         if (actionModified) gameWasModified = true;
+                         return newAction;
+                      });
+
+                      if (roomModified || newPuzzles.length !== newRoom.puzzles.length || newActions.length !== newRoom.actions.length) {
+                          gameWasModified = true;
+                      }
+                      
+                      newRoom.puzzles = newPuzzles;
+                      newRoom.actions = newActions;
+                      return newRoom;
+                  })
+              };
+
+              if (gameWasModified) {
+                  updateGame(updatedGame);
+                  
+                  const currentRoomFromUpdatedGame = updatedGame.rooms[selectedRoomIndex];
+                  if (currentRoomFromUpdatedGame) {
+                      setEditingRoomPuzzles(currentRoomFromUpdatedGame.puzzles);
+                      setEditingRoomActions(currentRoomFromUpdatedGame.actions || []);
+                  }
+              }
+          } else {
+              alert('Failed to delete asset.');
+          }
+      } catch (error) {
+          console.error("Failed to delete asset:", error);
+          alert('An error occurred while deleting the asset.');
+      } finally {
+          setDeletingAssetId(null);
+      }
+  };
+
   const addObject = () => {
     const newObject: InventoryObject = { id: generateUUID(), name: 'New Object', description: 'Description...', showInInventory: false};
     setEditingRoomObjects([...editingRoomObjects, newObject]);
@@ -265,6 +336,8 @@ const Editor: React.FC = () => {
         try {
             const { assetId } = await gameService.uploadAsset(game.id, file);
             handlePuzzleChange(index, field, assetId);
+            const assets = await gameService.getAssetsForGame(game.id);
+            setAssetLibrary(assets);
         } catch (error) {
             console.error(`Puzzle ${field} upload failed:`, error);
             alert(`Failed to upload puzzle ${field}. Please try again.`);
@@ -299,6 +372,8 @@ const Editor: React.FC = () => {
           try {
               const { assetId } = await gameService.uploadAsset(game.id, file);
               handleActionChange(index, 'image', assetId);
+              const assets = await gameService.getAssetsForGame(game.id);
+              setAssetLibrary(assets);
           } catch (error) {
               console.error(`Action image upload failed:`, error);
               alert(`Failed to upload action image. Please try again.`);
@@ -737,6 +812,59 @@ const Editor: React.FC = () => {
                 </div>
             </div>
         )}
+      {isAssetManagerOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60] backdrop-blur-sm">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-2xl w-full max-w-6xl h-[90vh] flex flex-col">
+                <div className="flex justify-between items-center mb-4 pb-4 border-b border-slate-200 dark:border-slate-700">
+                    <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">Asset Manager</h2>
+                    <button onClick={() => setIsAssetManagerOpen(false)} className="p-1.5 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700">
+                        <Icon as="close" className="w-5 h-5" />
+                    </button>
+                </div>
+                {assetLibrary.length > 0 ? (
+                    <div className="flex-grow overflow-y-auto pr-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                        {assetLibrary.map(asset => (
+                            <div key={asset.id} className="aspect-square group relative rounded-md overflow-hidden bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600">
+                                {asset.mime_type.startsWith('image/') ? (
+                                    <img src={`/api/assets/${asset.id}`} alt="Game asset" className="w-full h-full object-cover"/>
+                                ) : (
+                                    <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 p-2">
+                                        <Icon as="audio" className="w-12 h-12 mb-2"/>
+                                        <p className="text-xs text-center break-all font-mono">Audio File</p>
+                                    </div>
+                                )}
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/60 transition-colors flex items-center justify-center">
+                                    <button
+                                        onClick={() => handleDeleteAsset(asset.id)}
+                                        disabled={deletingAssetId === asset.id}
+                                        className="p-2 bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                                        aria-label="Delete asset"
+                                    >
+                                        {deletingAssetId === asset.id ? 
+                                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                          : <Icon as="trash" className="w-5 h-5" />
+                                        }
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="flex-grow flex items-center justify-center text-slate-500 dark:text-slate-400">
+                        <p>No assets uploaded for this game yet.</p>
+                    </div>
+                )}
+                <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-end">
+                    <button
+                        onClick={() => setIsAssetManagerOpen(false)}
+                        className="px-6 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors"
+                    >
+                        Done
+                    </button>
+                </div>
+            </div>
+        </div>
+      )}
       <header className="bg-white dark:bg-slate-800 shadow-md p-2 flex justify-between items-center z-10">
         <div className="flex items-center gap-4">
           <Link to="/" className="text-xl font-bold text-brand-600 dark:text-brand-400 p-2">Studio</Link>
@@ -753,6 +881,12 @@ const Editor: React.FC = () => {
             className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
           >
             Settings
+          </button>
+           <button
+            onClick={() => setIsAssetManagerOpen(true)}
+            className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
+          >
+            Assets
           </button>
           <button onClick={() => setIsResetModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors duration-300 shadow">
             <Icon as="present" className="w-5 h-5" />
@@ -853,7 +987,7 @@ const Editor: React.FC = () => {
                                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('image'); }}
                                   className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors"
                                   title="Select an existing image"
-                              >
+                                >
                                   <Icon as="gallery" className="w-3.5 h-3.5" />
                                   Select an existing image
                               </button>

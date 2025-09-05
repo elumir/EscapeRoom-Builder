@@ -223,6 +223,25 @@ app.get('/api/assets/:assetId', async (req, res) => {
     }
 });
 
+// Delete an asset by ID
+app.delete('/api/presentations/:presentationId/assets/:assetId', async (req, res) => {
+    try {
+        const { presentationId, assetId } = req.params;
+        const [result] = await dbPool.query(
+            'DELETE FROM assets WHERE id = ? AND presentation_id = ?', 
+            [assetId, presentationId]
+        );
+        if (result.affectedRows > 0) {
+            res.status(204).send(); // No content
+        } else {
+            res.status(404).json({ error: 'Asset not found or does not belong to this presentation.' });
+        }
+    } catch (error) {
+        console.error(`Failed to delete asset ${req.params.assetId}:`, error);
+        res.status(500).json({ error: 'Database delete failed for asset.' });
+    }
+});
+
 
 // === FRONTEND SERVING (for production) ===
 
