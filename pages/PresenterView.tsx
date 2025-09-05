@@ -31,9 +31,12 @@ const PresenterView: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'rooms' | 'inventory'>('rooms');
   const [showInventoryNotification, setShowInventoryNotification] = useState(false);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [activeActionTab, setActiveActionTab] = useState<'open' | 'complete'>('open');
+  const [activePuzzleTab, setActivePuzzleTab] = useState<'open' | 'complete'>('open');
   
   const { 
     lockingPuzzlesByRoomId, 
+    // FIX: Corrected typo from lockingPzzlesByPuzzleId to lockingPuzzlesByPuzzleId
     lockingPuzzlesByPuzzleId,
     allUnsolvedPuzzles, 
     inventoryObjects 
@@ -386,6 +389,11 @@ const PresenterView: React.FC = () => {
   
   const currentRoom = game.rooms[currentRoomIndex];
   const availableObjects = currentRoom?.objects.filter(o => !o.showInInventory) || [];
+  
+  const openActions = (currentRoom?.actions || []).filter(action => !action.isComplete);
+  const completedActions = (currentRoom?.actions || []).filter(action => action.isComplete);
+  const openPuzzles = (currentRoom?.puzzles || []).filter(puzzle => !puzzle.isSolved);
+  const completedPuzzles = (currentRoom?.puzzles || []).filter(puzzle => puzzle.isSolved);
 
   return (
     <div className="h-screen bg-slate-800 text-white flex flex-col">
@@ -648,43 +656,108 @@ const PresenterView: React.FC = () => {
                 
                 {currentRoom.actions && currentRoom.actions.length > 0 && (
                   <div className="mt-8 pt-6 border-t border-slate-700">
-                    <h2 className="text-lg font-semibold mb-4 text-slate-300">
-                      Actions
-                    </h2>
-                    <div className="space-y-4">
-                      {(currentRoom.actions || []).map(action => (
-                        <ActionItem 
-                          key={action.id} 
-                          action={action} 
-                          onToggleImage={handleToggleActionImage}
-                          onToggleComplete={handleToggleActionComplete}
-                        />
-                      ))}
+                    <h2 className="text-lg font-semibold text-slate-300">Actions</h2>
+                    <div className="mt-4 border-b border-slate-700 flex">
+                        <button
+                            onClick={() => setActiveActionTab('open')}
+                            className={`px-4 py-2 text-sm font-medium transition-colors ${activeActionTab === 'open' ? 'border-b-2 border-brand-500 text-white' : 'text-slate-400 hover:text-slate-200'}`}
+                        >
+                            Open <span className="text-xs bg-slate-700 px-1.5 py-0.5 rounded-full">{openActions.length}</span>
+                        </button>
+                        <button
+                            onClick={() => setActiveActionTab('complete')}
+                            className={`px-4 py-2 text-sm font-medium transition-colors ${activeActionTab === 'complete' ? 'border-b-2 border-brand-500 text-white' : 'text-slate-400 hover:text-slate-200'}`}
+                        >
+                            Complete <span className="text-xs bg-slate-700 px-1.5 py-0.5 rounded-full">{completedActions.length}</span>
+                        </button>
+                    </div>
+                    <div className="space-y-4 mt-4">
+                        {activeActionTab === 'open' && (
+                            openActions.length > 0 ? (
+                                openActions.map(action => (
+                                    <ActionItem 
+                                        key={action.id} 
+                                        action={action} 
+                                        onToggleImage={handleToggleActionImage}
+                                        onToggleComplete={handleToggleActionComplete}
+                                    />
+                                ))
+                            ) : (
+                                <p className="text-slate-400 italic text-sm p-4">No open actions in this room.</p>
+                            )
+                        )}
+                        {activeActionTab === 'complete' && (
+                            completedActions.length > 0 ? (
+                                completedActions.map(action => (
+                                    <ActionItem 
+                                        key={action.id} 
+                                        action={action} 
+                                        onToggleImage={handleToggleActionImage}
+                                        onToggleComplete={handleToggleActionComplete}
+                                    />
+                                ))
+                            ) : (
+                                <p className="text-slate-400 italic text-sm p-4">No completed actions in this room.</p>
+                            )
+                        )}
                     </div>
                   </div>
                 )}
                 
                 {currentRoom.puzzles && currentRoom.puzzles.length > 0 && (
                   <div className="mt-8 pt-6 border-t border-slate-700">
-                    <h2 className="text-lg font-semibold mb-4 text-slate-300 flex items-baseline gap-2">
-                      <span>Puzzles</span>
-                      <span className="text-xs font-normal text-slate-400">(Toggle to solve)</span>
-                    </h2>
-                    <div className="space-y-4">
-                      {currentRoom.puzzles.map(puzzle => {
-                        const lockingPuzzleName = lockingPuzzlesByPuzzleId.get(puzzle.id);
-                        return (
-                          <PuzzleItem 
-                            key={puzzle.id} 
-                            puzzle={puzzle} 
-                            onToggle={handleTogglePuzzle} 
-                            onAttemptSolve={handleAttemptSolve}
-                            onToggleImage={handleTogglePuzzleImage}
-                            isLocked={!!lockingPuzzleName}
-                            lockingPuzzleName={lockingPuzzleName}
-                          />
-                        );
-                      })}
+                    <h2 className="text-lg font-semibold text-slate-300">Puzzles</h2>
+                    <div className="mt-4 border-b border-slate-700 flex">
+                        <button
+                            onClick={() => setActivePuzzleTab('open')}
+                            className={`px-4 py-2 text-sm font-medium transition-colors ${activePuzzleTab === 'open' ? 'border-b-2 border-brand-500 text-white' : 'text-slate-400 hover:text-slate-200'}`}
+                        >
+                            Open <span className="text-xs bg-slate-700 px-1.5 py-0.5 rounded-full">{openPuzzles.length}</span>
+                        </button>
+                        <button
+                            onClick={() => setActivePuzzleTab('complete')}
+                            className={`px-4 py-2 text-sm font-medium transition-colors ${activePuzzleTab === 'complete' ? 'border-b-2 border-brand-500 text-white' : 'text-slate-400 hover:text-slate-200'}`}
+                        >
+                            Complete <span className="text-xs bg-slate-700 px-1.5 py-0.5 rounded-full">{completedPuzzles.length}</span>
+                        </button>
+                    </div>
+                    <div className="space-y-4 mt-4">
+                        {activePuzzleTab === 'open' && (
+                             openPuzzles.length > 0 ? (
+                                openPuzzles.map(puzzle => {
+                                    const lockingPuzzleName = lockingPuzzlesByPuzzleId.get(puzzle.id);
+                                    return (
+                                    <PuzzleItem 
+                                        key={puzzle.id} 
+                                        puzzle={puzzle} 
+                                        onToggle={handleTogglePuzzle} 
+                                        onAttemptSolve={handleAttemptSolve}
+                                        onToggleImage={handleTogglePuzzleImage}
+                                        isLocked={!!lockingPuzzleName}
+                                        lockingPuzzleName={lockingPuzzleName}
+                                    />
+                                    );
+                                })
+                             ) : (
+                                 <p className="text-slate-400 italic text-sm p-4">No open puzzles in this room.</p>
+                             )
+                        )}
+                        {activePuzzleTab === 'complete' && (
+                            completedPuzzles.length > 0 ? (
+                                completedPuzzles.map(puzzle => (
+                                    <PuzzleItem 
+                                        key={puzzle.id} 
+                                        puzzle={puzzle} 
+                                        onToggle={handleTogglePuzzle} 
+                                        onAttemptSolve={handleAttemptSolve}
+                                        onToggleImage={handleTogglePuzzleImage}
+                                        isLocked={false} // Completed puzzles aren't locked
+                                    />
+                                ))
+                            ) : (
+                                <p className="text-slate-400 italic text-sm p-4">No completed puzzles in this room.</p>
+                            )
+                        )}
                     </div>
                   </div>
                 )}
