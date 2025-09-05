@@ -248,7 +248,7 @@ const PuzzleItem: React.FC<{
                             )}
                         </button>
                         <button onClick={handleRewind} disabled={isLocked} title="Rewind to Start" className="p-2 bg-slate-700 rounded-full hover:bg-slate-600 flex-shrink-0 disabled:cursor-not-allowed disabled:hover:bg-slate-700">
-                           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M4.5 3.5A1.5 1.5 0 003 5v10a1.5 1.5 0 003 0V5a1.5 1.5 0 00-1.5-1.5zM16.898 9.22a1.5 1.5 0 000-2.438l-6-4.5a1.5 1.5 0 00-2.398 1.218V16.5a1.5 1.5 0 002.398 1.218l6-4.5z" /></svg>
+                           <Icon as="rewind" className="h-5 w-5" />
                         </button>
                         <div className="flex-grow flex items-center gap-2">
                             <span className="text-xs text-slate-400">{formatTime(progress)}</span>

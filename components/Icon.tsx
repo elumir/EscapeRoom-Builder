@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface IconProps {
-  as: 'plus' | 'trash' | 'present' | 'prev' | 'next' | 'close' | 'reorder' | 'expand' | 'lock' | 'eye' | 'eye-slash' | 'chevron-down' | 'restart';
+  as: 'plus' | 'trash' | 'present' | 'prev' | 'next' | 'close' | 'reorder' | 'expand' | 'lock' | 'eye' | 'eye-slash' | 'chevron-down' | 'restart' | 'rewind';
   className?: string;
 }
 
@@ -72,6 +72,11 @@ const icons = {
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
       <circle cx="12" cy="11.998" r="11.25" strokeLinecap="round" strokeLinejoin="round" />
       <path strokeLinecap="round" strokeLinejoin="round" d="M9.284 7.964A1.591 1.591 0 0 1 12 9.089V10.5l2.534-2.534a1.591 1.591 0 0 1 2.716 1.123v5.819a1.592 1.592 0 0 1-2.716 1.125L12 13.5v1.41a1.592 1.592 0 0 1-2.716 1.125L5.25 12z" />
+    </svg>
+  ),
+  rewind: (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M22.075 3.011L14.25 7.875V3.629a.75.75 0 0 0-1.175-.618l-12 8.371a.75.75 0 0 0 0 1.236l12 8.371a.75.75 0 0 0 1.175-.618v-4.246l7.825 4.864a.75.75 0 0 0 1.175-.618V3.629a.75.75 0 0 0-1.175-.618z" />
     </svg>
   )
 };
