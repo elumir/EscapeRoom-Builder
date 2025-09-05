@@ -34,7 +34,7 @@ const Room: React.FC<RoomProps> = ({ room, inventoryItems, visibleMapImages, cla
     ? 'w-full h-full'
     : 'w-[70%] h-full flex items-center justify-center border-r border-slate-200 dark:border-slate-700';
 
-  const sidebarContainerClass = 'w-[30%] h-full flex flex-col bg-white/20 dark:bg-black/20';
+  const sidebarContainerClass = 'w-[30%] h-full flex flex-col';
 
   return (
     <div
