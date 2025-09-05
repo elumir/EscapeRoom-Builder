@@ -325,7 +325,7 @@ const Editor: React.FC = () => {
   };
 
   const addObject = () => {
-    const newObject: InventoryObject = { id: generateUUID(), name: 'New Object', description: 'Description...', showInInventory: false};
+    const newObject: InventoryObject = { id: generateUUID(), name: '', description: '', showInInventory: false};
     setEditingRoomObjects([...editingRoomObjects, newObject]);
     setTimeout(() => {
         objectsContainerRef.current?.lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'end' });
