@@ -42,6 +42,11 @@ const Editor: React.FC = () => {
   const [openModalPuzzleRoomsDropdown, setOpenModalPuzzleRoomsDropdown] = useState(false);
   const [openModalPuzzlePuzzlesDropdown, setOpenModalPuzzlePuzzlesDropdown] = useState(false);
   const [openModalPuzzleRoomSolvesDropdown, setOpenModalPuzzleRoomSolvesDropdown] = useState(false);
+  const [modalPuzzleObjectsSearch, setModalPuzzleObjectsSearch] = useState('');
+  const [modalPuzzlePuzzlesSearch, setModalPuzzlePuzzlesSearch] = useState('');
+  const [modalPuzzleRoomsSearch, setModalPuzzleRoomsSearch] = useState('');
+  const [modalPuzzleRoomSolvesSearch, setModalPuzzleRoomSolvesSearch] = useState('');
+
 
   const objectRemoveDropdownRef = useRef<HTMLDivElement>(null);
   const modalObjectsDropdownRef = useRef<HTMLDivElement>(null);
@@ -965,15 +970,32 @@ const Editor: React.FC = () => {
                                   <Icon as="chevron-down" className={`w-4 h-4 transition-transform ${openModalPuzzleObjectsDropdown ? 'rotate-180' : ''}`} />
                               </button>
                               {openModalPuzzleObjectsDropdown && (
-                                  <div className="absolute z-10 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                                      {game.rooms.map(room => (
-                                        <div key={room.id} className="p-2">
-                                          <h5 className="text-xs font-bold text-slate-500 dark:text-slate-400 sticky top-0 bg-white dark:bg-slate-800 py-1 px-2 -mx-2">{room.name}</h5>
-                                          {room.objects.map(obj => (
-                                            <label key={obj.id} className="flex items-center gap-2 text-sm p-1 cursor-pointer"><input type="checkbox" checked={modalPuzzleData.lockedObjectIds?.includes(obj.id)} onChange={e => handleModalPuzzleChange('lockedObjectIds', e.target.checked ? [...modalPuzzleData.lockedObjectIds, obj.id] : modalPuzzleData.lockedObjectIds.filter(id => id !== obj.id))} />{obj.name}</label>
-                                          ))}
-                                        </div>
-                                      ))}
+                                  <div className="absolute z-10 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg flex flex-col max-h-60">
+                                      <div className="p-2 border-b border-slate-200 dark:border-slate-700">
+                                          <input 
+                                              type="text"
+                                              value={modalPuzzleObjectsSearch}
+                                              onChange={(e) => setModalPuzzleObjectsSearch(e.target.value)}
+                                              placeholder="Search objects..."
+                                              className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
+                                          />
+                                      </div>
+                                      <div className="overflow-y-auto">
+                                          {game.rooms.map(room => {
+                                              const filteredObjects = room.objects.filter(obj => 
+                                                  obj.name.toLowerCase().includes(modalPuzzleObjectsSearch.toLowerCase())
+                                              );
+                                              if (filteredObjects.length === 0) return null;
+                                              return (
+                                                  <div key={room.id} className="p-2">
+                                                      <h5 className="text-xs font-bold text-slate-500 dark:text-slate-400 sticky top-0 bg-white dark:bg-slate-800 py-1 px-2 -mx-2">{room.name}</h5>
+                                                      {filteredObjects.map(obj => (
+                                                        <label key={obj.id} className="flex items-center gap-2 text-sm p-1 cursor-pointer"><input type="checkbox" checked={modalPuzzleData.lockedObjectIds?.includes(obj.id)} onChange={e => handleModalPuzzleChange('lockedObjectIds', e.target.checked ? [...modalPuzzleData.lockedObjectIds, obj.id] : modalPuzzleData.lockedObjectIds.filter(id => id !== obj.id))} />{obj.name}</label>
+                                                      ))}
+                                                  </div>
+                                              )
+                                          })}
+                                      </div>
                                   </div>
                               )}
                           </div>
@@ -985,15 +1007,30 @@ const Editor: React.FC = () => {
                                 <Icon as="chevron-down" className={`w-4 h-4 transition-transform ${openModalPuzzlePuzzlesDropdown ? 'rotate-180' : ''}`} />
                             </button>
                             {openModalPuzzlePuzzlesDropdown && (
-                                <div className="absolute z-10 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                                    {game.rooms.map(room => (
-                                      <div key={room.id} className="p-2">
-                                        <h5 className="text-xs font-bold text-slate-500 dark:text-slate-400 sticky top-0 bg-white dark:bg-slate-800 py-1 px-2 -mx-2">{room.name}</h5>
-                                        {room.puzzles.filter(p => p.id !== modalPuzzleData.id).map(p => (
-                                          <label key={p.id} className="flex items-center gap-2 text-sm p-1 cursor-pointer"><input type="checkbox" checked={modalPuzzleData.lockedPuzzleIds?.includes(p.id)} onChange={e => handleModalPuzzleChange('lockedPuzzleIds', e.target.checked ? [...modalPuzzleData.lockedPuzzleIds, p.id] : modalPuzzleData.lockedPuzzleIds.filter(id => id !== p.id))} />{p.name}</label>
-                                        ))}
-                                      </div>
-                                    ))}
+                                <div className="absolute z-10 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg flex flex-col max-h-60">
+                                    <div className="p-2 border-b border-slate-200 dark:border-slate-700">
+                                        <input 
+                                            type="text"
+                                            value={modalPuzzlePuzzlesSearch}
+                                            onChange={(e) => setModalPuzzlePuzzlesSearch(e.target.value)}
+                                            placeholder="Search puzzles..."
+                                            className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
+                                        />
+                                    </div>
+                                    <div className="overflow-y-auto">
+                                      {game.rooms.map(room => {
+                                        const filteredPuzzles = room.puzzles.filter(p => p.id !== modalPuzzleData.id && p.name.toLowerCase().includes(modalPuzzlePuzzlesSearch.toLowerCase()));
+                                        if (filteredPuzzles.length === 0) return null;
+                                        return (
+                                            <div key={room.id} className="p-2">
+                                                <h5 className="text-xs font-bold text-slate-500 dark:text-slate-400 sticky top-0 bg-white dark:bg-slate-800 py-1 px-2 -mx-2">{room.name}</h5>
+                                                {filteredPuzzles.map(p => (
+                                                  <label key={p.id} className="flex items-center gap-2 text-sm p-1 cursor-pointer"><input type="checkbox" checked={modalPuzzleData.lockedPuzzleIds?.includes(p.id)} onChange={e => handleModalPuzzleChange('lockedPuzzleIds', e.target.checked ? [...modalPuzzleData.lockedPuzzleIds, p.id] : modalPuzzleData.lockedPuzzleIds.filter(id => id !== p.id))} />{p.name}</label>
+                                                ))}
+                                            </div>
+                                        )
+                                      })}
+                                    </div>
                                 </div>
                             )}
                           </div>
@@ -1005,10 +1042,21 @@ const Editor: React.FC = () => {
                                 <Icon as="chevron-down" className={`w-4 h-4 transition-transform ${openModalPuzzleRoomsDropdown ? 'rotate-180' : ''}`} />
                             </button>
                             {openModalPuzzleRoomsDropdown && (
-                                <div className="absolute z-10 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg max-h-48 overflow-y-auto p-2">
-                                    {game.rooms.filter(r => r.id !== currentRoom.id).map(room => (
-                                      <label key={room.id} className="flex items-center gap-2 text-sm p-1 cursor-pointer"><input type="checkbox" checked={modalPuzzleData.lockedRoomIds?.includes(room.id)} onChange={e => handleModalPuzzleChange('lockedRoomIds', e.target.checked ? [...modalPuzzleData.lockedRoomIds, room.id] : modalPuzzleData.lockedRoomIds.filter(id => id !== room.id))} />{room.name}</label>
-                                    ))}
+                                <div className="absolute z-10 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg flex flex-col max-h-60">
+                                    <div className="p-2 border-b border-slate-200 dark:border-slate-700">
+                                        <input 
+                                            type="text"
+                                            value={modalPuzzleRoomsSearch}
+                                            onChange={(e) => setModalPuzzleRoomsSearch(e.target.value)}
+                                            placeholder="Search rooms..."
+                                            className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
+                                        />
+                                    </div>
+                                    <div className="overflow-y-auto p-2">
+                                      {game.rooms.filter(r => r.id !== currentRoom.id && r.name.toLowerCase().includes(modalPuzzleRoomsSearch.toLowerCase())).map(room => (
+                                        <label key={room.id} className="flex items-center gap-2 text-sm p-1 cursor-pointer"><input type="checkbox" checked={modalPuzzleData.lockedRoomIds?.includes(room.id)} onChange={e => handleModalPuzzleChange('lockedRoomIds', e.target.checked ? [...modalPuzzleData.lockedRoomIds, room.id] : modalPuzzleData.lockedRoomIds.filter(id => id !== room.id))} />{room.name}</label>
+                                      ))}
+                                    </div>
                                 </div>
                             )}
                           </div>
@@ -1020,10 +1068,21 @@ const Editor: React.FC = () => {
                                 <Icon as="chevron-down" className={`w-4 h-4 transition-transform ${openModalPuzzleRoomSolvesDropdown ? 'rotate-180' : ''}`} />
                             </button>
                             {openModalPuzzleRoomSolvesDropdown && (
-                                <div className="absolute z-10 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg max-h-48 overflow-y-auto p-2">
-                                    {game.rooms.map(room => (
-                                      <label key={room.id} className="flex items-center gap-2 text-sm p-1 cursor-pointer"><input type="checkbox" checked={modalPuzzleData.lockedRoomSolveIds?.includes(room.id)} onChange={e => handleModalPuzzleChange('lockedRoomSolveIds', e.target.checked ? [...modalPuzzleData.lockedRoomSolveIds, room.id] : modalPuzzleData.lockedRoomSolveIds.filter(id => id !== room.id))} />{room.name}</label>
-                                    ))}
+                                <div className="absolute z-10 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg flex flex-col max-h-60">
+                                    <div className="p-2 border-b border-slate-200 dark:border-slate-700">
+                                        <input 
+                                            type="text"
+                                            value={modalPuzzleRoomSolvesSearch}
+                                            onChange={(e) => setModalPuzzleRoomSolvesSearch(e.target.value)}
+                                            placeholder="Search rooms..."
+                                            className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
+                                        />
+                                    </div>
+                                    <div className="overflow-y-auto p-2">
+                                      {game.rooms.filter(room => room.name.toLowerCase().includes(modalPuzzleRoomSolvesSearch.toLowerCase())).map(room => (
+                                        <label key={room.id} className="flex items-center gap-2 text-sm p-1 cursor-pointer"><input type="checkbox" checked={modalPuzzleData.lockedRoomSolveIds?.includes(room.id)} onChange={e => handleModalPuzzleChange('lockedRoomSolveIds', e.target.checked ? [...modalPuzzleData.lockedRoomSolveIds, room.id] : modalPuzzleData.lockedRoomSolveIds.filter(id => id !== room.id))} />{room.name}</label>
+                                      ))}
+                                    </div>
                                 </div>
                             )}
                           </div>
@@ -1260,10 +1319,20 @@ const Editor: React.FC = () => {
                 <h3 className="font-semibold mb-3 text-slate-700 dark:text-slate-300">Puzzles</h3>
                  <div className="space-y-2 max-h-96 overflow-y-auto pr-2" ref={puzzlesContainerRef}>
                     {editingRoomPuzzles.length > 0 ? editingRoomPuzzles.map((puzzle, index) => (
-                        <div key={puzzle.id} className={`flex items-center justify-between p-2 rounded-lg ${index % 2 === 0 ? 'bg-transparent' : 'bg-slate-50 dark:bg-slate-700/50'}`}>
+                        <div key={puzzle.id} className={`flex items-center justify-between p-2 rounded-lg border border-slate-200 dark:border-slate-700 ${index % 2 === 0 ? '' : 'bg-slate-50 dark:bg-slate-700/50'}`}>
                             <span className="font-semibold text-sm text-slate-800 dark:text-slate-200 truncate pr-4">{puzzle.name}</span>
                             <div className="flex items-center gap-2 flex-shrink-0">
-                                <button onClick={() => setPuzzleModalState({ puzzle: { ...puzzle }, index })} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-600" title="Edit in larger view">
+                                <button
+                                    onClick={() => {
+                                        setPuzzleModalState({ puzzle: { ...puzzle }, index });
+                                        setModalPuzzleObjectsSearch('');
+                                        setModalPuzzlePuzzlesSearch('');
+                                        setModalPuzzleRoomsSearch('');
+                                        setModalPuzzleRoomSolvesSearch('');
+                                    }}
+                                    className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-600"
+                                    title="Edit in larger view"
+                                >
                                     <Icon as="expand" className="w-4 h-4" />
                                 </button>
                                 <button onClick={() => deletePuzzle(index)} className="text-red-500 hover:text-red-700 dark:hover:text-red-400 p-1.5 rounded-full hover:bg-red-100 dark:hover:bg-red-900/50 flex items-center justify-center">
