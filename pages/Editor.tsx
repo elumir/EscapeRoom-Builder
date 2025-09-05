@@ -1101,6 +1101,50 @@ const Editor: React.FC = () => {
                                   </div>
                               )}
                           </div>
+                          {/* Locked Actions */}
+                          <div className="relative" ref={modalActionsDropdownRef}>
+                            <h4 className="font-semibold text-sm mb-1 text-slate-600 dark:text-slate-400">Locked Actions</h4>
+                            <button type="button" onClick={() => setOpenModalPuzzleActionsDropdown(prev => !prev)} className="w-full text-left px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 flex justify-between items-center text-sm">
+                                <span>{`${modalPuzzleData.lockedActionIds?.length || 0} selected`}</span>
+                                <Icon as="chevron-down" className={`w-4 h-4 transition-transform ${openModalPuzzleActionsDropdown ? 'rotate-180' : ''}`} />
+                            </button>
+                            {openModalPuzzleActionsDropdown && (
+                                <div className="absolute z-10 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg flex flex-col max-h-60">
+                                    <div className="p-2 border-b border-slate-200 dark:border-slate-700">
+                                        <input
+                                            type="text"
+                                            value={modalPuzzleActionsSearch}
+                                            onChange={(e) => setModalPuzzleActionsSearch(e.target.value)}
+                                            placeholder="Search actions..."
+                                            className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
+                                        />
+                                    </div>
+                                    <div className="overflow-y-auto">
+                                      {game.rooms.map(room => {
+                                        const filteredActions = (room.actions || []).filter(a =>
+                                            (a.name || 'Untitled Action').toLowerCase().includes(modalPuzzleActionsSearch.toLowerCase())
+                                        );
+                                        if (filteredActions.length === 0) return null;
+                                        return (
+                                            <div key={room.id} className="p-2">
+                                                <h5 className="text-xs font-bold text-slate-500 dark:text-slate-400 sticky top-0 bg-white dark:bg-slate-800 py-1 px-2 -mx-2">{room.name}</h5>
+                                                {filteredActions.map(action => (
+                                                  <label key={action.id} className="flex items-center gap-2 text-sm p-1 cursor-pointer">
+                                                    <input
+                                                      type="checkbox"
+                                                      checked={modalPuzzleData.lockedActionIds?.includes(action.id)}
+                                                      onChange={e => handleModalPuzzleChange('lockedActionIds', e.target.checked ? [...(modalPuzzleData.lockedActionIds || []), action.id] : (modalPuzzleData.lockedActionIds || []).filter(id => id !== action.id))}
+                                                    />
+                                                    {action.name || <span className="italic">Untitled Action</span>}
+                                                  </label>
+                                                ))}
+                                            </div>
+                                        )
+                                      })}
+                                    </div>
+                                </div>
+                            )}
+                          </div>
                           {/* Locked Puzzles */}
                           <div className="relative" ref={modalPuzzlesDropdownRef}>
                             <h4 className="font-semibold text-sm mb-1 text-slate-600 dark:text-slate-400">Locked Puzzles</h4>
@@ -1206,50 +1250,6 @@ const Editor: React.FC = () => {
                                           </label>
                                         ));
                                       })()}
-                                    </div>
-                                </div>
-                            )}
-                          </div>
-                          {/* Locked Actions */}
-                          <div className="relative" ref={modalActionsDropdownRef}>
-                            <h4 className="font-semibold text-sm mb-1 text-slate-600 dark:text-slate-400">Locked Actions</h4>
-                            <button type="button" onClick={() => setOpenModalPuzzleActionsDropdown(prev => !prev)} className="w-full text-left px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 flex justify-between items-center text-sm">
-                                <span>{`${modalPuzzleData.lockedActionIds?.length || 0} selected`}</span>
-                                <Icon as="chevron-down" className={`w-4 h-4 transition-transform ${openModalPuzzleActionsDropdown ? 'rotate-180' : ''}`} />
-                            </button>
-                            {openModalPuzzleActionsDropdown && (
-                                <div className="absolute z-10 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg flex flex-col max-h-60">
-                                    <div className="p-2 border-b border-slate-200 dark:border-slate-700">
-                                        <input
-                                            type="text"
-                                            value={modalPuzzleActionsSearch}
-                                            onChange={(e) => setModalPuzzleActionsSearch(e.target.value)}
-                                            placeholder="Search actions..."
-                                            className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
-                                        />
-                                    </div>
-                                    <div className="overflow-y-auto">
-                                      {game.rooms.map(room => {
-                                        const filteredActions = (room.actions || []).filter(a =>
-                                            (a.name || 'Untitled Action').toLowerCase().includes(modalPuzzleActionsSearch.toLowerCase())
-                                        );
-                                        if (filteredActions.length === 0) return null;
-                                        return (
-                                            <div key={room.id} className="p-2">
-                                                <h5 className="text-xs font-bold text-slate-500 dark:text-slate-400 sticky top-0 bg-white dark:bg-slate-800 py-1 px-2 -mx-2">{room.name}</h5>
-                                                {filteredActions.map(action => (
-                                                  <label key={action.id} className="flex items-center gap-2 text-sm p-1 cursor-pointer">
-                                                    <input
-                                                      type="checkbox"
-                                                      checked={modalPuzzleData.lockedActionIds?.includes(action.id)}
-                                                      onChange={e => handleModalPuzzleChange('lockedActionIds', e.target.checked ? [...(modalPuzzleData.lockedActionIds || []), action.id] : (modalPuzzleData.lockedActionIds || []).filter(id => id !== action.id))}
-                                                    />
-                                                    {action.name || <span className="italic">Untitled Action</span>}
-                                                  </label>
-                                                ))}
-                                            </div>
-                                        )
-                                      })}
                                     </div>
                                 </div>
                             )}
