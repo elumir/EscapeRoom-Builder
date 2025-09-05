@@ -30,7 +30,6 @@ const PresenterView: React.FC = () => {
   const [solveError, setSolveError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'rooms' | 'inventory' | 'discarded'>('rooms');
   const [showInventoryNotification, setShowInventoryNotification] = useState(false);
-  const [showDiscardedNotification, setShowDiscardedNotification] = useState(false);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [activeActionTab, setActiveActionTab] = useState<'open' | 'complete'>('open');
   const [activePuzzleTab, setActivePuzzleTab] = useState<'open' | 'complete'>('open');
@@ -47,7 +46,6 @@ const PresenterView: React.FC = () => {
   } = usePresenterState(game);
 
   const prevInventoryCountRef = useRef(inventoryObjects.length);
-  const prevDiscardedCountRef = useRef(discardedObjects.length);
   
   useEffect(() => {
     // If an item was added and the inventory tab is not active, show notification.
@@ -56,14 +54,6 @@ const PresenterView: React.FC = () => {
     }
     prevInventoryCountRef.current = inventoryObjects.length;
   }, [inventoryObjects.length, activeTab]);
-
-  useEffect(() => {
-    // If an item was discarded and the discarded tab is not active, show notification.
-    if (discardedObjects.length > prevDiscardedCountRef.current && activeTab !== 'discarded') {
-        setShowDiscardedNotification(true);
-    }
-    prevDiscardedCountRef.current = discardedObjects.length;
-  }, [discardedObjects.length, activeTab]);
 
   // This effect handles making new items' descriptions visible by default.
   const inventoryObjectIds = useMemo(() => new Set(inventoryObjects.map(o => o.id)), [inventoryObjects]);
@@ -729,19 +719,13 @@ const PresenterView: React.FC = () => {
                         )}
                     </button>
                      <button
-                        onClick={() => {
-                            setActiveTab('discarded');
-                            setShowDiscardedNotification(false);
-                        }}
+                        onClick={() => setActiveTab('discarded')}
                         className={`relative px-4 py-2 text-sm font-semibold rounded-t-md transition-colors ${
                             activeTab === 'discarded' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-300'
                         }`}
                         aria-pressed={activeTab === 'discarded'}
                     >
                         <span>Discarded</span>
-                        {showDiscardedNotification && (
-                            <span className="absolute top-1 right-2 block w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-slate-900"></span>
-                        )}
                     </button>
                 </div>
             </div>
