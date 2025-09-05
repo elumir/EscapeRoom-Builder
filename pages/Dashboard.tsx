@@ -7,6 +7,7 @@ import Room from '../components/Slide';
 
 const Dashboard: React.FC = () => {
     const [games, setGames] = useState<Game[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [newTitle, setNewTitle] = useState('');
     const [isCreating, setIsCreating] = useState(false);
@@ -16,8 +17,10 @@ const Dashboard: React.FC = () => {
 
     useEffect(() => {
         const fetchGames = async () => {
+            setIsLoading(true);
             const data = await gameService.getGames();
             setGames(data);
+            setIsLoading(false);
         };
         fetchGames();
     }, []);
@@ -133,7 +136,11 @@ const Dashboard: React.FC = () => {
             </header>
             <main className="container mx-auto px-6 py-8">
                 <h2 className="text-xl font-semibold mb-6 text-slate-700 dark:text-slate-300">Your Games</h2>
-                {games.length > 0 ? (
+                {isLoading ? (
+                    <div className="text-center py-16 px-6 bg-white dark:bg-slate-800 rounded-lg shadow-md">
+                        <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300">Loading games...</h3>
+                    </div>
+                ) : games.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                         {games.map(g => {
                            const inventoryItems = g.rooms
