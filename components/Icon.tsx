@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface IconProps {
-  as: 'plus' | 'trash' | 'present' | 'prev' | 'next' | 'close' | 'reorder' | 'expand' | 'lock' | 'eye' | 'eye-slash' | 'chevron-down' | 'restart' | 'rewind' | 'settings' | 'gallery' | 'audio';
+  as: 'plus' | 'trash' | 'present' | 'prev' | 'next' | 'close' | 'reorder' | 'expand' | 'lock' | 'eye' | 'eye-slash' | 'chevron-down' | 'restart' | 'rewind' | 'settings' | 'gallery' | 'audio' | 'map';
   className?: string;
 }
 
@@ -93,6 +93,13 @@ const icons = {
   audio: (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" d="M9 9V4.5M9 9c0-1.657 1.343-3 3-3s3 1.343 3 3v4.5M9 9l-5.618 2.408a1.875 1.875 0 0 0-1.132 1.688V18.75a1.875 1.875 0 0 0 1.875 1.875h12.75A1.875 1.875 0 0 0 21 18.75V15.346a1.875 1.875 0 0 0-1.132-1.688L9 9Z" />
+    </svg>
+  ),
+  map: (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16.307 2.838a1.5 1.5 0 0 0-1.114 0L8.807 5.393a1.5 1.5 0 0 1-1.114 0L1.779 3.027a.75.75 0 0 0-1.029.7V18.1a1.5 1.5 0 0 0 .943 1.393l6 2.4a1.5 1.5 0 0 0 1.114 0l6.386-2.555a1.5 1.5 0 0 1 1.114 0l5.914 2.362a.75.75 0 0 0 1.029-.7V6.631a1.5 1.5 0 0 0-.943-1.393z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 5.5V22" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 2.731v16.5" />
     </svg>
   )
 };

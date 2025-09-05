@@ -1,5 +1,6 @@
 import React from 'react';
 import type { Room as RoomType } from '../types';
+import Icon from './Icon';
 
 interface RoomProps {
   room: RoomType;
@@ -64,9 +65,7 @@ const Room: React.FC<RoomProps> = ({ room, inventoryItems, visibleMapImages, cla
                   </div>
                 ) : (
                   <div className="text-slate-400 dark:text-slate-500">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="w-12 h-12">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 20l-5.447-2.724A1 1 0 0 1 3 16.382V5.618a1 1 0 0 1 1.447-.894L9 7m0 13v-6m0 6l5.447-2.724A1 1 0 0 0 15 16.382V5.618a1 1 0 0 0-1.447-.894L9 7m0 0-3-1.5m3 1.5v6.5m0-6.5L12 5.5m0 0 3 1.5m-3-1.5V3" />
-                    </svg>
+                    <Icon as="map" className="w-12 h-12" />
                   </div>
                )}
           </div>
