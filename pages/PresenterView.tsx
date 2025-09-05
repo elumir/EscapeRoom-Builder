@@ -656,7 +656,7 @@ const PresenterView: React.FC = () => {
                 
                 {currentRoom.actions && currentRoom.actions.length > 0 && (
                   <div className="mt-8 pt-6 border-t border-slate-700">
-                    <h2 className="text-lg font-semibold text-slate-300">Actions</h2>
+                    <h2 className="text-lg font-semibold text-slate-300">When players ask to...</h2>
                     <div className="mt-4 border-b border-slate-700 flex">
                         <button
                             onClick={() => setActiveActionTab('open')}

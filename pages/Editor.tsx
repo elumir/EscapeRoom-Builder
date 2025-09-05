@@ -784,8 +784,8 @@ const Editor: React.FC = () => {
             </div>
             
             <div className="w-full max-w-4xl mx-auto mt-6 bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md">
-                <h3 className="font-semibold mb-1 text-slate-700 dark:text-slate-300">Actions</h3>
-                <p className="text-xs italic text-slate-500 dark:text-slate-400 mb-3">Provide host expected responses for players who do intended Action.</p>
+                <h3 className="font-semibold mb-1 text-slate-700 dark:text-slate-300">When players ask to...</h3>
+                <p className="text-xs italic text-slate-500 dark:text-slate-400 mb-3">Define host responses for things players might ask to do (e.g., "look under the rug").</p>
                 <div className="space-y-4 max-h-96 overflow-y-auto pr-2" ref={actionsContainerRef}>
                     {editingRoomActions.length > 0 ? editingRoomActions.map((action, index) => (
                         <div key={action.id} className="p-3 border border-slate-200 dark:border-slate-700 rounded-lg">
