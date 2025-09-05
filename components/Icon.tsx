@@ -92,7 +92,9 @@ const icons = {
   ),
   audio: (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 9V4.5M9 9c0-1.657 1.343-3 3-3s3 1.343 3 3v4.5M9 9l-5.618 2.408a1.875 1.875 0 0 0-1.132 1.688V18.75a1.875 1.875 0 0 0 1.875 1.875h12.75A1.875 1.875 0 0 0 21 18.75V15.346a1.875 1.875 0 0 0-1.132-1.688L9 9Z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M13.1 8.326a.716.716 0 0 0-.752.068L8.443 11.25H6.718a.717.717 0 0 0-.718.718v1.564a.717.717 0 0 0 .718.718h1.725l3.908 2.856a.718.718 0 0 0 1.149-.574V8.968a.717.717 0 0 0-.4-.642z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 14.218a2.071 2.071 0 0 0 0-3" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M22.5 21.75a1.5 1.5 0 0 1-1.5 1.5H3a1.5 1.5 0 0 1-1.5-1.5V2.25A1.5 1.5 0 0 1 3 .75h15a1.5 1.5 0 0 1 1.047.426l3 2.883a1.5 1.5 0 0 1 .453 1.074z" />
     </svg>
   ),
   map: (
