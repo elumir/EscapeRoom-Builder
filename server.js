@@ -74,7 +74,9 @@ const prettifyAssetName = (filename) => {
     // 4. Insert space between an uppercase letter and another uppercase letter followed by a lowercase (acronyms like APIKey)
     name = name.replace(/([A-Z])([A-Z][a-z])/g, '$1 $2');
     // 5. Trim and consolidate whitespace
-    return name.trim().replace(/\s+/g, ' ');
+    name = name.trim().replace(/\s+/g, ' ');
+    // 6. Capitalize the first letter of each word.
+    return name.replace(/\b\w/g, char => char.toUpperCase());
 };
 
 
