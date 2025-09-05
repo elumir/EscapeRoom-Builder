@@ -62,6 +62,21 @@ const parseStringData = (rawData) => {
     }
 };
 
+// Helper function to create a more readable name from a filename
+const prettifyAssetName = (filename) => {
+    if (!filename) return '';
+    // 1. Remove file extension
+    let name = filename.includes('.') ? filename.split('.').slice(0, -1).join('.') : filename;
+    // 2. Replace underscores and hyphens with spaces
+    name = name.replace(/[_-]/g, ' ');
+    // 3. Insert space between a lowercase and uppercase letter (camelCase)
+    name = name.replace(/([a-z])([A-Z])/g, '$1 $2');
+    // 4. Insert space between an uppercase letter and another uppercase letter followed by a lowercase (acronyms like APIKey)
+    name = name.replace(/([A-Z])([A-Z][a-z])/g, '$1 $2');
+    // 5. Trim and consolidate whitespace
+    return name.trim().replace(/\s+/g, ' ');
+};
+
 
 // === API ROUTES ===
 
@@ -191,10 +206,10 @@ app.post('/api/presentations/:presentationId/assets', async (req, res) => {
         }
 
         const assetId = crypto.randomUUID();
-        // Use the filename without the extension as the default asset name.
-        const nameWithoutExtension = filename.includes('.') ? filename.split('.').slice(0, -1).join('.') : filename;
+        // Prettify the filename to use as the default asset name.
+        const prettyName = prettifyAssetName(filename);
         const sql = 'INSERT INTO assets (id, presentation_id, mime_type, name, data) VALUES (?, ?, ?, ?, ?)';
-        await dbPool.query(sql, [assetId, presentationId, mimeType, nameWithoutExtension, data]);
+        await dbPool.query(sql, [assetId, presentationId, mimeType, prettyName, data]);
         
         res.status(201).json({ assetId });
 
