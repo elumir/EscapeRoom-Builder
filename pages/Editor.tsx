@@ -1937,7 +1937,11 @@ const Editor: React.FC = () => {
                   {editingRoomObjects.length > 0 ? editingRoomObjects.map((obj, index) => {
                     const lockingPuzzles = objectLockMap.get(obj.id);
                     return (
-                        <div key={obj.id} className={`flex items-center gap-2 p-2 rounded-lg border border-slate-200 dark:border-slate-700 ${index % 2 === 0 ? '' : 'bg-slate-50 dark:bg-slate-700/50'}`}>
+                        <div
+                            key={obj.id}
+                            onClick={() => setObjectModalState({ object: { ...obj }, index })}
+                            className={`flex items-center gap-2 p-2 rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer transition-colors hover:bg-slate-100 dark:hover:bg-slate-700 ${index % 2 === 0 ? '' : 'bg-slate-50 dark:bg-slate-700/50'}`}
+                        >
                             {lockingPuzzles && (
                                 <div className="flex items-center gap-1 text-slate-400 dark:text-slate-500 flex-shrink-0" title={`Locked by: ${lockingPuzzles.join(', ')}`}>
                                     <Icon as="lock" className="w-4 h-4" />
@@ -1958,14 +1962,7 @@ const Editor: React.FC = () => {
                             </div>
                             <div className="flex items-center gap-2 flex-shrink-0">
                                 <button
-                                    onClick={() => setObjectModalState({ object: { ...obj }, index })}
-                                    className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 p-1.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700"
-                                    title="Edit Object"
-                                >
-                                    <Icon as="edit" className="w-4 h-4" />
-                                </button>
-                                <button
-                                    onClick={() => deleteObject(index)}
+                                    onClick={(e) => { e.stopPropagation(); deleteObject(index); }}
                                     className="text-red-500 hover:text-red-700 dark:hover:text-red-400 p-1.5 rounded-full hover:bg-red-100 dark:hover:bg-red-900/50"
                                     title="Delete Object"
                                 >
