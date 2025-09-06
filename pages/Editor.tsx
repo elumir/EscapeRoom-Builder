@@ -75,6 +75,35 @@ const Editor: React.FC = () => {
   const solvedDescriptionTextareaRef = useRef<HTMLTextAreaElement>(null);
   const modalTextareaRef = useRef<HTMLTextAreaElement>(null);
 
+  const { objectLockMap, puzzleLockMap, actionLockMap } = useMemo(() => {
+    const objectLockMap = new Map<string, string[]>();
+    const puzzleLockMap = new Map<string, string[]>();
+    const actionLockMap = new Map<string, string[]>();
+
+    if (!game) return { objectLockMap, puzzleLockMap, actionLockMap };
+
+    game.rooms.forEach(room => {
+      room.puzzles.forEach(puzzle => {
+        const puzzleName = puzzle.name || 'Untitled Puzzle';
+
+        (puzzle.lockedObjectIds || []).forEach(id => {
+          if (!objectLockMap.has(id)) objectLockMap.set(id, []);
+          objectLockMap.get(id)!.push(puzzleName);
+        });
+        (puzzle.lockedPuzzleIds || []).forEach(id => {
+          if (!puzzleLockMap.has(id)) puzzleLockMap.set(id, []);
+          puzzleLockMap.get(id)!.push(puzzleName);
+        });
+        (puzzle.lockedActionIds || []).forEach(id => {
+          if (!actionLockMap.has(id)) actionLockMap.set(id, []);
+          actionLockMap.get(id)!.push(puzzleName);
+        });
+      });
+    });
+
+    return { objectLockMap, puzzleLockMap, actionLockMap };
+  }, [game]);
+
   useEffect(() => {
     if (id) {
       const fetchGame = async () => {
@@ -1625,27 +1654,42 @@ const Editor: React.FC = () => {
             <div className="w-full max-w-4xl mx-auto mt-6 bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md">
                 <h3 className="font-semibold mb-3 text-slate-700 dark:text-slate-300">Objects</h3>
                 <div className="space-y-3 max-h-48 overflow-y-auto pr-2" ref={objectsContainerRef}>
-                  {editingRoomObjects.length > 0 ? editingRoomObjects.map((obj, index) => (
-                    <div key={obj.id} className="grid grid-cols-12 gap-2 items-center">
-                      <input 
-                        type="text" 
-                        value={obj.name}
-                        onChange={(e) => handleObjectChange(index, 'name', e.target.value)}
-                        placeholder="Object name"
-                        className="col-span-4 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
-                      />
-                      <input 
-                        type="text"
-                        value={obj.description}
-                        onChange={(e) => handleObjectChange(index, 'description', e.target.value)}
-                        placeholder="Description"
-                        className="col-span-7 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
-                      />
-                      <button onClick={() => deleteObject(index)} className="col-span-1 text-red-500 hover:text-red-700 dark:hover:text-red-400 p-1 rounded-full flex items-center justify-center">
-                        <Icon as="trash" className="w-4 h-4" />
-                      </button>
-                    </div>
-                  )) : (
+                  {editingRoomObjects.length > 0 ? editingRoomObjects.map((obj, index) => {
+                    const lockingPuzzles = objectLockMap.get(obj.id);
+                    return (
+                      <div key={obj.id} className="grid grid-cols-12 gap-2 items-center">
+                        <div className="col-span-4 flex items-center gap-2">
+                          {lockingPuzzles && (
+                              <div className="flex items-center gap-1 text-slate-400 dark:text-slate-500 flex-shrink-0" title={`Locked by: ${lockingPuzzles.join(', ')}`}>
+                                <Icon as="lock" className="w-4 h-4" />
+                                {lockingPuzzles.length > 1 && (
+                                  <span className="text-xs font-semibold bg-slate-200 dark:bg-slate-700 rounded-full h-4 w-4 flex items-center justify-center">
+                                    {lockingPuzzles.length}
+                                  </span>
+                                )}
+                              </div>
+                          )}
+                          <input 
+                            type="text" 
+                            value={obj.name}
+                            onChange={(e) => handleObjectChange(index, 'name', e.target.value)}
+                            placeholder="Object name"
+                            className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
+                          />
+                        </div>
+                        <input 
+                          type="text"
+                          value={obj.description}
+                          onChange={(e) => handleObjectChange(index, 'description', e.target.value)}
+                          placeholder="Description"
+                          className="col-span-7 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
+                        />
+                        <button onClick={() => deleteObject(index)} className="col-span-1 text-red-500 hover:text-red-700 dark:hover:text-red-400 p-1 rounded-full flex items-center justify-center">
+                          <Icon as="trash" className="w-4 h-4" />
+                        </button>
+                      </div>
+                    );
+                  }) : (
                     <p className="text-slate-500 dark:text-slate-400 text-sm">No objects for this room.</p>
                   )}
                 </div>
@@ -1658,7 +1702,9 @@ const Editor: React.FC = () => {
                 <h3 className="font-semibold mb-1 text-slate-700 dark:text-slate-300">Puzzles</h3>
                 <p className="text-xs italic text-slate-500 dark:text-slate-400 mb-3">Puzzles lock other elements.</p>
                  <div className="space-y-2 max-h-96 overflow-y-auto pr-2" ref={puzzlesContainerRef}>
-                    {editingRoomPuzzles.length > 0 ? editingRoomPuzzles.map((puzzle, index) => (
+                    {editingRoomPuzzles.length > 0 ? editingRoomPuzzles.map((puzzle, index) => {
+                      const lockingPuzzles = puzzleLockMap.get(puzzle.id);
+                      return (
                         <div
                             key={puzzle.id}
                             onClick={() => {
@@ -1673,7 +1719,19 @@ const Editor: React.FC = () => {
                             }}
                             className={`flex items-center justify-between p-2 rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer transition-colors hover:bg-slate-100 dark:hover:bg-slate-700 ${index % 2 === 0 ? '' : 'bg-slate-50 dark:bg-slate-700/50'}`}
                         >
-                            <span className="font-semibold text-sm text-slate-800 dark:text-slate-200 truncate pr-4">{puzzle.name}</span>
+                          <div className="flex items-center gap-2 min-w-0">
+                             {lockingPuzzles && (
+                                <div className="flex items-center gap-1 text-slate-400 dark:text-slate-500 flex-shrink-0" title={`Locked by: ${lockingPuzzles.join(', ')}`}>
+                                  <Icon as="lock" className="w-4 h-4" />
+                                  {lockingPuzzles.length > 1 && (
+                                    <span className="text-xs font-semibold bg-slate-200 dark:bg-slate-700 rounded-full h-4 w-4 flex items-center justify-center">
+                                      {lockingPuzzles.length}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                              <span className="font-semibold text-sm text-slate-800 dark:text-slate-200 truncate">{puzzle.name}</span>
+                          </div>
                             <div className="flex items-center gap-2 flex-shrink-0">
                                 <button
                                     onClick={(e) => handleDeletePuzzle(e, index)}
@@ -1684,7 +1742,8 @@ const Editor: React.FC = () => {
                                 </button>
                             </div>
                         </div>
-                    )) : (
+                      );
+                    }) : (
                         <p className="text-slate-500 dark:text-slate-400 text-sm">No puzzles for this room.</p>
                     )}
                  </div>
@@ -1697,15 +1756,29 @@ const Editor: React.FC = () => {
                 <h3 className="font-semibold mb-1 text-slate-700 dark:text-slate-300">When players ask to...</h3>
                 <p className="text-xs italic text-slate-500 dark:text-slate-400 mb-3">Define host responses for things players might ask to do (e.g., "look under the rug").</p>
                 <div className="space-y-2 max-h-96 overflow-y-auto pr-2" ref={actionsContainerRef}>
-                    {editingRoomActions.length > 0 ? editingRoomActions.map((action, index) => (
+                    {editingRoomActions.length > 0 ? editingRoomActions.map((action, index) => {
+                      const lockingPuzzles = actionLockMap.get(action.id);
+                      return (
                         <div
                             key={action.id}
                             onClick={() => setActionModalState({ action: { ...action }, index })}
                             className={`flex items-center justify-between p-2 rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer transition-colors hover:bg-slate-100 dark:hover:bg-slate-700 ${index % 2 === 0 ? '' : 'bg-slate-50 dark:bg-slate-700/50'}`}
                         >
-                            <span className="font-semibold text-sm text-slate-800 dark:text-slate-200 truncate pr-4">
-                                {action.name || <span className="italic text-slate-500 dark:text-slate-400">Untitled Action</span>}
-                            </span>
+                            <div className="flex items-center gap-2 min-w-0">
+                              {lockingPuzzles && (
+                                <div className="flex items-center gap-1 text-slate-400 dark:text-slate-500 flex-shrink-0" title={`Locked by: ${lockingPuzzles.join(', ')}`}>
+                                  <Icon as="lock" className="w-4 h-4" />
+                                  {lockingPuzzles.length > 1 && (
+                                    <span className="text-xs font-semibold bg-slate-200 dark:bg-slate-700 rounded-full h-4 w-4 flex items-center justify-center">
+                                      {lockingPuzzles.length}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                              <span className="font-semibold text-sm text-slate-800 dark:text-slate-200 truncate">
+                                  {action.name || <span className="italic text-slate-500 dark:text-slate-400">Untitled Action</span>}
+                              </span>
+                            </div>
                             <div className="flex items-center gap-2 flex-shrink-0">
                                 <button
                                     onClick={(e) => handleDeleteAction(e, index)}
@@ -1716,7 +1789,8 @@ const Editor: React.FC = () => {
                                 </button>
                             </div>
                         </div>
-                    )) : (
+                      );
+                    }) : (
                         <p className="text-slate-500 dark:text-slate-400 text-sm">No actions for this room.</p>
                     )}
                 </div>
