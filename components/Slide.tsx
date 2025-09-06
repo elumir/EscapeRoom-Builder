@@ -73,7 +73,15 @@ const Room: React.FC<RoomProps> = ({ room, inventoryObjects, visibleMapImages, c
               {inventoryObjects.length > 0 ? (
                   <ul className={inventoryListClass}>
                       {inventoryObjects.map((item, index) => (
-                          <li key={item.id || index} className={`px-2 py-1 bg-slate-200/50 dark:bg-slate-800/50 rounded-md break-words break-inside-avoid mb-1 ${item.nameColor || ''}`} style={{color: item.nameColor ? undefined : bodyTextColor}}>{item.name}</li>
+                          <li
+                              key={item.id || index}
+                              className={`px-2 py-1 rounded-md break-words break-inside-avoid mb-1 ${
+                                  item.nameColor ? item.nameColor : 'bg-slate-200/50 dark:bg-slate-800/50'
+                              }`}
+                              style={{ color: item.nameColor ? undefined : bodyTextColor }}
+                          >
+                              {item.name}
+                          </li>
                       ))}
                   </ul>
               ) : (

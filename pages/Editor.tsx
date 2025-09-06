@@ -13,13 +13,13 @@ type Status = 'loading' | 'success' | 'error';
 
 const NAME_COLORS = [
     { name: 'Default', value: null, bg: 'bg-slate-400', border: 'border-slate-500' },
-    { name: 'White', value: 'text-white', bg: 'bg-white', border: 'border-gray-300' },
-    { name: 'Green', value: 'text-green-400', bg: 'bg-green-400', border: 'border-green-500' },
-    { name: 'Yellow', value: 'text-yellow-400', bg: 'bg-yellow-400', border: 'border-yellow-500' },
-    { name: 'Blue', value: 'text-blue-400', bg: 'bg-blue-400', border: 'border-blue-500' },
-    { name: 'Red', value: 'text-red-400', bg: 'bg-red-400', border: 'border-red-500' },
-    { name: 'Cyan', value: 'text-cyan-400', bg: 'bg-cyan-400', border: 'border-cyan-500' },
-    { name: 'Magenta', value: 'text-pink-400', bg: 'bg-pink-400', border: 'border-pink-500' },
+    { name: 'White', value: 'bg-gray-200 text-gray-800 dark:bg-gray-300 dark:text-gray-900', bg: 'bg-gray-200', border: 'border-gray-400' },
+    { name: 'Green', value: 'bg-green-600 text-white', bg: 'bg-green-600', border: 'border-green-700' },
+    { name: 'Yellow', value: 'bg-yellow-500 text-yellow-900', bg: 'bg-yellow-500', border: 'border-yellow-600' },
+    { name: 'Blue', value: 'bg-blue-600 text-white', bg: 'bg-blue-600', border: 'border-blue-700' },
+    { name: 'Red', value: 'bg-red-600 text-white', bg: 'bg-red-600', border: 'border-red-700' },
+    { name: 'Cyan', value: 'bg-cyan-500 text-white', bg: 'bg-cyan-500', border: 'border-cyan-600' },
+    { name: 'Magenta', value: 'bg-pink-600 text-white', bg: 'bg-pink-600', border: 'border-pink-700' },
 ];
 
 const Editor: React.FC = () => {

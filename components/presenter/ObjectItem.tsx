@@ -25,9 +25,9 @@ const ObjectItem: React.FC<{
 
     if (variant === 'mini') {
         return (
-            <div className={`mt-1 flex flex-col ${isLocked ? 'opacity-50' : ''}`}>
+            <div className={`mt-1 flex flex-col p-1 rounded-sm ${isLocked ? 'opacity-50' : ''} ${obj.nameColor || ''}`}>
                 <div className="flex items-center gap-1">
-                    <h4 className={`font-bold text-[9px] truncate flex-grow ${obj.nameColor ? `${obj.nameColor} opacity-80` : 'text-brand-400/80'}`}>{obj.name}</h4>
+                    <h4 className={`font-bold text-[9px] truncate flex-grow ${!obj.nameColor ? 'text-brand-400/80' : ''}`}>{obj.name}</h4>
                     <div className="flex items-center gap-1 flex-shrink-0">
                         {obj.showInInventory ? (
                             <button
@@ -59,7 +59,7 @@ const ObjectItem: React.FC<{
                 </div>
                 <div className="min-w-0">
                     {isDescriptionVisible && (
-                        <p className="text-slate-400 text-[8px] leading-tight break-words line-clamp-2 mt-1">{obj.description}</p>
+                        <p className={`text-[8px] leading-tight break-words line-clamp-2 mt-1 ${!obj.nameColor ? 'text-slate-400' : ''}`}>{obj.description}</p>
                     )}
                     {lockingPuzzleName && (
                         <p className="text-red-500/80 text-[8px] leading-tight truncate mt-0.5">Locked by: {lockingPuzzleName}</p>
@@ -70,9 +70,9 @@ const ObjectItem: React.FC<{
     }
 
     return (
-        <div className={`flex flex-col gap-2 transition-opacity ${isLocked ? 'opacity-50' : ''}`}>
+        <div className={`flex flex-col gap-2 p-4 rounded-lg transition-opacity ${isLocked ? 'opacity-50' : ''} ${obj.nameColor || 'bg-slate-700'}`}>
              <div className="flex items-center gap-4">
-                <h3 className={`font-bold flex-grow ${obj.nameColor || 'text-brand-400'}`}>{obj.name}</h3>
+                <h3 className={`font-bold flex-grow ${!obj.nameColor ? 'text-brand-400' : ''}`}>{obj.name}</h3>
                 <div className="flex items-center gap-3 flex-shrink-0">
                     {obj.image && onToggleImage && (
                         <button
@@ -118,7 +118,7 @@ const ObjectItem: React.FC<{
             </div>
             <div className="flex-1">
                 {isDescriptionVisible && (
-                    <p className="text-slate-300">{obj.description}</p>
+                    <p className={!obj.nameColor ? 'text-slate-300' : ''}>{obj.description}</p>
                 )}
                 {lockingPuzzleName && (
                     <p className="text-red-500 text-xs mt-1">Locked by: {lockingPuzzleName}</p>
