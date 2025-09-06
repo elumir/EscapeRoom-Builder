@@ -212,6 +212,8 @@ const PresenterView: React.FC = () => {
     if (!game) return;
     if (index >= 0 && index < game.rooms.length) {
       setCurrentRoomIndex(index);
+      setActiveActionTab('open');
+      setActivePuzzleTab('open');
       postMessage({ type: 'GOTO_ROOM', roomIndex: index, customItems });
 
       const destinationRoom = game.rooms[index];
