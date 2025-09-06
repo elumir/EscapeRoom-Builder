@@ -204,6 +204,7 @@ const Editor: React.FC = () => {
   useDebouncedUpdater(editingRoomSolvedNotes, 'solvedNotes');
   useDebouncedUpdater(editingRoomAct, 'act');
   useDebouncedUpdater(editingRoomObjectRemoveText, 'objectRemoveText');
+  // Debouncers for lists are no longer needed for modal saves/deletes, but harmless to keep for other potential updates
   useDebouncedUpdater(editingRoomObjects, 'objects');
   useDebouncedUpdater(editingRoomPuzzles, 'puzzles');
   useDebouncedUpdater(editingRoomActions, 'actions');
@@ -408,13 +409,18 @@ const Editor: React.FC = () => {
     const newObjects = [...editingRoomObjects, newObject];
     setEditingRoomObjects(newObjects);
     
-    // Open modal for the new object
     const newObjIndex = newObjects.length - 1;
     setObjectModalState({ object: { ...newObject }, index: newObjIndex });
   }
 
   const deleteObject = (index: number) => {
-    setEditingRoomObjects(editingRoomObjects.filter((_, i) => i !== index));
+    if (!game) return;
+    const newObjects = editingRoomObjects.filter((_, i) => i !== index);
+    setEditingRoomObjects(newObjects);
+
+    const newRooms = [...game.rooms];
+    newRooms[selectedRoomIndex] = { ...newRooms[selectedRoomIndex], objects: newObjects };
+    updateGame({ ...game, rooms: newRooms });
   }
 
   const addPuzzle = () => {
@@ -422,7 +428,6 @@ const Editor: React.FC = () => {
     const newPuzzles = [...editingRoomPuzzles, newPuzzle];
     setEditingRoomPuzzles(newPuzzles);
     
-    // Automatically open the modal for the new puzzle
     const newPuzzleIndex = newPuzzles.length - 1;
     setPuzzleModalState({ puzzle: { ...newPuzzle }, index: newPuzzleIndex });
     setModalPuzzleObjectsSearch('');
@@ -435,7 +440,13 @@ const Editor: React.FC = () => {
   };
 
   const deletePuzzle = (index: number) => {
-    setEditingRoomPuzzles(editingRoomPuzzles.filter((_, i) => i !== index));
+    if (!game) return;
+    const newPuzzles = editingRoomPuzzles.filter((_, i) => i !== index);
+    setEditingRoomPuzzles(newPuzzles);
+
+    const newRooms = [...game.rooms];
+    newRooms[selectedRoomIndex] = { ...newRooms[selectedRoomIndex], puzzles: newPuzzles };
+    updateGame({ ...game, rooms: newRooms });
   };
 
   const handleDeletePuzzle = (e: React.MouseEvent, index: number) => {
@@ -448,7 +459,6 @@ const Editor: React.FC = () => {
     const newActions = [...editingRoomActions, newAction];
     setEditingRoomActions(newActions);
     
-    // Automatically open the modal for the new action
     const newActionIndex = newActions.length - 1;
     setActionModalState({ action: { ...newAction }, index: newActionIndex });
   };
@@ -476,15 +486,27 @@ const Editor: React.FC = () => {
   };
 
   const handleSaveActionFromModal = () => {
-      if (!actionModalState || !modalActionData) return;
+      if (!actionModalState || !modalActionData || !game) return;
+      
       const newActions = [...editingRoomActions];
       newActions[actionModalState.index] = modalActionData;
       setEditingRoomActions(newActions);
+      
+      const newRooms = [...game.rooms];
+      newRooms[selectedRoomIndex] = { ...newRooms[selectedRoomIndex], actions: newActions };
+      updateGame({ ...game, rooms: newRooms });
+      
       setActionModalState(null);
   };
 
   const deleteAction = (index: number) => {
-      setEditingRoomActions(editingRoomActions.filter((_, i) => i !== index));
+      if (!game) return;
+      const newActions = editingRoomActions.filter((_, i) => i !== index);
+      setEditingRoomActions(newActions);
+
+      const newRooms = [...game.rooms];
+      newRooms[selectedRoomIndex] = { ...newRooms[selectedRoomIndex], actions: newActions };
+      updateGame({ ...game, rooms: newRooms });
   };
   
   const handleDeleteAction = (e: React.MouseEvent, index: number) => {
@@ -519,10 +541,16 @@ const Editor: React.FC = () => {
   };
 
   const handleSavePuzzleFromModal = () => {
-    if (!puzzleModalState || !modalPuzzleData) return;
+    if (!puzzleModalState || !modalPuzzleData || !game) return;
+    
     const newPuzzles = [...editingRoomPuzzles];
     newPuzzles[puzzleModalState.index] = modalPuzzleData;
     setEditingRoomPuzzles(newPuzzles);
+    
+    const newRooms = [...game.rooms];
+    newRooms[selectedRoomIndex] = { ...newRooms[selectedRoomIndex], puzzles: newPuzzles };
+    updateGame({ ...game, rooms: newRooms });
+    
     setPuzzleModalState(null);
   };
 
@@ -549,10 +577,16 @@ const Editor: React.FC = () => {
   };
 
   const handleSaveObjectFromModal = () => {
-      if (!objectModalState || !modalObjectData) return;
+      if (!objectModalState || !modalObjectData || !game) return;
+
       const newObjects = [...editingRoomObjects];
       newObjects[objectModalState.index] = modalObjectData;
       setEditingRoomObjects(newObjects);
+      
+      const newRooms = [...game.rooms];
+      newRooms[selectedRoomIndex] = { ...newRooms[selectedRoomIndex], objects: newObjects };
+      updateGame({ ...game, rooms: newRooms });
+      
       setObjectModalState(null);
   };
 
@@ -585,7 +619,6 @@ const Editor: React.FC = () => {
 
     updateGame(resetGame);
     
-    // Also update the local editing state to match
     const newCurrentRoom = resetGame.rooms[selectedRoomIndex];
     if (newCurrentRoom) {
       setEditingRoomObjects(newCurrentRoom.objects);
@@ -783,7 +816,6 @@ const Editor: React.FC = () => {
   }
 
   if (!game || !game.rooms[selectedRoomIndex]) {
-    // This handles the case where game is loaded but has no rooms.
     return <div className="flex items-center justify-center h-screen">This game has no rooms.</div>;
   }
 
