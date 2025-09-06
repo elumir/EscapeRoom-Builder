@@ -14,6 +14,7 @@ import { generateUUID } from '../utils/uuid';
 interface BroadcastMessage {
   type: 'GOTO_ROOM' | 'STATE_UPDATE';
   roomIndex?: number;
+  customItems?: InventoryObject[];
 }
 
 type Status = 'loading' | 'success' | 'error';
@@ -148,6 +149,10 @@ const PresenterView: React.FC = () => {
   const postMessage = useBroadcastChannel<BroadcastMessage>(channelName, () => {});
 
   useEffect(() => {
+    postMessage({ type: 'STATE_UPDATE', customItems });
+  }, [customItems, postMessage]);
+
+  useEffect(() => {
     const interval = setInterval(() => {
       if (presentationWindow?.closed) {
         setPresentationWindow(null);
@@ -196,18 +201,18 @@ const PresenterView: React.FC = () => {
     setGame(updatedGame);
     try {
         await gameService.saveGame(updatedGame);
-        postMessage({ type: 'STATE_UPDATE' });
+        postMessage({ type: 'STATE_UPDATE', customItems });
     } catch (error) {
         console.error("Failed to save game state:", error);
         alert("A change could not be saved. Please check your connection.");
     }
-  }, [postMessage]);
+  }, [postMessage, customItems]);
 
   const goToRoom = useCallback((index: number) => {
     if (!game) return;
     if (index >= 0 && index < game.rooms.length) {
       setCurrentRoomIndex(index);
-      postMessage({ type: 'GOTO_ROOM', roomIndex: index });
+      postMessage({ type: 'GOTO_ROOM', roomIndex: index, customItems });
 
       const destinationRoom = game.rooms[index];
       const newRoomId = destinationRoom.id;
@@ -254,7 +259,7 @@ const PresenterView: React.FC = () => {
         updateAndBroadcast(updatedGame);
       }
     }
-  }, [game, postMessage, updateAndBroadcast]);
+  }, [game, postMessage, updateAndBroadcast, customItems]);
 
 
   const handleToggleObject = (objectId: string, newState: boolean) => {

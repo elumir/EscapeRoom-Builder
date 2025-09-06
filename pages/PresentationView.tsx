@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import * as gameService from '../services/presentationService';
-import type { Game } from '../types';
+import type { Game, InventoryObject } from '../types';
 import Room from '../components/Slide';
 import { useBroadcastChannel } from '../hooks/useBroadcastChannel';
 
 interface BroadcastMessage {
   type: 'GOTO_ROOM' | 'STATE_UPDATE';
   roomIndex?: number;
+  customItems?: InventoryObject[];
 }
 
 type Status = 'loading' | 'success' | 'error';
@@ -17,6 +18,7 @@ const PresentationView: React.FC = () => {
   const [game, setGame] = useState<Game | null>(null);
   const [status, setStatus] = useState<Status>('loading');
   const [currentRoomIndex, setCurrentRoomIndex] = useState(0);
+  const [customItems, setCustomItems] = useState<InventoryObject[]>([]);
 
   const channelName = `game-${id}`;
 
@@ -33,6 +35,9 @@ const PresentationView: React.FC = () => {
   };
 
   useBroadcastChannel<BroadcastMessage>(channelName, async (message) => {
+    if (message.customItems) {
+      setCustomItems(message.customItems);
+    }
     if (message.type === 'GOTO_ROOM' && message.roomIndex !== undefined) {
       setCurrentRoomIndex(message.roomIndex);
     }
@@ -44,6 +49,19 @@ const PresentationView: React.FC = () => {
   useEffect(() => {
     fetchLatestState();
   }, [id]);
+
+  const inventoryItems = useMemo(() => {
+    const gameInventory = game?.rooms
+      .flatMap(r => r.objects)
+      .filter(t => t.showInInventory)
+      .map(t => t.name) || [];
+    
+    const customInventory = customItems
+      .filter(item => item.showInInventory)
+      .map(item => item.name);
+      
+    return [...customInventory, ...gameInventory];
+  }, [game, customItems]);
 
   if (status === 'loading') {
     return <div className="w-screen h-screen bg-black flex items-center justify-center text-white">Loading Game...</div>;
@@ -59,11 +77,6 @@ const PresentationView: React.FC = () => {
       return <div className="w-screen h-screen bg-black flex items-center justify-center text-white">End of Game</div>;
   }
   
-  const inventoryItems = game.rooms
-    .flatMap(r => r.objects)
-    .filter(t => t.showInInventory)
-    .map(t => t.name);
-
   const overlayImageUrl = 
     currentRoom.puzzles.find(p => p.showImageOverlay)?.image ||
     (currentRoom.actions || []).find(a => a.showImageOverlay)?.image ||
