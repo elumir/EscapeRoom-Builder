@@ -79,6 +79,7 @@ const Dashboard: React.FC = () => {
                 objects: room.objects.map(obj => ({
                     ...obj,
                     showInInventory: false,
+                    wasEverInInventory: false,
                     showImageOverlay: false,
                     addedToInventoryTimestamp: undefined,
                 })),

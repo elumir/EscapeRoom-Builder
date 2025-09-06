@@ -604,7 +604,9 @@ const Editor: React.FC = () => {
             objects: room.objects.map(obj => ({
                 ...obj,
                 showInInventory: false,
+                wasEverInInventory: false,
                 showImageOverlay: false,
+                addedToInventoryTimestamp: undefined,
             })),
             puzzles: room.puzzles.map(p => ({
                 ...p,
