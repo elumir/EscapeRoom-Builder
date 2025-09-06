@@ -9,6 +9,7 @@ const ObjectItem: React.FC<{
     showVisibilityToggle?: boolean;
     isDescriptionVisible?: boolean;
     onToggleDescription?: (id: string) => void;
+    onToggleImage?: (id: string, state: boolean) => void;
     variant?: 'full' | 'mini';
 }> = ({ 
     obj, 
@@ -17,6 +18,7 @@ const ObjectItem: React.FC<{
     showVisibilityToggle = false, 
     isDescriptionVisible = true, 
     onToggleDescription,
+    onToggleImage,
     variant = 'full'
 }) => {
     const isLocked = !!lockingPuzzleName;
@@ -84,6 +86,21 @@ const ObjectItem: React.FC<{
                 )}
                 {lockingPuzzleName && (
                     <p className="text-red-500 text-xs mt-1">Locked by: {lockingPuzzleName}</p>
+                )}
+                {obj.image && onToggleImage && (
+                    <div className="mt-3 pt-3 border-t border-slate-700/50">
+                        <label className={`flex items-center gap-2 text-sm text-sky-300 ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                            <span>Show Image</span>
+                            <input
+                                type="checkbox"
+                                checked={obj.showImageOverlay}
+                                onChange={(e) => onToggleImage(obj.id, e.target.checked)}
+                                className="sr-only peer"
+                                disabled={isLocked}
+                            />
+                            <div className="relative w-11 h-6 bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-600"></div>
+                        </label>
+                    </div>
                 )}
             </div>
         </div>

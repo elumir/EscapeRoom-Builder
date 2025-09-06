@@ -79,6 +79,7 @@ const Dashboard: React.FC = () => {
                 objects: room.objects.map(obj => ({
                     ...obj,
                     showInInventory: false,
+                    showImageOverlay: false,
                 })),
                 puzzles: room.puzzles.map(p => ({
                     ...p,

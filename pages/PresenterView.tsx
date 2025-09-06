@@ -357,9 +357,13 @@ const PresenterView: React.FC = () => {
     const updatedGame = {
         ...game,
         rooms: game.rooms.map(room => {
-            if (room.id !== currentRoomId) return room;
-            
             const newActions = (room.actions || []).map(a => ({ ...a, showImageOverlay: false }));
+            const newObjects = room.objects.map(o => ({ ...o, showImageOverlay: false }));
+            
+            if (room.id !== currentRoomId) {
+                return { ...room, actions: newActions, objects: newObjects };
+            }
+            
             const newPuzzles = room.puzzles.map(p => {
                 if (p.id === puzzleId) return { ...p, showImageOverlay: newState };
                 if (newState) return { ...p, showImageOverlay: false };
@@ -369,7 +373,8 @@ const PresenterView: React.FC = () => {
             return {
                 ...room,
                 puzzles: newPuzzles,
-                actions: newActions
+                actions: newActions,
+                objects: newObjects
             };
         })
     };
@@ -378,14 +383,12 @@ const PresenterView: React.FC = () => {
 
   const handleToggleActionImage = (actionId: string, newState: boolean) => {
     if (!game || !game.rooms[currentRoomIndex]) return;
-    const currentRoomId = game.rooms[currentRoomIndex].id;
-
+    
     const updatedGame = {
         ...game,
         rooms: game.rooms.map(room => {
-            if (room.id !== currentRoomId) return room;
-
             const newPuzzles = room.puzzles.map(p => ({ ...p, showImageOverlay: false }));
+            const newObjects = room.objects.map(o => ({ ...o, showImageOverlay: false }));
             const newActions = (room.actions || []).map(a => {
                 if (a.id === actionId) return { ...a, showImageOverlay: newState };
                 if (newState) return { ...a, showImageOverlay: false };
@@ -396,8 +399,28 @@ const PresenterView: React.FC = () => {
                 ...room,
                 puzzles: newPuzzles,
                 actions: newActions,
+                objects: newObjects,
             };
         })
+    };
+    updateAndBroadcast(updatedGame);
+  };
+
+  const handleToggleObjectImage = (objectId: string, newState: boolean) => {
+    if (!game) return;
+
+    const updatedGame = {
+        ...game,
+        rooms: game.rooms.map(room => ({
+            ...room,
+            puzzles: room.puzzles.map(p => ({ ...p, showImageOverlay: false })),
+            actions: (room.actions || []).map(a => ({ ...a, showImageOverlay: false })),
+            objects: room.objects.map(obj => {
+                if (obj.id === objectId) return { ...obj, showImageOverlay: newState };
+                if (newState) return { ...obj, showImageOverlay: false };
+                return obj;
+            })
+        }))
     };
     updateAndBroadcast(updatedGame);
   };
@@ -450,6 +473,7 @@ const PresenterView: React.FC = () => {
                 ...obj,
                 showInInventory: false,
                 wasEverInInventory: false,
+                showImageOverlay: false,
             })),
             puzzles: room.puzzles.map(p => ({
                 ...p,
@@ -802,11 +826,13 @@ const PresenterView: React.FC = () => {
                                 return (
                                     <button
                                         key={room.id}
-                                        onClick={() => !isLocked && goToRoom(index)}
+                                        onClick={() => goToRoom(index)}
                                         disabled={isLocked}
                                         className={`w-full text-left p-3 rounded-lg transition-colors flex flex-col items-start ${
                                             currentRoomIndex === index
                                                 ? 'bg-brand-600 text-white font-bold shadow-lg'
+                                                : isLocked
+                                                ? 'bg-slate-700 opacity-50 cursor-not-allowed'
                                                 : 'bg-slate-700 hover:bg-slate-600'
                                         }`}
                                         title={isLocked ? `Locked by: ${lockingPuzzleName}` : ''}
@@ -849,6 +875,7 @@ const PresenterView: React.FC = () => {
                                             showVisibilityToggle={true}
                                             isDescriptionVisible={visibleDescriptionIds.has(obj.id)}
                                             onToggleDescription={handleToggleDescriptionVisibility}
+                                            onToggleImage={handleToggleObjectImage}
                                         />
                                     );
                                 })}

@@ -36,7 +36,7 @@ const Editor: React.FC = () => {
   const [modalContent, setModalContent] = useState<{type: 'notes' | 'solvedNotes', content: string} | null>(null);
   const [assetLibrary, setAssetLibrary] = useState<Asset[]>([]);
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
-  const [assetModalTarget, setAssetModalTarget] = useState<'image' | 'mapImage' | 'solvedImage' | null>(null);
+  const [assetModalTarget, setAssetModalTarget] = useState<'image' | 'mapImage' | 'solvedImage' | { type: 'object'; index: number } | null>(null);
   const [isAssetManagerOpen, setIsAssetManagerOpen] = useState(false);
   const [deletingAssetId, setDeletingAssetId] = useState<string | null>(null);
   const [editingAssetName, setEditingAssetName] = useState<{ id: string; name: string } | null>(null);
@@ -282,15 +282,24 @@ const Editor: React.FC = () => {
       }
   };
   
-  const openAssetLibrary = (target: 'image' | 'mapImage' | 'solvedImage') => {
+  const openAssetLibrary = (target: 'image' | 'mapImage' | 'solvedImage' | { type: 'object', index: number }) => {
       setAssetModalTarget(target);
       setIsAssetModalOpen(true);
   };
 
   const handleSelectAsset = (assetId: string) => {
-      if (assetModalTarget) {
+      if (!assetModalTarget) return;
+
+      if (typeof assetModalTarget === 'string') {
           changeRoomProperty(assetModalTarget, assetId);
+      } else if (assetModalTarget.type === 'object') {
+          const newObjects = [...editingRoomObjects];
+          if (newObjects[assetModalTarget.index]) {
+              newObjects[assetModalTarget.index] = { ...newObjects[assetModalTarget.index], image: assetId };
+              setEditingRoomObjects(newObjects);
+          }
       }
+      
       setIsAssetModalOpen(false);
       setAssetModalTarget(null);
   };
@@ -317,12 +326,20 @@ const Editor: React.FC = () => {
                       if (newRoom.mapImage === assetId) { newRoom.mapImage = null; roomModified = true; }
                       if (newRoom.solvedImage === assetId) { newRoom.solvedImage = null; roomModified = true; }
 
+                      const newObjects = (newRoom.objects || []).map(obj => {
+                          if (obj.image === assetId) {
+                              roomModified = true;
+                              return { ...obj, image: null };
+                          }
+                          return obj;
+                      });
+
                       const newPuzzles = newRoom.puzzles.map(puzzle => {
                           let puzzleModified = false;
                           const newPuzzle = { ...puzzle };
                           if (newPuzzle.image === assetId) { newPuzzle.image = null; puzzleModified = true; }
                           if (newPuzzle.sound === assetId) { newPuzzle.sound = null; puzzleModified = true; }
-                          if (puzzleModified) gameWasModified = true;
+                          if (puzzleModified) roomModified = true;
                           return newPuzzle;
                       });
                       
@@ -331,14 +348,15 @@ const Editor: React.FC = () => {
                          const newAction = { ...action };
                          if (newAction.image === assetId) { newAction.image = null; actionModified = true; }
                          if (newAction.sound === assetId) { newAction.sound = null; actionModified = true; }
-                         if (actionModified) gameWasModified = true;
+                         if (actionModified) roomModified = true;
                          return newAction;
                       });
 
-                      if (roomModified || newPuzzles.length !== newRoom.puzzles.length || newActions.length !== newRoom.actions.length) {
+                      if (roomModified) {
                           gameWasModified = true;
                       }
                       
+                      newRoom.objects = newObjects;
                       newRoom.puzzles = newPuzzles;
                       newRoom.actions = newActions;
                       return newRoom;
@@ -350,6 +368,7 @@ const Editor: React.FC = () => {
                   
                   const currentRoomFromUpdatedGame = updatedGame.rooms[selectedRoomIndex];
                   if (currentRoomFromUpdatedGame) {
+                      setEditingRoomObjects(currentRoomFromUpdatedGame.objects);
                       setEditingRoomPuzzles(currentRoomFromUpdatedGame.puzzles);
                       setEditingRoomActions(currentRoomFromUpdatedGame.actions || []);
                   }
@@ -386,18 +405,34 @@ const Editor: React.FC = () => {
   };
 
   const addObject = () => {
-    const newObject: InventoryObject = { id: generateUUID(), name: '', description: '', showInInventory: false};
+    const newObject: InventoryObject = { id: generateUUID(), name: '', description: '', showInInventory: false, image: null, showImageOverlay: false};
     setEditingRoomObjects([...editingRoomObjects, newObject]);
     setTimeout(() => {
         objectsContainerRef.current?.lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'end' });
     }, 100);
   }
 
-  const handleObjectChange = (index: number, field: 'name' | 'description', value: string) => {
+  const handleObjectChange = (index: number, field: keyof InventoryObject, value: string | boolean | null) => {
     const newObjects = [...editingRoomObjects];
     newObjects[index] = { ...newObjects[index], [field]: value };
     setEditingRoomObjects(newObjects);
   }
+
+  const handleObjectFileUpload = async (file: File, index: number) => {
+    if (!game) return;
+    try {
+        const { assetId } = await gameService.uploadAsset(game.id, file);
+        const newObjects = [...editingRoomObjects];
+        newObjects[index] = { ...newObjects[index], image: assetId };
+        setEditingRoomObjects(newObjects);
+        
+        const assets = await gameService.getAssetsForGame(game.id);
+        setAssetLibrary(assets);
+    } catch (error) {
+        console.error(`Object image upload failed:`, error);
+        alert(`Failed to upload object image. Please try again.`);
+    }
+  };
 
   const deleteObject = (index: number) => {
     setEditingRoomObjects(editingRoomObjects.filter((_, i) => i !== index));
@@ -535,6 +570,7 @@ const Editor: React.FC = () => {
             objects: room.objects.map(obj => ({
                 ...obj,
                 showInInventory: false,
+                showImageOverlay: false,
             })),
             puzzles: room.puzzles.map(p => ({
                 ...p,
@@ -1705,7 +1741,7 @@ const Editor: React.FC = () => {
                     const isExpanded = expandedObjectIds.has(obj.id);
                     return (
                       <div key={obj.id} className="grid grid-cols-12 gap-2 items-start">
-                        <div className="col-span-4 flex items-center gap-2 pt-1">
+                        <div className="col-span-3 flex items-center gap-2 pt-1">
                           {lockingPuzzles && (
                               <div className="flex items-center gap-1 text-slate-400 dark:text-slate-500 flex-shrink-0" title={`Locked by: ${lockingPuzzles.join(', ')}`}>
                                 <Icon as="lock" className="w-4 h-4" />
@@ -1724,7 +1760,7 @@ const Editor: React.FC = () => {
                             className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
                           />
                         </div>
-                        <div className="col-span-6">
+                        <div className="col-span-5">
                             {!isExpanded ? (
                                 <input 
                                   type="text"
@@ -1742,6 +1778,49 @@ const Editor: React.FC = () => {
                                   className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm resize-y"
                                 />
                             )}
+                        </div>
+                        <div className="col-span-2 pt-1">
+                            <div className="relative group w-16 h-16 bg-slate-100 dark:bg-slate-700 rounded-md border border-slate-200 dark:border-slate-600">
+                                {obj.image && (
+                                    <img src={`/api/assets/${obj.image}`} alt={obj.name} className="w-full h-full object-cover rounded-md" />
+                                )}
+                                <label className="absolute inset-0 cursor-pointer hover:bg-black/40 transition-colors rounded-md flex items-center justify-center">
+                                    <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleObjectFileUpload(e.target.files[0], index)} className="sr-only" />
+                                    {!obj.image && (
+                                        <div className="text-center text-slate-400 dark:text-slate-500 group-hover:opacity-0 transition-opacity">
+                                            <Icon as="gallery" className="w-6 h-6 mx-auto"/>
+                                        </div>
+                                    )}
+                                </label>
+                                {obj.image ? (
+                                    <div className="absolute inset-0 bg-black/60 p-1 flex justify-center items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                                        <button
+                                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary({ type: 'object', index }); }}
+                                            className="pointer-events-auto p-1.5 bg-slate-200 text-slate-800 rounded-full hover:bg-slate-300 transition-colors"
+                                            title="Select from Library"
+                                        >
+                                            <Icon as="gallery" className="w-4 h-4" />
+                                        </button>
+                                        <button
+                                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleObjectChange(index, 'image', null); }}
+                                            className="pointer-events-auto p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                                            title="Clear Image"
+                                        >
+                                            <Icon as="trash" className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 p-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                        <div className="text-white text-center text-[10px] leading-tight">Upload New</div>
+                                        <button
+                                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary({ type: 'object', index }); }}
+                                            className="pointer-events-auto text-xs px-2 py-0.5 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors"
+                                        >
+                                            Library
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                         <button onClick={() => toggleObjectExpansion(obj.id)} className="col-span-1 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 p-1 rounded-full flex items-center justify-center mt-1">
                             <Icon as={isExpanded ? 'collapse' : 'expand'} className="w-4 h-4" />

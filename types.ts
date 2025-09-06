@@ -15,6 +15,8 @@ export interface InventoryObject {
   description: string;
   showInInventory: boolean;
   wasEverInInventory?: boolean;
+  image: string | null;
+  showImageOverlay: boolean;
 }
 
 export interface Puzzle {

@@ -67,6 +67,7 @@ const PresentationView: React.FC = () => {
   const overlayImageUrl = 
     currentRoom.puzzles.find(p => p.showImageOverlay)?.image ||
     (currentRoom.actions || []).find(a => a.showImageOverlay)?.image ||
+    game.rooms.flatMap(r => r.objects).find(o => o.showImageOverlay)?.image ||
     null;
   
   const visibleMapImages = (game.mapDisplayMode === 'room-specific')
