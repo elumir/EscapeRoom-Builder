@@ -210,7 +210,8 @@ const PresenterView: React.FC = () => {
   }, [postMessage, customItems, game?.visibility]);
 
   const goToRoom = useCallback((index: number) => {
-    if (!game) return;
+    if (!game || index === currentRoomIndex) return;
+
     if (index >= 0 && index < game.rooms.length) {
       setCurrentRoomIndex(index);
       setActiveActionTab('open');
@@ -223,6 +224,30 @@ const PresenterView: React.FC = () => {
 
       let needsUpdate = false;
       let updatedGame = { ...game };
+
+      // Reset all image overlays when changing rooms.
+      let overlaysWereReset = false;
+      updatedGame.rooms = updatedGame.rooms.map(room => {
+          const hasActiveOverlay = 
+            room.objects.some(o => o.showImageOverlay) ||
+            room.puzzles.some(p => p.showImageOverlay) ||
+            (room.actions || []).some(a => a.showImageOverlay);
+
+          if (hasActiveOverlay) {
+              overlaysWereReset = true;
+              return {
+                  ...room,
+                  objects: room.objects.map(o => o.showImageOverlay ? { ...o, showImageOverlay: false } : o),
+                  puzzles: room.puzzles.map(p => p.showImageOverlay ? { ...p, showImageOverlay: false } : p),
+                  actions: (room.actions || []).map(a => a.showImageOverlay ? { ...a, showImageOverlay: false } : a),
+              };
+          }
+          return room;
+      });
+      
+      if(overlaysWereReset) {
+          needsUpdate = true;
+      }
 
       // 1. Handle object removal if any are specified for the destination room
       if (objectsToRemove.length > 0) {
@@ -262,7 +287,7 @@ const PresenterView: React.FC = () => {
         updateAndBroadcast(updatedGame);
       }
     }
-  }, [game, postMessage, updateAndBroadcast, customItems]);
+  }, [game, postMessage, updateAndBroadcast, customItems, currentRoomIndex]);
 
 
   const handleToggleObject = (objectId: string, newState: boolean) => {
