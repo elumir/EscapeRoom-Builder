@@ -36,7 +36,7 @@ const Editor: React.FC = () => {
   const [modalContent, setModalContent] = useState<{type: 'notes' | 'solvedNotes', content: string} | null>(null);
   const [assetLibrary, setAssetLibrary] = useState<Asset[]>([]);
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
-  const [assetModalTarget, setAssetModalTarget] = useState<'image' | 'mapImage' | 'solvedImage' | { type: 'object'; index: number } | null>(null);
+  const [assetModalTarget, setAssetModalTarget] = useState<'image' | 'mapImage' | 'solvedImage' | 'modal-object' | null>(null);
   const [isAssetManagerOpen, setIsAssetManagerOpen] = useState(false);
   const [deletingAssetId, setDeletingAssetId] = useState<string | null>(null);
   const [editingAssetName, setEditingAssetName] = useState<{ id: string; name: string } | null>(null);
@@ -59,7 +59,8 @@ const Editor: React.FC = () => {
   const [actionModalState, setActionModalState] = useState<{ action: Action; index: number } | null>(null);
   const [modalActionData, setModalActionData] = useState<Action | null>(null);
   const [collapsedActs, setCollapsedActs] = useState<Record<number, boolean>>({});
-  const [expandedObjectIds, setExpandedObjectIds] = useState<Set<string>>(new Set());
+  const [objectModalState, setObjectModalState] = useState<{ object: InventoryObject; index: number } | null>(null);
+  const [modalObjectData, setModalObjectData] = useState<InventoryObject | null>(null);
 
 
   const objectRemoveDropdownRef = useRef<HTMLDivElement>(null);
@@ -217,6 +218,10 @@ const Editor: React.FC = () => {
     setModalActionData(actionModalState ? actionModalState.action : null);
   }, [actionModalState]);
 
+  useEffect(() => {
+    setModalObjectData(objectModalState ? objectModalState.object : null);
+  }, [objectModalState]);
+
   const selectRoom = (index: number, rooms?: RoomType[]) => {
     const roomList = rooms || game?.rooms;
     if (!roomList || !roomList[index]) return;
@@ -282,7 +287,7 @@ const Editor: React.FC = () => {
       }
   };
   
-  const openAssetLibrary = (target: 'image' | 'mapImage' | 'solvedImage' | { type: 'object', index: number }) => {
+  const openAssetLibrary = (target: 'image' | 'mapImage' | 'solvedImage' | 'modal-object') => {
       setAssetModalTarget(target);
       setIsAssetModalOpen(true);
   };
@@ -290,14 +295,10 @@ const Editor: React.FC = () => {
   const handleSelectAsset = (assetId: string) => {
       if (!assetModalTarget) return;
 
-      if (typeof assetModalTarget === 'string') {
+      if (typeof assetModalTarget === 'string' && assetModalTarget !== 'modal-object') {
           changeRoomProperty(assetModalTarget, assetId);
-      } else if (assetModalTarget.type === 'object') {
-          const newObjects = [...editingRoomObjects];
-          if (newObjects[assetModalTarget.index]) {
-              newObjects[assetModalTarget.index] = { ...newObjects[assetModalTarget.index], image: assetId };
-              setEditingRoomObjects(newObjects);
-          }
+      } else if (assetModalTarget === 'modal-object') {
+          handleModalObjectChange('image', assetId);
       }
       
       setIsAssetModalOpen(false);
@@ -406,49 +407,17 @@ const Editor: React.FC = () => {
 
   const addObject = () => {
     const newObject: InventoryObject = { id: generateUUID(), name: '', description: '', showInInventory: false, image: null, showImageOverlay: false};
-    setEditingRoomObjects([...editingRoomObjects, newObject]);
-    setTimeout(() => {
-        objectsContainerRef.current?.lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-    }, 100);
-  }
-
-  const handleObjectChange = (index: number, field: keyof InventoryObject, value: string | boolean | null) => {
-    const newObjects = [...editingRoomObjects];
-    newObjects[index] = { ...newObjects[index], [field]: value };
+    const newObjects = [...editingRoomObjects, newObject];
     setEditingRoomObjects(newObjects);
+    
+    // Open modal for the new object
+    const newObjIndex = newObjects.length - 1;
+    setObjectModalState({ object: { ...newObject }, index: newObjIndex });
   }
-
-  const handleObjectFileUpload = async (file: File, index: number) => {
-    if (!game) return;
-    try {
-        const { assetId } = await gameService.uploadAsset(game.id, file);
-        const newObjects = [...editingRoomObjects];
-        newObjects[index] = { ...newObjects[index], image: assetId };
-        setEditingRoomObjects(newObjects);
-        
-        const assets = await gameService.getAssetsForGame(game.id);
-        setAssetLibrary(assets);
-    } catch (error) {
-        console.error(`Object image upload failed:`, error);
-        alert(`Failed to upload object image. Please try again.`);
-    }
-  };
 
   const deleteObject = (index: number) => {
     setEditingRoomObjects(editingRoomObjects.filter((_, i) => i !== index));
   }
-  
-  const toggleObjectExpansion = (objectId: string) => {
-    setExpandedObjectIds(prev => {
-        const newSet = new Set(prev);
-        if (newSet.has(objectId)) {
-            newSet.delete(objectId);
-        } else {
-            newSet.add(objectId);
-        }
-        return newSet;
-    });
-  };
 
   const addPuzzle = () => {
     const newPuzzle: Puzzle = { id: generateUUID(), name: 'New Puzzle', answer: '', isSolved: false, unsolvedText: '', solvedText: '', image: null, sound: null, showImageOverlay: false, lockedObjectIds: [], discardObjectIds: [], lockedRoomIds: [], lockedPuzzleIds: [], lockedRoomSolveIds: [], lockedActionIds: [], completedActionIds: [], autoAddLockedObjects: false };
@@ -557,6 +526,36 @@ const Editor: React.FC = () => {
     newPuzzles[puzzleModalState.index] = modalPuzzleData;
     setEditingRoomPuzzles(newPuzzles);
     setPuzzleModalState(null);
+  };
+
+  const handleModalObjectChange = (field: keyof InventoryObject, value: string | boolean | null) => {
+    if (!modalObjectData) return;
+    setModalObjectData({ ...modalObjectData, [field]: value });
+  };
+
+  const handleModalObjectFileUpload = async (file: File | null) => {
+      if (!game || !modalObjectData) return;
+      if (!file) {
+          handleModalObjectChange('image', null);
+          return;
+      }
+      try {
+          const { assetId } = await gameService.uploadAsset(game.id, file);
+          handleModalObjectChange('image', assetId);
+          const assets = await gameService.getAssetsForGame(game.id);
+          setAssetLibrary(assets);
+      } catch (error) {
+          console.error(`Object image upload failed:`, error);
+          alert(`Failed to upload object image. Please try again.`);
+      }
+  };
+
+  const handleSaveObjectFromModal = () => {
+      if (!objectModalState || !modalObjectData) return;
+      const newObjects = [...editingRoomObjects];
+      newObjects[objectModalState.index] = modalObjectData;
+      setEditingRoomObjects(newObjects);
+      setObjectModalState(null);
   };
 
   const handleResetAndPresent = async () => {
@@ -1073,6 +1072,94 @@ const Editor: React.FC = () => {
                     >
                         Done
                     </button>
+                </div>
+            </div>
+        </div>
+      )}
+      {objectModalState && modalObjectData && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60] backdrop-blur-sm">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-2xl w-full max-w-2xl flex flex-col">
+                <div className="flex-shrink-0 flex justify-between items-center mb-4 pb-4 border-b border-slate-200 dark:border-slate-700">
+                    <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">Edit Object</h2>
+                    <button onClick={() => setObjectModalState(null)} className="p-1.5 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700">
+                        <Icon as="close" className="w-5 h-5" />
+                    </button>
+                </div>
+                <div className="flex-grow space-y-4 overflow-y-auto pr-2 -mr-2">
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Object Name</label>
+                        <input
+                            type="text"
+                            value={modalObjectData.name}
+                            onChange={(e) => handleModalObjectChange('name', e.target.value)}
+                            placeholder="e.g., A small, tarnished brass key"
+                            className="w-full font-semibold px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Description</label>
+                        <textarea
+                            value={modalObjectData.description}
+                            onChange={(e) => handleModalObjectChange('description', e.target.value)}
+                            placeholder="e.g., A description of the object for the presenter."
+                            rows={5}
+                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm resize-y"
+                        />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Image (Optional)</label>
+                      <div className="relative group w-32 h-32 bg-slate-100 dark:bg-slate-700/50 rounded-md border-2 border-dashed border-slate-300 dark:border-slate-600">
+                        {modalObjectData.image && (
+                          <img src={`/api/assets/${modalObjectData.image}`} alt={modalObjectData.name} className="w-full h-full object-cover rounded-md" />
+                        )}
+                        <label className="absolute inset-0 cursor-pointer hover:bg-black/40 transition-colors rounded-md flex items-center justify-center">
+                          <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleModalObjectFileUpload(e.target.files[0])} className="sr-only" />
+                          {!modalObjectData.image && (
+                            <>
+                              <div className="text-center text-slate-400 dark:text-slate-500 group-hover:opacity-0 transition-opacity">
+                                <Icon as="gallery" className="w-10 h-10 mx-auto" />
+                                <p className="text-xs mt-1">Add Image</p>
+                              </div>
+                              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div className="pointer-events-none text-white text-center">
+                                  <p className="font-bold text-xs">Upload New</p>
+                                </div>
+                                <button
+                                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('modal-object'); }}
+                                  className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors text-center"
+                                >
+                                  <Icon as="gallery" className="w-3.5 h-3.5" />
+                                  From Library
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </label>
+                        {modalObjectData.image && (
+                          <div className="absolute inset-0 bg-black/60 p-1 flex flex-col justify-center items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                            <button
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('modal-object'); }}
+                              className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors"
+                              title="Select from library"
+                            >
+                              <Icon as="gallery" className="w-3.5 h-3.5" />
+                              Change
+                            </button>
+                            <button
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleModalObjectChange('image', null); }}
+                              className="pointer-events-auto p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                              title="Clear Image"
+                            >
+                              <Icon as="trash" className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                </div>
+                <div className="flex-shrink-0 mt-6 pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-4">
+                    <button onClick={() => setObjectModalState(null)} className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">Cancel</button>
+                    <button onClick={handleSaveObjectFromModal} className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors">Save & Close</button>
                 </div>
             </div>
         </div>
@@ -1735,109 +1822,42 @@ const Editor: React.FC = () => {
             
             <div className="w-full max-w-4xl mx-auto mt-6 bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md">
                 <h3 className="font-semibold mb-3 text-slate-700 dark:text-slate-300">Objects</h3>
-                <div className="space-y-3 max-h-48 overflow-y-auto pr-2" ref={objectsContainerRef}>
+                <div className="space-y-2 max-h-96 overflow-y-auto pr-2" ref={objectsContainerRef}>
                   {editingRoomObjects.length > 0 ? editingRoomObjects.map((obj, index) => {
                     const lockingPuzzles = objectLockMap.get(obj.id);
-                    const isExpanded = expandedObjectIds.has(obj.id);
                     return (
-                        <div key={obj.id} className="grid grid-cols-12 gap-2 items-start py-1">
-                            <div className="col-span-4 flex items-center gap-2 pt-1">
-                                {lockingPuzzles && (
-                                    <div className="flex items-center gap-1 text-slate-400 dark:text-slate-500 flex-shrink-0" title={`Locked by: ${lockingPuzzles.join(', ')}`}>
-                                        <Icon as="lock" className="w-4 h-4" />
-                                        {lockingPuzzles.length > 1 && (
-                                            <span className="text-xs font-semibold bg-slate-200 dark:bg-slate-700 rounded-full h-4 w-4 flex items-center justify-center">
-                                                {lockingPuzzles.length}
-                                            </span>
-                                        )}
-                                    </div>
-                                )}
-                                <input
-                                    type="text"
-                                    value={obj.name}
-                                    onChange={(e) => handleObjectChange(index, 'name', e.target.value)}
-                                    placeholder="Object name"
-                                    className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
-                                />
+                        <div key={obj.id} className={`flex items-center gap-2 p-2 rounded-lg border border-slate-200 dark:border-slate-700 ${index % 2 === 0 ? '' : 'bg-slate-50 dark:bg-slate-700/50'}`}>
+                            {lockingPuzzles && (
+                                <div className="flex items-center gap-1 text-slate-400 dark:text-slate-500 flex-shrink-0" title={`Locked by: ${lockingPuzzles.join(', ')}`}>
+                                    <Icon as="lock" className="w-4 h-4" />
+                                    {lockingPuzzles.length > 1 && (
+                                        <span className="text-xs font-semibold bg-slate-200 dark:bg-slate-700 rounded-full h-4 w-4 flex items-center justify-center">
+                                            {lockingPuzzles.length}
+                                        </span>
+                                    )}
+                                </div>
+                            )}
+                            <div className="flex-grow min-w-0">
+                                <p className="font-semibold text-sm text-slate-800 dark:text-slate-200 truncate">
+                                  {obj.name || <span className="italic text-slate-500">Untitled Object</span>}
+                                </p>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                                  {obj.description}
+                                </p>
                             </div>
-
-                            <div className="col-span-7">
-                                {!isExpanded ? (
-                                    <input
-                                        type="text"
-                                        value={obj.description}
-                                        onChange={(e) => handleObjectChange(index, 'description', e.target.value)}
-                                        placeholder="Description"
-                                        className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
-                                    />
-                                ) : (
-                                    <div className="p-3 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-700 rounded-md space-y-3">
-                                        <textarea
-                                            value={obj.description}
-                                            onChange={(e) => handleObjectChange(index, 'description', e.target.value)}
-                                            placeholder="Description"
-                                            rows={3}
-                                            className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-sm resize-y"
-                                        />
-                                        <div>
-                                            <h4 className="font-semibold text-sm mb-1 text-slate-600 dark:text-slate-400">Object Image</h4>
-                                            <div className="relative group w-24 h-24 bg-slate-100 dark:bg-slate-700 rounded-md border border-slate-200 dark:border-slate-600">
-                                                {obj.image && (
-                                                    <img src={`/api/assets/${obj.image}`} alt={obj.name} className="w-full h-full object-cover rounded-md" />
-                                                )}
-                                                <label className="absolute inset-0 cursor-pointer hover:bg-black/40 transition-colors rounded-md flex items-center justify-center">
-                                                    <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleObjectFileUpload(e.target.files[0], index)} className="sr-only" />
-                                                    {!obj.image && (
-                                                        <>
-                                                            <div className="text-center text-slate-400 dark:text-slate-500 group-hover:opacity-0 transition-opacity">
-                                                                <Icon as="gallery" className="w-8 h-8 mx-auto" />
-                                                                <p className="text-xs mt-1">Add Image</p>
-                                                            </div>
-                                                            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                <div className="pointer-events-none text-white text-center">
-                                                                    <p className="font-bold text-xs">Upload New</p>
-                                                                </div>
-                                                                <button
-                                                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary({ type: 'object', index }); }}
-                                                                    className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors text-center"
-                                                                >
-                                                                    <Icon as="gallery" className="w-3.5 h-3.5" />
-                                                                    Library
-                                                                </button>
-                                                            </div>
-                                                        </>
-                                                    )}
-                                                </label>
-                                                {obj.image && (
-                                                    <div className="absolute inset-0 bg-black/60 p-1 flex flex-col justify-center items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-                                                        <button
-                                                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary({ type: 'object', index }); }}
-                                                            className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors"
-                                                            title="Select an existing image"
-                                                        >
-                                                            <Icon as="gallery" className="w-3.5 h-3.5" />
-                                                            Change
-                                                        </button>
-                                                        <button
-                                                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleObjectChange(index, 'image', null); }}
-                                                            className="pointer-events-auto p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
-                                                            title="Clear Image"
-                                                        >
-                                                            <Icon as="trash" className="w-4 h-4" />
-                                                        </button>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                            
-                            <div className="col-span-1 flex flex-col items-center justify-start gap-2 pt-1">
-                                <button onClick={() => toggleObjectExpansion(obj.id)} className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 p-1 rounded-full">
-                                    <Icon as={isExpanded ? 'collapse' : 'expand'} className="w-4 h-4" />
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                                <button
+                                    onClick={() => setObjectModalState({ object: { ...obj }, index })}
+                                    className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 p-1.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700"
+                                    title="Edit Object"
+                                >
+                                    <Icon as="edit" className="w-4 h-4" />
                                 </button>
-                                <button onClick={() => deleteObject(index)} className="text-red-500 hover:text-red-700 dark:hover:text-red-400 p-1 rounded-full">
+                                <button
+                                    onClick={() => deleteObject(index)}
+                                    className="text-red-500 hover:text-red-700 dark:hover:text-red-400 p-1.5 rounded-full hover:bg-red-100 dark:hover:bg-red-900/50"
+                                    title="Delete Object"
+                                >
                                   <Icon as="trash" className="w-4 h-4" />
                                 </button>
                             </div>
