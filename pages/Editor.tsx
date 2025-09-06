@@ -2113,8 +2113,8 @@ const Editor: React.FC = () => {
             </div>
             
             <div className="w-full max-w-4xl mx-auto mt-6 bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md">
-                <h3 className="font-semibold mb-1 text-slate-700 dark:text-slate-300">When players ask to...</h3>
-                <p className="text-xs italic text-slate-500 dark:text-slate-400 mb-3">Define host responses for things players might ask to do (e.g., "look under the rug").</p>
+                <h3 className="font-semibold mb-1 text-slate-700 dark:text-slate-300">Player Actions & Host Responses</h3>
+                <p className="text-xs italic text-slate-500 dark:text-slate-400 mb-3">Create interactive events for when players want to do something (e.g., "look under the rug"). The host can then reveal text, an image, or play a sound.</p>
                 <div className="space-y-2 max-h-96 overflow-y-auto pr-2" ref={actionsContainerRef}>
                     {editingRoomActions.length > 0 ? editingRoomActions.map((action, index) => {
                       const lockingPuzzles = actionLockMap.get(action.id);
@@ -2215,11 +2215,11 @@ const Editor: React.FC = () => {
                         </div>
                     </div>
                 </Accordion>
-                <Accordion title="Object Removal">
+                <Accordion title="Discard Objects">
                     <div className="space-y-4">
                         <div>
-                            <h3 className="font-semibold text-sm mb-2 text-slate-600 dark:text-slate-400">Removed Objects</h3>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">Visiting this room will remove the selected objects from the live inventory.</p>
+                            <h3 className="font-semibold text-sm mb-2 text-slate-600 dark:text-slate-400">Discard Objects</h3>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">Visiting this room will discard the selected objects from the inventory to the discard column.</p>
                             <div className="relative">
                                 <button
                                     type="button"
@@ -2268,8 +2268,8 @@ const Editor: React.FC = () => {
                             </div>
                         </div>
                         <div>
-                            <h3 className="font-semibold text-sm mb-2 text-slate-600 dark:text-slate-400">Removal Text</h3>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">Optional text to show the presenter in a pop-up when objects are removed.</p>
+                            <h3 className="font-semibold text-sm mb-2 text-slate-600 dark:text-slate-400">Discard Text</h3>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">Optional text to show the presenter in a pop-up when objects are discarded.</p>
                             <textarea
                                 value={editingRoomObjectRemoveText}
                                 onChange={e => setEditingRoomObjectRemoveText(e.target.value)}
