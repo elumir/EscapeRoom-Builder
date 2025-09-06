@@ -52,18 +52,6 @@ const Dashboard: React.FC = () => {
         setError(null);
     };
 
-
-    const handleDelete = async (id: string) => {
-        if (window.confirm('Are you sure you want to delete this game?')) {
-            const success = await gameService.deleteGame(id);
-            if (success) {
-                setGames(games.filter(p => p.id !== id));
-            } else {
-                alert('Failed to delete game. Please try again.');
-            }
-        }
-    };
-
     const handlePresentClick = (game: Game) => {
         setPresentModalGame(game);
     };
@@ -187,13 +175,6 @@ const Dashboard: React.FC = () => {
                                             Present
                                         </button>
                                     </div>
-                                    <button
-                                        onClick={() => handleDelete(g.id)}
-                                        className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-red-600"
-                                        aria-label="Delete game"
-                                    >
-                                        <Icon as="trash" className="w-4 h-4" />
-                                    </button>
                                 </div>
                             )
                         })}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import * as gameService from '../services/presentationService';
 import type { Game, Room as RoomType, InventoryObject, Puzzle, Action, Asset } from '../types';
 import Room from '../components/Slide';
@@ -12,6 +12,7 @@ type Status = 'loading' | 'success' | 'error';
 
 const Editor: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [game, setGame] = useState<Game | null>(null);
   const [status, setStatus] = useState<Status>('loading');
   const [selectedRoomIndex, setSelectedRoomIndex] = useState(0);
@@ -636,6 +637,19 @@ const Editor: React.FC = () => {
     setIsResetModalOpen(false);
   };
 
+  const handleDeleteGame = async () => {
+    if (!game) return;
+
+    if (window.confirm('Are you absolutely sure you want to delete this game? This action is permanent and cannot be undone.')) {
+      const success = await gameService.deleteGame(game.id);
+      if (success) {
+        navigate('/');
+      } else {
+        alert('Failed to delete game. Please try again.');
+      }
+    }
+  };
+
   const handleDragStart = (index: number) => {
     setDraggedRoomIndex(index);
   };
@@ -966,6 +980,20 @@ const Editor: React.FC = () => {
                             <span>Hide Available Objects in presenter view because all objects are automatically picked up.</span>
                         </label>
                     </div>
+                </div>
+
+                <div className="mt-8 pt-6 border-t border-red-500/30">
+                    <h3 className="font-semibold text-red-500 dark:text-red-400 mb-2">Danger Zone</h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
+                        This action cannot be undone. This will permanently delete the game and all its assets.
+                    </p>
+                    <button
+                        onClick={handleDeleteGame}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-300 shadow"
+                    >
+                        <Icon as="trash" className="w-5 h-5" />
+                        Delete this Game
+                    </button>
                 </div>
 
                 <div className="mt-8 flex justify-end">
