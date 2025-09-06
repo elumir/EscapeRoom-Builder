@@ -68,6 +68,8 @@ const prettifyAssetName = (filename) => {
     return name.replace(/\b\w/g, char => char.toUpperCase());
 };
 
+const gameRouter = express.Router();
+
 // === API ROUTER ===
 const apiRouter = express.Router();
 
@@ -260,17 +262,21 @@ apiRouter.delete('/presentations/:presentationId/assets/:assetId', async (req, r
 });
 
 // Mount the API router
-app.use('/api', apiRouter);
+gameRouter.use('/api', apiRouter);
 
 // === FRONTEND SERVING (for production) ===
 const buildPath = path.join(__dirname, 'build');
-app.use(express.static(buildPath));
+gameRouter.use(express.static(buildPath));
 
 // For any other GET request, serve the main index.html file.
 // This is the fallback for client-side routing.
-app.get('*', (req, res) => {
+gameRouter.get('*', (req, res) => {
   res.sendFile(path.join(buildPath, 'index.html'));
 });
+
+// Mount the entire game application router under the /game prefix
+app.use('/game', gameRouter);
+
 
 // Start server
 app.listen(port, () => {

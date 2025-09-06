@@ -10,7 +10,7 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/api': {
+      '/game/api': {
         target: 'http://localhost:8080',
         changeOrigin: true,
       }
