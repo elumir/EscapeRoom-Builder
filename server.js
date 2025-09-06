@@ -121,6 +121,25 @@ gameRouter.get('/api/public/presentation/:id', async (req, res) => {
   }
 });
 
+// Get an asset by ID (Publicly available, as it's by non-guessable ID)
+gameRouter.get('/api/assets/:assetId', async (req, res) => {
+    try {
+        const { assetId } = req.params;
+        const [rows] = await dbPool.query('SELECT data, mime_type FROM assets WHERE id = ?', [assetId]);
+        if (rows.length > 0) {
+            const asset = rows[0];
+            res.setHeader('Content-Type', asset.mime_type);
+            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+            res.send(asset.data);
+        } else {
+            res.status(404).send('Asset not found');
+        }
+    } catch (error) {
+        console.error(`Failed to fetch asset ${req.params.assetId}:`, error);
+        res.status(500).json({ error: 'Database query failed' });
+    }
+});
+
 
 // === API ROUTER ===
 const apiRouter = express.Router();
@@ -311,25 +330,6 @@ apiRouter.post('/presentations/:presentationId/assets', async (req, res) => {
     } catch (error) {
         console.error('Failed to upload asset:', error);
         res.status(500).json({ error: 'Database insert failed for asset.' });
-    }
-});
-
-// Get an asset by ID (Publicly available, as it's by non-guessable ID)
-apiRouter.get('/assets/:assetId', async (req, res) => {
-    try {
-        const { assetId } = req.params;
-        const [rows] = await dbPool.query('SELECT data, mime_type FROM assets WHERE id = ?', [assetId]);
-        if (rows.length > 0) {
-            const asset = rows[0];
-            res.setHeader('Content-Type', asset.mime_type);
-            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-            res.send(asset.data);
-        } else {
-            res.status(404).send('Asset not found');
-        }
-    } catch (error) {
-        console.error(`Failed to fetch asset ${req.params.assetId}:`, error);
-        res.status(500).json({ error: 'Database query failed' });
     }
 });
 
