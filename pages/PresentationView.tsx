@@ -54,15 +54,13 @@ const PresentationView: React.FC = () => {
     }
   }, [id]);
 
-  const inventoryItems = useMemo(() => {
+  const inventoryObjects = useMemo(() => {
     const gameInventory = game?.rooms
       .flatMap(r => r.objects)
-      .filter(t => t.showInInventory)
-      .map(t => t.name) || [];
+      .filter(t => t.showInInventory) || [];
     
     const customInventory = customItems
-      .filter(item => item.showInInventory)
-      .map(item => item.name);
+      .filter(item => item.showInInventory);
       
     return [...customInventory, ...gameInventory];
   }, [game, customItems]);
@@ -99,7 +97,7 @@ const PresentationView: React.FC = () => {
       <div className="w-full max-w-[calc(100vh*16/9)] max-h-[calc(100vw*9/16)] aspect-video">
         <Room 
           room={currentRoom} 
-          inventoryItems={inventoryItems}
+          inventoryObjects={inventoryObjects}
           visibleMapImages={visibleMapImages}
           overlayImageUrl={overlayImageUrl}
           className="w-full h-full shadow-none" 

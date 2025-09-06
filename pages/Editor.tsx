@@ -11,6 +11,17 @@ import AudioPreviewPlayer from '../components/AudioPreviewPlayer';
 
 type Status = 'loading' | 'success' | 'error';
 
+const NAME_COLORS = [
+    { name: 'Default', value: null, bg: 'bg-slate-400', border: 'border-slate-500' },
+    { name: 'White', value: 'text-white', bg: 'bg-white', border: 'border-gray-300' },
+    { name: 'Green', value: 'text-green-500', bg: 'bg-green-500', border: 'border-green-600' },
+    { name: 'Yellow', value: 'text-yellow-500', bg: 'bg-yellow-500', border: 'border-yellow-600' },
+    { name: 'Blue', value: 'text-blue-500', bg: 'bg-blue-500', border: 'border-blue-600' },
+    { name: 'Red', value: 'text-red-500', bg: 'bg-red-500', border: 'border-red-600' },
+    { name: 'Cyan', value: 'text-cyan-500', bg: 'bg-cyan-500', border: 'border-cyan-600' },
+    { name: 'Magenta', value: 'text-pink-500', bg: 'bg-pink-500', border: 'border-pink-600' },
+];
+
 const Editor: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -410,7 +421,7 @@ const Editor: React.FC = () => {
   };
 
   const addObject = () => {
-    const newObject: InventoryObject = { id: generateUUID(), name: '', description: '', showInInventory: false, image: null, showImageOverlay: false};
+    const newObject: InventoryObject = { id: generateUUID(), name: '', description: '', showInInventory: false, image: null, showImageOverlay: false, nameColor: null };
     const newObjects = [...editingRoomObjects, newObject];
     setEditingRoomObjects(newObjects);
     
@@ -873,10 +884,9 @@ const Editor: React.FC = () => {
   }
 
   const currentRoom = game.rooms[selectedRoomIndex];
-  const inventoryItems = game.rooms
+  const inventoryObjects = game.rooms
     .flatMap(r => r.objects)
-    .filter(t => t.showInInventory)
-    .map(t => t.name);
+    .filter(t => t.showInInventory);
   
   const visibleMapImages = game.mapDisplayMode === 'room-specific'
     ? [currentRoom.mapImage].filter(Boolean)
@@ -1244,6 +1254,22 @@ const Editor: React.FC = () => {
                             placeholder="e.g., A small, tarnished brass key"
                             className="w-full font-semibold px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
                         />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Name Color</label>
+                        <div className="flex flex-wrap gap-2">
+                            {NAME_COLORS.map(color => (
+                                <button
+                                    key={color.name}
+                                    type="button"
+                                    onClick={() => handleModalObjectChange('nameColor', color.value)}
+                                    className={`w-8 h-8 rounded-full border-2 ${modalObjectData.nameColor === color.value ? 'ring-2 ring-brand-500 border-white dark:border-slate-900' : `hover:border-slate-400 dark:hover:border-slate-500 ${color.border}`}`}
+                                    title={color.name}
+                                >
+                                    <div className={`w-full h-full rounded-full ${color.bg}`}></div>
+                                </button>
+                            ))}
+                        </div>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Description</label>
@@ -2347,7 +2373,7 @@ const Editor: React.FC = () => {
             <div className="mt-2 aspect-video w-full rounded-lg overflow-hidden border border-slate-300 dark:border-slate-600">
               <Room
                 room={{...currentRoom, isSolved: previewSolved}}
-                inventoryItems={inventoryItems}
+                inventoryObjects={inventoryObjects}
                 visibleMapImages={visibleMapImages}
                 globalBackgroundColor={game.globalBackgroundColor}
               />

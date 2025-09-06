@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import * as gameService from '../services/presentationService';
-import type { Game, Room as RoomType } from '../types';
+import type { Game, Room as RoomType, InventoryObject } from '../types';
 import Icon from '../components/Icon';
 import Room from '../components/Slide';
 import { useAuth } from '../hooks/useAuth';
@@ -168,10 +168,9 @@ const Dashboard: React.FC = () => {
                 ) : games.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                         {games.map(g => {
-                           const inventoryItems = g.rooms
+                           const inventoryObjects = g.rooms
                              .flatMap(r => r.objects)
-                             .filter(t => t.showInInventory)
-                             .map(t => t.name);
+                             .filter(t => t.showInInventory);
                             
                            const firstRoom = g.rooms[0] || fallbackRoom;
                            const visibleMapImages = g.mapDisplayMode === 'room-specific'
@@ -185,7 +184,7 @@ const Dashboard: React.FC = () => {
                                             <div className="p-2">
                                               <Room 
                                                 room={firstRoom}
-                                                inventoryItems={inventoryItems}
+                                                inventoryObjects={inventoryObjects}
                                                 visibleMapImages={visibleMapImages}
                                                 globalBackgroundColor={g.globalBackgroundColor}
                                               />

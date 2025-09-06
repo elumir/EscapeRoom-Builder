@@ -27,7 +27,7 @@ const ObjectItem: React.FC<{
         return (
             <div className={`mt-1 flex flex-col ${isLocked ? 'opacity-50' : ''}`}>
                 <div className="flex items-center gap-1">
-                    <h4 className="font-bold text-brand-400/80 text-[9px] truncate flex-grow">{obj.name}</h4>
+                    <h4 className={`font-bold text-[9px] truncate flex-grow ${obj.nameColor ? `${obj.nameColor} opacity-80` : 'text-brand-400/80'}`}>{obj.name}</h4>
                     <div className="flex items-center gap-1 flex-shrink-0">
                         {obj.showInInventory ? (
                             <button
@@ -72,7 +72,7 @@ const ObjectItem: React.FC<{
     return (
         <div className={`flex flex-col gap-2 transition-opacity ${isLocked ? 'opacity-50' : ''}`}>
              <div className="flex items-center gap-4">
-                <h3 className="font-bold text-brand-400 flex-grow">{obj.name}</h3>
+                <h3 className={`font-bold flex-grow ${obj.nameColor || 'text-brand-400'}`}>{obj.name}</h3>
                 <div className="flex items-center gap-3 flex-shrink-0">
                     {obj.image && onToggleImage && (
                         <button

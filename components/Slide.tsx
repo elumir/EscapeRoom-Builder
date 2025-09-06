@@ -1,18 +1,18 @@
 import React from 'react';
-import type { Room as RoomType } from '../types';
+import type { Room as RoomType, InventoryObject } from '../types';
 import Icon from './Icon';
 import { API_BASE_URL } from '../services/presentationService';
 
 interface RoomProps {
   room: RoomType;
-  inventoryItems: string[];
+  inventoryObjects: InventoryObject[];
   visibleMapImages: (string | null)[];
   className?: string;
   overlayImageUrl?: string | null;
   globalBackgroundColor?: string | null;
 }
 
-const Room: React.FC<RoomProps> = ({ room, inventoryItems, visibleMapImages, className, overlayImageUrl, globalBackgroundColor }) => {
+const Room: React.FC<RoomProps> = ({ room, inventoryObjects, visibleMapImages, className, overlayImageUrl, globalBackgroundColor }) => {
   const { backgroundColor: roomBackgroundColor, isFullScreenImage } = room;
 
   const backgroundColor = globalBackgroundColor ?? roomBackgroundColor;
@@ -24,7 +24,7 @@ const Room: React.FC<RoomProps> = ({ room, inventoryItems, visibleMapImages, cla
   const textColor = isLightBg ? '#1f2937' : '#f8fafc';
   const bodyTextColor = isLightBg ? '#374151' : '#e2e8f0';
 
-  const itemCount = inventoryItems.length;
+  const itemCount = inventoryObjects.length;
   let inventoryListClass = 'w-full text-xs md:text-sm lg:text-base';
   if (itemCount > 4) { // Use 2 columns for more than 4 items
     inventoryListClass += ' columns-2 gap-x-2 md:gap-x-3';
@@ -70,10 +70,10 @@ const Room: React.FC<RoomProps> = ({ room, inventoryItems, visibleMapImages, cla
           </div>
           <div className="h-1/2 flex flex-col justify-start p-2 md:p-4 overflow-y-auto">
               <h2 className="text-sm md:text-md font-bold mb-2 sticky top-0 text-center" style={{color: textColor}}>Inventory</h2>
-              {inventoryItems.length > 0 ? (
+              {inventoryObjects.length > 0 ? (
                   <ul className={inventoryListClass}>
-                      {inventoryItems.map((item, index) => (
-                          <li key={index} className="px-2 py-1 bg-slate-200/50 dark:bg-slate-800/50 rounded-md break-words break-inside-avoid mb-1" style={{color: bodyTextColor}}>{item}</li>
+                      {inventoryObjects.map((item, index) => (
+                          <li key={item.id || index} className={`px-2 py-1 bg-slate-200/50 dark:bg-slate-800/50 rounded-md break-words break-inside-avoid mb-1 ${item.nameColor || ''}`} style={{color: item.nameColor ? undefined : bodyTextColor}}>{item.name}</li>
                       ))}
                   </ul>
               ) : (

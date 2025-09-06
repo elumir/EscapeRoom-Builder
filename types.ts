@@ -18,6 +18,7 @@ export interface InventoryObject {
   image: string | null;
   showImageOverlay: boolean;
   addedToInventoryTimestamp?: number;
+  nameColor?: string;
 }
 
 export interface Puzzle {
