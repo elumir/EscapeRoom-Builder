@@ -1343,7 +1343,16 @@ const Editor: React.FC = () => {
                                                             <input
                                                               type="checkbox"
                                                               checked={modalPuzzleData.lockedActionIds?.includes(action.id)}
-                                                              onChange={e => handleModalPuzzleChange('lockedActionIds', e.target.checked ? [...(modalPuzzleData.lockedActionIds || []), action.id] : (modalPuzzleData.lockedActionIds || []).filter(id => id !== action.id))}
+                                                              onChange={e => {
+                                                                  setModalPuzzleData(prevData => {
+                                                                      if (!prevData) return null;
+                                                                      const currentIds = prevData.lockedActionIds || [];
+                                                                      const newIds = e.target.checked
+                                                                          ? [...currentIds, action.id]
+                                                                          : currentIds.filter(id => id !== action.id);
+                                                                      return { ...prevData, lockedActionIds: newIds };
+                                                                  });
+                                                              }}
                                                             />
                                                             {action.name || <span className="italic">Untitled Action</span>}
                                                           </label>
@@ -1382,7 +1391,19 @@ const Editor: React.FC = () => {
                                                     <div key={room.id} className="p-2">
                                                         <h5 className="text-xs font-bold text-slate-500 dark:text-slate-400 sticky top-0 bg-white dark:bg-slate-800 py-1 px-2 -mx-2">{room.name}</h5>
                                                         {filteredPuzzles.map(p => (
-                                                          <label key={p.id} className="flex items-center gap-2 text-sm p-1 cursor-pointer"><input type="checkbox" checked={modalPuzzleData.lockedPuzzleIds?.includes(p.id)} onChange={e => { const ids = modalPuzzleData.lockedPuzzleIds || []; handleModalPuzzleChange('lockedPuzzleIds', e.target.checked ? [...ids, p.id] : ids.filter(id => id !== p.id))}} />{p.name}</label>
+                                                          <label key={p.id} className="flex items-center gap-2 text-sm p-1 cursor-pointer">
+                                                            <input type="checkbox" checked={modalPuzzleData.lockedPuzzleIds?.includes(p.id)} onChange={e => {
+                                                                setModalPuzzleData(prevData => {
+                                                                    if (!prevData) return null;
+                                                                    const currentIds = prevData.lockedPuzzleIds || [];
+                                                                    const newIds = e.target.checked
+                                                                        ? [...currentIds, p.id]
+                                                                        : currentIds.filter(id => id !== p.id);
+                                                                    return { ...prevData, lockedPuzzleIds: newIds };
+                                                                });
+                                                            }} />
+                                                            {p.name}
+                                                          </label>
                                                         ))}
                                                     </div>
                                                 )
@@ -1412,7 +1433,19 @@ const Editor: React.FC = () => {
                                             </div>
                                             <div className="overflow-y-auto p-2">
                                               {game.rooms.filter(r => r.id !== currentRoom.id && r.name.toLowerCase().includes(modalPuzzleRoomsSearch.toLowerCase())).map(room => (
-                                                <label key={room.id} className="flex items-center gap-2 text-sm p-1 cursor-pointer"><input type="checkbox" checked={modalPuzzleData.lockedRoomIds?.includes(room.id)} onChange={e => { const ids = modalPuzzleData.lockedRoomIds || []; handleModalPuzzleChange('lockedRoomIds', e.target.checked ? [...ids, room.id] : ids.filter(id => id !== room.id))}} />{room.name}</label>
+                                                <label key={room.id} className="flex items-center gap-2 text-sm p-1 cursor-pointer">
+                                                  <input type="checkbox" checked={modalPuzzleData.lockedRoomIds?.includes(room.id)} onChange={e => {
+                                                      setModalPuzzleData(prevData => {
+                                                          if (!prevData) return null;
+                                                          const currentIds = prevData.lockedRoomIds || [];
+                                                          const newIds = e.target.checked
+                                                              ? [...currentIds, room.id]
+                                                              : currentIds.filter(id => id !== room.id);
+                                                          return { ...prevData, lockedRoomIds: newIds };
+                                                      });
+                                                  }} />
+                                                  {room.name}
+                                                </label>
                                               ))}
                                             </div>
                                         </div>
@@ -1457,7 +1490,16 @@ const Editor: React.FC = () => {
                                                     <input 
                                                       type="checkbox" 
                                                       checked={modalPuzzleData.lockedRoomSolveIds?.includes(room.id)} 
-                                                      onChange={e => { const ids = modalPuzzleData.lockedRoomSolveIds || []; handleModalPuzzleChange('lockedRoomSolveIds', e.target.checked ? [...ids, room.id] : ids.filter(id => id !== room.id))}}
+                                                      onChange={e => {
+                                                          setModalPuzzleData(prevData => {
+                                                              if (!prevData) return null;
+                                                              const currentIds = prevData.lockedRoomSolveIds || [];
+                                                              const newIds = e.target.checked
+                                                                  ? [...currentIds, room.id]
+                                                                  : currentIds.filter(id => id !== room.id);
+                                                              return { ...prevData, lockedRoomSolveIds: newIds };
+                                                          });
+                                                      }}
                                                     />
                                                     {room.name}
                                                   </label>
@@ -1501,7 +1543,19 @@ const Editor: React.FC = () => {
                                                         <div key={room.id} className="p-2">
                                                             <h5 className="text-xs font-bold text-slate-500 dark:text-slate-400 sticky top-0 bg-white dark:bg-slate-800 py-1 px-2 -mx-2">{room.name}</h5>
                                                             {filteredObjects.map(obj => (
-                                                              <label key={obj.id} className="flex items-center gap-2 text-sm p-1 cursor-pointer"><input type="checkbox" checked={modalPuzzleData.discardObjectIds?.includes(obj.id)} onChange={e => handleModalPuzzleChange('discardObjectIds', e.target.checked ? [...(modalPuzzleData.discardObjectIds || []), obj.id] : (modalPuzzleData.discardObjectIds || []).filter(id => id !== obj.id))} />{obj.name}</label>
+                                                              <label key={obj.id} className="flex items-center gap-2 text-sm p-1 cursor-pointer">
+                                                                <input type="checkbox" checked={modalPuzzleData.discardObjectIds?.includes(obj.id)} onChange={e => {
+                                                                    setModalPuzzleData(prevData => {
+                                                                        if (!prevData) return null;
+                                                                        const currentIds = prevData.discardObjectIds || [];
+                                                                        const newIds = e.target.checked
+                                                                            ? [...currentIds, obj.id]
+                                                                            : currentIds.filter(id => id !== obj.id);
+                                                                        return { ...prevData, discardObjectIds: newIds };
+                                                                    });
+                                                                }} />
+                                                                {obj.name}
+                                                              </label>
                                                             ))}
                                                         </div>
                                                     )
@@ -1543,7 +1597,16 @@ const Editor: React.FC = () => {
                                                             <input
                                                               type="checkbox"
                                                               checked={modalPuzzleData.completedActionIds?.includes(action.id)}
-                                                              onChange={e => handleModalPuzzleChange('completedActionIds', e.target.checked ? [...(modalPuzzleData.completedActionIds || []), action.id] : (modalPuzzleData.completedActionIds || []).filter(id => id !== action.id))}
+                                                              onChange={e => {
+                                                                  setModalPuzzleData(prevData => {
+                                                                      if (!prevData) return null;
+                                                                      const currentIds = prevData.completedActionIds || [];
+                                                                      const newIds = e.target.checked
+                                                                          ? [...currentIds, action.id]
+                                                                          : currentIds.filter(id => id !== action.id);
+                                                                      return { ...prevData, completedActionIds: newIds };
+                                                                  });
+                                                              }}
                                                             />
                                                             {action.name || <span className="italic">Untitled Action</span>}
                                                           </label>
