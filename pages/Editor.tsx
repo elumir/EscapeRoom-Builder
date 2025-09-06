@@ -1846,6 +1846,30 @@ const Editor: React.FC = () => {
                                       Automatically add locked objects to inventory upon solving.
                                     </label>
                                 </div>
+                                <div className="pt-4 mt-4 border-t border-slate-200 dark:border-slate-700">
+                                    <h4 className="font-semibold text-sm mb-1 text-slate-600 dark:text-slate-400">Locked by</h4>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">Puzzles that must be solved before this one becomes available.</p>
+                                    {(() => {
+                                        const lockingPuzzles = puzzleLockMap.get(modalPuzzleData.id);
+                                        if (lockingPuzzles && lockingPuzzles.length > 0) {
+                                            return (
+                                                <div className="p-3 bg-slate-100 dark:bg-slate-700/50 rounded-md border border-slate-200 dark:border-slate-600">
+                                                    <ul className="list-disc list-inside space-y-1 text-sm text-slate-600 dark:text-slate-400">
+                                                        {lockingPuzzles.map((puzzleName, index) => (
+                                                            <li key={index}>{puzzleName}</li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            );
+                                        } else {
+                                            return (
+                                                <p className="text-sm text-slate-500 dark:text-slate-400 italic">
+                                                    This puzzle is not locked by any other puzzle.
+                                                </p>
+                                            );
+                                        }
+                                    })()}
+                                </div>
                             </div>
                         </div>
                     </div>
