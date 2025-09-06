@@ -4,6 +4,7 @@ import * as gameService from '../services/presentationService';
 import type { Game, Room as RoomType } from '../types';
 import Icon from '../components/Icon';
 import Room from '../components/Slide';
+import { useAuth } from '../hooks/useAuth';
 
 const Dashboard: React.FC = () => {
     const [games, setGames] = useState<Game[]>([]);
@@ -14,16 +15,18 @@ const Dashboard: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const navigate = useNavigate();
     const [presentModalGame, setPresentModalGame] = useState<Game | null>(null);
+    const { user, isLoading: isAuthLoading } = useAuth();
 
     useEffect(() => {
         const fetchGames = async () => {
+            if (!user) return; // Don't fetch if not logged in
             setIsLoading(true);
             const data = await gameService.getGames();
             setGames(data);
             setIsLoading(false);
         };
         fetchGames();
-    }, []);
+    }, [user]);
 
     const handleCreateGame = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -117,18 +120,43 @@ const Dashboard: React.FC = () => {
         objectRemoveText: '',
     };
 
+    const renderHeaderButtons = () => {
+      if (isAuthLoading) {
+        return <div className="h-10 w-48 bg-slate-200 dark:bg-slate-700 rounded-lg animate-pulse"></div>;
+      }
+      if (user) {
+        return (
+          <div className="flex items-center gap-4">
+            <button
+              onClick={openModal}
+              className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors duration-300 shadow"
+            >
+              <Icon as="plus" className="w-5 h-5" />
+              New Game
+            </button>
+            <div className="flex items-center gap-2">
+                <img src={user.picture} alt={user.name} className="w-8 h-8 rounded-full" />
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300 hidden sm:inline">{user.name}</span>
+            </div>
+            <a href="/game/logout" className="text-sm text-slate-500 hover:text-brand-600 dark:hover:text-brand-400">
+              Log Out
+            </a>
+          </div>
+        );
+      }
+      return (
+        <a href="/game/login" className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors duration-300 shadow">
+          Log In
+        </a>
+      );
+    }
+
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
             <header className="bg-white dark:bg-slate-800 shadow-md">
                 <div className="container mx-auto px-6 py-4 flex justify-between items-center">
                     <h1 className="text-2xl font-bold text-brand-600 dark:text-brand-400">Escape Builder</h1>
-                    <button
-                        onClick={openModal}
-                        className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors duration-300 shadow"
-                    >
-                        <Icon as="plus" className="w-5 h-5" />
-                        New Game
-                    </button>
+                    {renderHeaderButtons()}
                 </div>
             </header>
             <main className="container mx-auto px-6 py-8">

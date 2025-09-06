@@ -4,9 +4,26 @@ const mysql = require('mysql2/promise');
 const path = require('path');
 const cors = require('cors');
 const crypto = require('crypto');
+const { auth, requiresAuth } = require('express-openid-connect');
 
 const app = express();
 const port = process.env.PORT || 8080;
+
+// Auth0 configuration
+const authConfig = {
+  authRequired: false,
+  auth0Logout: true,
+  secret: process.env.AUTH0_SECRET,
+  baseURL: `${process.env.AUTH0_BASE_URL}/game`,
+  clientID: process.env.AUTH0_CLIENT_ID,
+  clientSecret: process.env.AUTH0_CLIENT_SECRET,
+  issuerBaseURL: process.env.AUTH0_ISSUER_BASE_URL,
+  routes: {
+    login: '/login',
+    logout: '/logout',
+    callback: '/callback',
+  }
+};
 
 // Middleware
 app.use(cors());
@@ -69,14 +86,28 @@ const prettifyAssetName = (filename) => {
 };
 
 const gameRouter = express.Router();
+gameRouter.use(auth(authConfig));
+
+// Route to get user profile
+gameRouter.get('/api/user', (req, res) => {
+  if (req.oidc.isAuthenticated()) {
+    res.json(req.oidc.user);
+  } else {
+    res.status(401).json({ error: 'Not authenticated' });
+  }
+});
+
 
 // === API ROUTER ===
 const apiRouter = express.Router();
+// Protect all API routes below this line
+apiRouter.use(requiresAuth());
 
-// Get all presentations
+// Get all presentations for the logged-in user
 apiRouter.get('/presentations', async (req, res) => {
   try {
-    const [rows] = await dbPool.query('SELECT data FROM presentations ORDER BY updated_at DESC');
+    const userId = req.oidc.user.sub;
+    const [rows] = await dbPool.query('SELECT data FROM presentations WHERE user_id = ? ORDER BY updated_at DESC', [userId]);
     const presentations = rows.map(row => {
         if (typeof row.data === 'string') {
             return parseStringData(row.data);
@@ -90,10 +121,11 @@ apiRouter.get('/presentations', async (req, res) => {
   }
 });
 
-// Get a single presentation by ID
+// Get a single presentation by ID (and check ownership)
 apiRouter.get('/presentations/:id', async (req, res) => {
   try {
-    const [rows] = await dbPool.query('SELECT data FROM presentations WHERE id = ?', [req.params.id]);
+    const userId = req.oidc.user.sub;
+    const [rows] = await dbPool.query('SELECT data FROM presentations WHERE id = ? AND user_id = ?', [req.params.id, userId]);
     if (rows.length > 0) {
       let presentationData = rows[0].data;
       if (typeof presentationData === 'string') {
@@ -105,7 +137,7 @@ apiRouter.get('/presentations/:id', async (req, res) => {
         return res.status(500).json({ error: 'Failed to parse presentation data from database.' });
       }
     } else {
-      res.status(404).json({ error: 'Presentation not found' });
+      res.status(404).json({ error: 'Presentation not found or you do not have permission to access it.' });
     }
   } catch (error) {
     console.error(`Failed to fetch presentation ${req.params.id}:`, error);
@@ -113,15 +145,16 @@ apiRouter.get('/presentations/:id', async (req, res) => {
   }
 });
 
-// Create a new presentation
+// Create a new presentation for the logged-in user
 apiRouter.post('/presentations', async (req, res) => {
   try {
+    const userId = req.oidc.user.sub;
     const presentationData = req.body;
     if (!presentationData || !presentationData.id || !presentationData.title) {
         return res.status(400).json({ error: 'Invalid presentation data provided.' });
     }
-    const sql = 'INSERT INTO presentations (id, title, data) VALUES (?, ?, ?)';
-    await dbPool.query(sql, [presentationData.id, presentationData.title, JSON.stringify(presentationData)]);
+    const sql = 'INSERT INTO presentations (id, user_id, title, data) VALUES (?, ?, ?, ?)';
+    await dbPool.query(sql, [presentationData.id, userId, presentationData.title, JSON.stringify(presentationData)]);
     res.status(201).json(presentationData);
   } catch (error) {
     console.error('Failed to create presentation:', error);
@@ -129,19 +162,20 @@ apiRouter.post('/presentations', async (req, res) => {
   }
 });
 
-// Update an existing presentation
+// Update an existing presentation (and check ownership)
 apiRouter.put('/presentations/:id', async (req, res) => {
   try {
+    const userId = req.oidc.user.sub;
     const presentationData = req.body;
      if (!presentationData || !presentationData.id || !presentationData.title) {
         return res.status(400).json({ error: 'Invalid presentation data provided.' });
     }
-    const sql = 'UPDATE presentations SET title = ?, data = ?, updated_at = NOW() WHERE id = ?';
-    const [result] = await dbPool.query(sql, [presentationData.title, JSON.stringify(presentationData), req.params.id]);
+    const sql = 'UPDATE presentations SET title = ?, data = ?, updated_at = NOW() WHERE id = ? AND user_id = ?';
+    const [result] = await dbPool.query(sql, [presentationData.title, JSON.stringify(presentationData), req.params.id, userId]);
     if (result.affectedRows > 0) {
         res.json(presentationData);
     } else {
-        res.status(404).json({ error: 'Presentation not found for update' });
+        res.status(404).json({ error: 'Presentation not found or you do not have permission to modify it.' });
     }
   } catch (error) {
     console.error(`Failed to update presentation ${req.params.id}:`, error);
@@ -149,14 +183,15 @@ apiRouter.put('/presentations/:id', async (req, res) => {
   }
 });
 
-// Delete a presentation
+// Delete a presentation (and check ownership)
 apiRouter.delete('/presentations/:id', async (req, res) => {
   try {
-    const [result] = await dbPool.query('DELETE FROM presentations WHERE id = ?', [req.params.id]);
+    const userId = req.oidc.user.sub;
+    const [result] = await dbPool.query('DELETE FROM presentations WHERE id = ? AND user_id = ?', [req.params.id, userId]);
     if (result.affectedRows > 0) {
         res.status(204).send();
     } else {
-        res.status(404).json({ error: 'Presentation not found for deletion' });
+        res.status(404).json({ error: 'Presentation not found or you do not have permission to delete it.' });
     }
   } catch (error) {
     console.error(`Failed to delete presentation ${req.params.id}:`, error);
@@ -164,10 +199,15 @@ apiRouter.delete('/presentations/:id', async (req, res) => {
   }
 });
 
-// GET all assets for a presentation
+// GET all assets for a presentation (ownership checked via presentations table)
 apiRouter.get('/presentations/:presentationId/assets', async (req, res) => {
     try {
+        const userId = req.oidc.user.sub;
         const { presentationId } = req.params;
+        const [ownerCheck] = await dbPool.query('SELECT id FROM presentations WHERE id = ? AND user_id = ?', [presentationId, userId]);
+        if (ownerCheck.length === 0) {
+          return res.status(404).json({ error: 'Presentation not found or you do not have permission to access its assets.' });
+        }
         const [rows] = await dbPool.query('SELECT id, mime_type, name FROM assets WHERE presentation_id = ? ORDER BY created_at DESC', [presentationId]);
         res.json(rows);
     } catch (error) {
@@ -176,11 +216,18 @@ apiRouter.get('/presentations/:presentationId/assets', async (req, res) => {
     }
 });
 
-// Upload a new asset for a presentation
+// Upload a new asset for a presentation (ownership checked)
 apiRouter.post('/presentations/:presentationId/assets', async (req, res) => {
     try {
+        const userId = req.oidc.user.sub;
         const { presentationId } = req.params;
         const { filename } = req.query;
+        
+        const [ownerCheck] = await dbPool.query('SELECT id FROM presentations WHERE id = ? AND user_id = ?', [presentationId, userId]);
+        if (ownerCheck.length === 0) {
+          return res.status(404).json({ error: 'Presentation not found or you do not have permission to upload assets.' });
+        }
+
         const mimeType = req.headers['content-type'];
         const data = req.body;
 
@@ -200,7 +247,7 @@ apiRouter.post('/presentations/:presentationId/assets', async (req, res) => {
     }
 });
 
-// Get an asset by ID
+// Get an asset by ID (Publicly available, as it's by non-guessable ID)
 apiRouter.get('/assets/:assetId', async (req, res) => {
     try {
         const { assetId } = req.params;
@@ -219,10 +266,17 @@ apiRouter.get('/assets/:assetId', async (req, res) => {
     }
 });
 
-// Update an asset's name
+// Update an asset's name (ownership checked)
 apiRouter.put('/presentations/:presentationId/assets/:assetId', async (req, res) => {
     try {
+        const userId = req.oidc.user.sub;
         const { presentationId, assetId } = req.params;
+        
+        const [ownerCheck] = await dbPool.query('SELECT id FROM presentations WHERE id = ? AND user_id = ?', [presentationId, userId]);
+        if (ownerCheck.length === 0) {
+          return res.status(404).json({ error: 'Presentation not found or you do not have permission to modify its assets.' });
+        }
+
         const { name } = req.body;
         if (!name || typeof name !== 'string' || name.trim() === '') {
             return res.status(400).json({ error: 'Asset name must be a non-empty string.' });
@@ -242,10 +296,17 @@ apiRouter.put('/presentations/:presentationId/assets/:assetId', async (req, res)
     }
 });
 
-// Delete an asset by ID
+// Delete an asset by ID (ownership checked)
 apiRouter.delete('/presentations/:presentationId/assets/:assetId', async (req, res) => {
     try {
+        const userId = req.oidc.user.sub;
         const { presentationId, assetId } = req.params;
+        
+        const [ownerCheck] = await dbPool.query('SELECT id FROM presentations WHERE id = ? AND user_id = ?', [presentationId, userId]);
+        if (ownerCheck.length === 0) {
+          return res.status(404).json({ error: 'Presentation not found or you do not have permission to delete its assets.' });
+        }
+
         const [result] = await dbPool.query(
             'DELETE FROM assets WHERE id = ? AND presentation_id = ?', 
             [assetId, presentationId]
@@ -276,7 +337,6 @@ gameRouter.get('*', (req, res) => {
 
 // Mount the entire game application router under the /game prefix
 app.use('/game', gameRouter);
-
 
 // Start server
 app.listen(port, () => {
