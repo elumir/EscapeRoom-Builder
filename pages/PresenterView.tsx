@@ -855,7 +855,7 @@ const PresenterView: React.FC = () => {
                         {inventoryObjects.length > 0 ? (
                             <>
                                 <div className="flex justify-between items-center mb-1">
-                                    <p className="text-xs text-slate-400 italic">Toggle to discard object.</p>
+                                    <p className="text-xs text-slate-400 italic">Click the trash icon to discard an object.</p>
                                     <button
                                         onClick={handleToggleAllInventoryDescriptions}
                                         title={areAllDescriptionsVisible ? "Hide all descriptions" : "Show all descriptions"}
