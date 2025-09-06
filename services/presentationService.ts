@@ -75,6 +75,7 @@ export const createGame = async (title: string): Promise<Game> => {
         mapDisplayMode: 'layered',
         rooms: [newRoom],
         visitedRoomIds: [],
+        hideAvailableObjects: false,
     };
 
     try {

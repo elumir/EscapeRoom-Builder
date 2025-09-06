@@ -78,4 +78,5 @@ export interface Game {
   mapDisplayMode: 'layered' | 'room-specific';
   rooms: Room[];
   visitedRoomIds: string[];
+  hideAvailableObjects?: boolean;
 }

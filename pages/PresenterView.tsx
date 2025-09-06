@@ -1079,7 +1079,7 @@ const PresenterView: React.FC = () => {
                   </div>
                 )}
                 
-                {currentRoom.objects && currentRoom.objects.length > 0 && (
+                {!game.hideAvailableObjects && currentRoom.objects && currentRoom.objects.length > 0 && (
                   <div className="mt-8 pt-6 border-t border-slate-700">
                     <h2 className="text-lg font-semibold mb-4 text-slate-300 flex items-baseline gap-2">
                       <span>Available Objects</span>

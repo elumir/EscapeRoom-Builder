@@ -778,6 +778,12 @@ const Editor: React.FC = () => {
     updateGame(updatedGame);
   };
 
+  const handleHideAvailableObjectsChange = (hide: boolean) => {
+    if (!game) return;
+    const updatedGame = { ...game, hideAvailableObjects: hide };
+    updateGame(updatedGame);
+  };
+
   const toggleActCollapse = (actNumber: number) => {
       setCollapsedActs(prev => ({
           ...prev,
@@ -945,6 +951,18 @@ const Editor: React.FC = () => {
                                 Layered
                             </button>
                         </div>
+                    </div>
+                    <div>
+                        <h3 className="font-semibold text-slate-700 dark:text-slate-300 mb-2">Presenter View Options</h3>
+                        <label className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-400 cursor-pointer p-3 bg-slate-100 dark:bg-slate-700/50 rounded-lg">
+                            <input
+                                type="checkbox"
+                                className="rounded border-slate-400 text-brand-600 focus:ring-brand-500 w-4 h-4"
+                                checked={game.hideAvailableObjects || false}
+                                onChange={e => handleHideAvailableObjectsChange(e.target.checked)}
+                            />
+                            <span>Hide Available Objects in presenter view because all objects are automatically picked up.</span>
+                        </label>
                     </div>
                 </div>
 
