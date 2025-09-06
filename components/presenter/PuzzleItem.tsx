@@ -104,16 +104,13 @@ const PuzzleItem: React.FC<{
         }
     }
 
-    const handleToggleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleCompleteClick = () => {
         if (isLocked) return;
 
-        const isAttemptingToSolve = e.target.checked;
-
-        if (isAttemptingToSolve && puzzle.answer) {
+        if (puzzle.answer) {
             onAttemptSolve(puzzle.id);
-            e.target.checked = false; // Revert checkbox state visually
         } else {
-            onToggle(puzzle.id, isAttemptingToSolve);
+            onToggle(puzzle.id, true);
         }
     };
 
@@ -158,23 +155,20 @@ const PuzzleItem: React.FC<{
     if (variant === 'mini') {
         return (
              <div className={`mt-1 flex flex-col ${isLocked ? 'opacity-50' : ''}`}>
-                <div className="flex items-start gap-1">
-                    <label className={`flex items-center transform scale-75 origin-left ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
-                        <input
-                            type="checkbox"
-                            checked={puzzle.isSolved}
-                            onChange={handleToggleChange}
-                            className="sr-only peer"
-                            disabled={isLocked}
-                        />
-                        <div className="relative w-9 h-5 bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-600"></div>
-                    </label>
+                <div className="flex items-center justify-between gap-1">
                     <div className="flex-1 min-w-0">
                         <h4 className="font-bold text-amber-400/80 text-[9px] truncate flex items-center gap-1">
                             {isLocked && <Icon as="lock" className="w-2 h-2 text-slate-400"/>}
                             {puzzle.name}
                         </h4>
                     </div>
+                     <button
+                        onClick={handleCompleteClick}
+                        disabled={isLocked}
+                        className="px-1.5 py-0.5 bg-green-700 text-white rounded text-[9px] hover:bg-green-600 disabled:bg-slate-600 flex-shrink-0"
+                    >
+                        Complete
+                    </button>
                 </div>
                 {lockingPuzzleName && (
                    <p className="text-red-500/80 text-[8px] leading-tight truncate mt-0.5 pl-1">Locked by: {lockingPuzzleName}</p>
@@ -201,44 +195,43 @@ const PuzzleItem: React.FC<{
     return (
         <div className={`flex flex-col gap-3 p-4 bg-slate-800/50 rounded-lg transition-opacity ${isLocked ? 'opacity-50' : ''}`}>
             <div className="flex items-start gap-4">
-                <label className={`flex items-center mt-1 ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
-                    <input
-                        type="checkbox"
-                        checked={puzzle.isSolved}
-                        onChange={handleToggleChange}
-                        className="sr-only peer"
-                        disabled={isLocked}
-                    />
-                    <div className="relative w-11 h-6 bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
-                </label>
                 <div className="flex-1">
                     <h3 className="font-bold text-amber-400 flex items-center gap-2">
                         {isLocked && <Icon as="lock" className="w-4 h-4 text-slate-400"/>}
                         {puzzle.name}
                     </h3>
                 </div>
-                {puzzle.image && (
-                    <label className={`flex items-center gap-2 text-sm text-sky-300 ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
-                        <span>Show Puzzle</span>
-                        <input
-                            type="checkbox"
-                            checked={puzzle.showImageOverlay}
-                            onChange={(e) => onToggleImage(puzzle.id, e.target.checked)}
-                            className="sr-only peer"
-                            disabled={isLocked}
-                        />
-                        <div className="relative w-11 h-6 bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-600"></div>
-                    </label>
-                )}
+                <div className="flex items-center gap-4 flex-shrink-0">
+                    {puzzle.image && (
+                        <label className={`flex items-center gap-2 text-sm text-sky-300 ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                            <span>Show Puzzle</span>
+                            <input
+                                type="checkbox"
+                                checked={puzzle.showImageOverlay}
+                                onChange={(e) => onToggleImage(puzzle.id, e.target.checked)}
+                                className="sr-only peer"
+                                disabled={isLocked}
+                            />
+                            <div className="relative w-11 h-6 bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-600"></div>
+                        </label>
+                    )}
+                    <button
+                        onClick={handleCompleteClick}
+                        disabled={isLocked}
+                        className="px-3 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-sm font-semibold"
+                    >
+                        Complete
+                    </button>
+                </div>
             </div>
-            <div className="pl-14 text-slate-300 whitespace-pre-wrap">
+            <div className="pl-4 text-slate-300 whitespace-pre-wrap">
                 {puzzle.unsolvedText}
                  {lockingPuzzleName && (
                     <p className="text-red-500 text-xs mt-2">Locked by: {lockingPuzzleName}</p>
                 )}
             </div>
             {puzzle.sound && (
-                <div className="pl-14 mt-2">
+                <div className="pl-4 mt-2">
                     <div className={`flex items-center gap-3 w-full bg-slate-700/50 p-2 rounded-lg transition-opacity ${isLocked ? 'opacity-60' : ''}`}>
                         <button onClick={handlePlayPause} disabled={isLocked} title={isPlaying ? "Pause" : "Play"} className="p-2 bg-slate-700 rounded-full hover:bg-slate-600 flex-shrink-0 disabled:cursor-not-allowed disabled:hover:bg-slate-700">
                             {isPlaying ? (
