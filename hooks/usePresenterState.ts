@@ -86,8 +86,14 @@ export const usePresenterState = (game: Game | null) => {
 
         // 4. Calculate inventory and discarded objects
         const allObjectsWithRoomName = game.rooms.flatMap(r => r.objects.map(o => ({ ...o, roomName: r.name })));
-        const inventoryObjects = allObjectsWithRoomName.filter(o => o.showInInventory);
-        const discardedObjects = allObjectsWithRoomName.filter(o => !o.showInInventory && o.wasEverInInventory);
+        
+        const inventoryObjects = allObjectsWithRoomName
+            .filter(o => o.showInInventory)
+            .sort((a, b) => (b.addedToInventoryTimestamp || 0) - (a.addedToInventoryTimestamp || 0));
+        
+        const discardedObjects = allObjectsWithRoomName
+            .filter(o => !o.showInInventory && o.wasEverInInventory)
+            .sort((a, b) => (b.addedToInventoryTimestamp || 0) - (a.addedToInventoryTimestamp || 0));
 
         return {
             lockingPuzzlesByRoomId,

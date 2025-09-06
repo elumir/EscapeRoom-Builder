@@ -227,9 +227,11 @@ const PresenterView: React.FC = () => {
             objects: room.objects.map(obj => {
                 if (obj.id === objectId) {
                     const newObj = { ...obj, showInInventory: newState };
-                    // If object is being added to inventory for the first time, mark it.
                     if (newState && !obj.wasEverInInventory) {
                         newObj.wasEverInInventory = true;
+                    }
+                    if (newState) {
+                        newObj.addedToInventoryTimestamp = Date.now();
                     }
                     return newObj;
                 }
@@ -274,7 +276,12 @@ const PresenterView: React.FC = () => {
         if (shouldAutoAddObjects) {
             newObjects = newObjects.map(obj => {
                 if (objectIdsToUpdate.includes(obj.id)) {
-                    return { ...obj, showInInventory: true, wasEverInInventory: true };
+                    return { 
+                      ...obj, 
+                      showInInventory: true, 
+                      wasEverInInventory: true,
+                      addedToInventoryTimestamp: Date.now(),
+                    };
                 }
                 return obj;
             });
@@ -474,6 +481,7 @@ const PresenterView: React.FC = () => {
                 showInInventory: false,
                 wasEverInInventory: false,
                 showImageOverlay: false,
+                addedToInventoryTimestamp: undefined,
             })),
             puzzles: room.puzzles.map(p => ({
                 ...p,

@@ -17,6 +17,7 @@ export interface InventoryObject {
   wasEverInInventory?: boolean;
   image: string | null;
   showImageOverlay: boolean;
+  addedToInventoryTimestamp?: number;
 }
 
 export interface Puzzle {

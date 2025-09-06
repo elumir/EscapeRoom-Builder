@@ -80,6 +80,7 @@ const Dashboard: React.FC = () => {
                     ...obj,
                     showInInventory: false,
                     showImageOverlay: false,
+                    addedToInventoryTimestamp: undefined,
                 })),
                 puzzles: room.puzzles.map(p => ({
                     ...p,
