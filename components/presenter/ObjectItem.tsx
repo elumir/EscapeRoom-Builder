@@ -2,6 +2,31 @@ import React from 'react';
 import type { InventoryObject } from '../../types';
 import Icon from '../Icon';
 
+const migrateObjectColorClass = (nameColor?: string | null): string => {
+    const defaultClass = 'bg-slate-700';
+    if (!nameColor) return defaultClass;
+    if (nameColor.startsWith('bg-')) return nameColor;
+
+    // Map old text colors to new background colors for backward compatibility.
+    const colorMap: Record<string, string> = {
+        'text-green-500': 'bg-green-500 text-white',
+        'text-green-400': 'bg-green-500 text-white',
+        'text-yellow-500': 'bg-amber-500 text-white',
+        'text-yellow-400': 'bg-amber-500 text-white',
+        'text-blue-500': 'bg-blue-500 text-white',
+        'text-blue-400': 'bg-blue-500 text-white',
+        'text-red-500': 'bg-red-500 text-white',
+        'text-red-400': 'bg-red-500 text-white',
+        'text-cyan-500': 'bg-cyan-500 text-white',
+        'text-cyan-400': 'bg-cyan-500 text-white',
+        'text-pink-500': 'bg-pink-500 text-white',
+        'text-pink-400': 'bg-pink-500 text-white',
+        'text-gray-200': 'bg-gray-200 text-gray-800 dark:bg-gray-300 dark:text-gray-900',
+        'text-gray-400': 'bg-gray-200 text-gray-800 dark:bg-gray-300 dark:text-gray-900',
+    };
+    return colorMap[nameColor] || defaultClass;
+};
+
 const ObjectItem: React.FC<{
     obj: InventoryObject;
     onToggle: (id: string, state: boolean) => void;
@@ -25,7 +50,7 @@ const ObjectItem: React.FC<{
 
     if (variant === 'mini') {
         return (
-            <div className={`mt-1 flex flex-col p-1 rounded-sm ${isLocked ? 'opacity-50' : ''} ${obj.nameColor || ''}`}>
+            <div className={`mt-1 flex flex-col p-1 rounded-sm ${isLocked ? 'opacity-50' : ''} ${migrateObjectColorClass(obj.nameColor)}`}>
                 <div className="flex items-center gap-1">
                     <h4 className={`font-bold text-[9px] truncate flex-grow ${!obj.nameColor ? 'text-brand-400/80' : ''}`}>{obj.name}</h4>
                     <div className="flex items-center gap-1 flex-shrink-0">
@@ -70,7 +95,7 @@ const ObjectItem: React.FC<{
     }
 
     return (
-        <div className={`flex flex-col gap-2 p-4 rounded-lg transition-opacity ${isLocked ? 'opacity-50' : ''} ${obj.nameColor || 'bg-slate-700'}`}>
+        <div className={`flex flex-col gap-2 p-4 rounded-lg transition-opacity ${isLocked ? 'opacity-50' : ''} ${migrateObjectColorClass(obj.nameColor)}`}>
              <div className="flex items-center gap-4">
                 <h3 className={`font-bold flex-grow ${!obj.nameColor ? 'text-brand-400' : ''}`}>{obj.name}</h3>
                 <div className="flex items-center gap-3 flex-shrink-0">

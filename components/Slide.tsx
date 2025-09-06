@@ -12,6 +12,34 @@ interface RoomProps {
   globalBackgroundColor?: string | null;
 }
 
+const getObjectColorClass = (nameColor?: string | null): string => {
+    const defaultClass = 'bg-slate-200/50 dark:bg-slate-800/50';
+    if (!nameColor) return defaultClass;
+
+    // If it's already a background color, use it.
+    if (nameColor.startsWith('bg-')) return nameColor;
+
+    // Map old text colors to new background colors for backward compatibility.
+    const colorMap: Record<string, string> = {
+        'text-green-500': 'bg-green-500 text-white',
+        'text-green-400': 'bg-green-500 text-white',
+        'text-yellow-500': 'bg-amber-500 text-white',
+        'text-yellow-400': 'bg-amber-500 text-white',
+        'text-blue-500': 'bg-blue-500 text-white',
+        'text-blue-400': 'bg-blue-500 text-white',
+        'text-red-500': 'bg-red-500 text-white',
+        'text-red-400': 'bg-red-500 text-white',
+        'text-cyan-500': 'bg-cyan-500 text-white',
+        'text-cyan-400': 'bg-cyan-500 text-white',
+        'text-pink-500': 'bg-pink-500 text-white',
+        'text-pink-400': 'bg-pink-500 text-white',
+        'text-gray-200': 'bg-gray-200 text-gray-800 dark:bg-gray-300 dark:text-gray-900',
+        'text-gray-400': 'bg-gray-200 text-gray-800 dark:bg-gray-300 dark:text-gray-900',
+    };
+    return colorMap[nameColor] || defaultClass;
+};
+
+
 const Room: React.FC<RoomProps> = ({ room, inventoryObjects, visibleMapImages, className, overlayImageUrl, globalBackgroundColor }) => {
   const { backgroundColor: roomBackgroundColor, isFullScreenImage } = room;
 
@@ -72,17 +100,18 @@ const Room: React.FC<RoomProps> = ({ room, inventoryObjects, visibleMapImages, c
               <h2 className="text-sm md:text-md font-bold mb-2 sticky top-0 text-center" style={{color: textColor}}>Inventory</h2>
               {inventoryObjects.length > 0 ? (
                   <ul className={inventoryListClass}>
-                      {inventoryObjects.map((item, index) => (
-                          <li
-                              key={item.id || index}
-                              className={`px-2 py-1 rounded-md break-words break-inside-avoid mb-1 ${
-                                  item.nameColor ? item.nameColor : 'bg-slate-200/50 dark:bg-slate-800/50'
-                              }`}
-                              style={{ color: item.nameColor ? undefined : bodyTextColor }}
-                          >
-                              {item.name}
-                          </li>
-                      ))}
+                      {inventoryObjects.map((item, index) => {
+                          const colorClass = getObjectColorClass(item.nameColor);
+                          return (
+                              <li
+                                  key={item.id || index}
+                                  className={`px-2 py-1 rounded-md break-words break-inside-avoid mb-1 ${colorClass}`}
+                                  style={{ color: colorClass.includes('text-') ? undefined : bodyTextColor }}
+                              >
+                                  {item.name}
+                              </li>
+                          );
+                      })}
                   </ul>
               ) : (
                    <p className="text-xs text-slate-500 dark:text-slate-400 italic text-center">Inventory is empty.</p>
