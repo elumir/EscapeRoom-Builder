@@ -10,9 +10,7 @@ const port = process.env.PORT || 8080;
 
 // Middleware
 app.use(cors());
-// Middleware for raw binary body (for asset uploads)
 app.use(express.raw({ limit: '50mb', type: ['image/*', 'audio/*'] }));
-// Middleware for JSON body (for presentation data)
 app.use(express.json({ limit: '50mb' }));
 
 // Simple logger for all incoming requests
@@ -46,12 +44,10 @@ async function testDbConnection() {
   }
 }
 
-// Helper to robustly parse presentation data that might have been stored as a string.
 const parseStringData = (rawData) => {
     if (!rawData) return null;
     try {
         let data = JSON.parse(rawData);
-        // Handle cases where the data was double-encoded (stringified twice)
         if (typeof data === 'string') {
             data = JSON.parse(data);
         }
@@ -62,39 +58,29 @@ const parseStringData = (rawData) => {
     }
 };
 
-// Helper function to create a more readable name from a filename
 const prettifyAssetName = (filename) => {
     if (!filename) return '';
-    // 1. Remove file extension
     let name = filename.includes('.') ? filename.split('.').slice(0, -1).join('.') : filename;
-    // 2. Replace underscores and hyphens with spaces
     name = name.replace(/[_-]/g, ' ');
-    // 3. Insert space between a lowercase and uppercase letter (camelCase)
     name = name.replace(/([a-z])([A-Z])/g, '$1 $2');
-    // 4. Insert space between an uppercase letter and another uppercase letter followed by a lowercase (acronyms like APIKey)
     name = name.replace(/([A-Z])([A-Z][a-z])/g, '$1 $2');
-    // 5. Trim and consolidate whitespace
     name = name.trim().replace(/\s+/g, ' ');
-    // 6. Capitalize the first letter of each word.
     return name.replace(/\b\w/g, char => char.toUpperCase());
 };
 
+// === API ROUTER ===
+const apiRouter = express.Router();
 
-// === API ROUTES ===
-
-// Get all presentations (full data)
-app.get('/api/presentations', async (req, res) => {
+// Get all presentations
+apiRouter.get('/presentations', async (req, res) => {
   try {
-    // Select the raw data; mysql2 will auto-parse if it's a valid JSON type.
     const [rows] = await dbPool.query('SELECT data FROM presentations ORDER BY updated_at DESC');
     const presentations = rows.map(row => {
-        // If data is a string, it's legacy data that needs parsing.
         if (typeof row.data === 'string') {
             return parseStringData(row.data);
         }
-        // Otherwise, it's a JS object, parsed by the driver.
         return row.data;
-    }).filter(Boolean); // Filter out any nulls from failed parsing
+    }).filter(Boolean);
     res.json(presentations);
   } catch (error) {
     console.error('Failed to fetch presentations:', error);
@@ -103,16 +89,14 @@ app.get('/api/presentations', async (req, res) => {
 });
 
 // Get a single presentation by ID
-app.get('/api/presentations/:id', async (req, res) => {
+apiRouter.get('/presentations/:id', async (req, res) => {
   try {
     const [rows] = await dbPool.query('SELECT data FROM presentations WHERE id = ?', [req.params.id]);
     if (rows.length > 0) {
       let presentationData = rows[0].data;
-      // Handle legacy string data
       if (typeof presentationData === 'string') {
           presentationData = parseStringData(presentationData);
       }
-      
       if (presentationData) {
         res.json(presentationData);
       } else {
@@ -128,14 +112,13 @@ app.get('/api/presentations/:id', async (req, res) => {
 });
 
 // Create a new presentation
-app.post('/api/presentations', async (req, res) => {
+apiRouter.post('/presentations', async (req, res) => {
   try {
     const presentationData = req.body;
     if (!presentationData || !presentationData.id || !presentationData.title) {
         return res.status(400).json({ error: 'Invalid presentation data provided.' });
     }
     const sql = 'INSERT INTO presentations (id, title, data) VALUES (?, ?, ?)';
-    // Explicitly stringify the data for the JSON column.
     await dbPool.query(sql, [presentationData.id, presentationData.title, JSON.stringify(presentationData)]);
     res.status(201).json(presentationData);
   } catch (error) {
@@ -145,16 +128,14 @@ app.post('/api/presentations', async (req, res) => {
 });
 
 // Update an existing presentation
-app.put('/api/presentations/:id', async (req, res) => {
+apiRouter.put('/presentations/:id', async (req, res) => {
   try {
     const presentationData = req.body;
      if (!presentationData || !presentationData.id || !presentationData.title) {
         return res.status(400).json({ error: 'Invalid presentation data provided.' });
     }
     const sql = 'UPDATE presentations SET title = ?, data = ?, updated_at = NOW() WHERE id = ?';
-    // Explicitly stringify data for the JSON column.
     const [result] = await dbPool.query(sql, [presentationData.title, JSON.stringify(presentationData), req.params.id]);
-    
     if (result.affectedRows > 0) {
         res.json(presentationData);
     } else {
@@ -167,11 +148,11 @@ app.put('/api/presentations/:id', async (req, res) => {
 });
 
 // Delete a presentation
-app.delete('/api/presentations/:id', async (req, res) => {
+apiRouter.delete('/presentations/:id', async (req, res) => {
   try {
     const [result] = await dbPool.query('DELETE FROM presentations WHERE id = ?', [req.params.id]);
     if (result.affectedRows > 0) {
-        res.status(204).send(); // No content
+        res.status(204).send();
     } else {
         res.status(404).json({ error: 'Presentation not found for deletion' });
     }
@@ -181,10 +162,8 @@ app.delete('/api/presentations/:id', async (req, res) => {
   }
 });
 
-// === ASSET ROUTES ===
-
 // GET all assets for a presentation
-app.get('/api/presentations/:presentationId/assets', async (req, res) => {
+apiRouter.get('/presentations/:presentationId/assets', async (req, res) => {
     try {
         const { presentationId } = req.params;
         const [rows] = await dbPool.query('SELECT id, mime_type, name FROM assets WHERE presentation_id = ? ORDER BY created_at DESC', [presentationId]);
@@ -196,7 +175,7 @@ app.get('/api/presentations/:presentationId/assets', async (req, res) => {
 });
 
 // Upload a new asset for a presentation
-app.post('/api/presentations/:presentationId/assets', async (req, res) => {
+apiRouter.post('/presentations/:presentationId/assets', async (req, res) => {
     try {
         const { presentationId } = req.params;
         const { filename } = req.query;
@@ -208,30 +187,25 @@ app.post('/api/presentations/:presentationId/assets', async (req, res) => {
         }
 
         const assetId = crypto.randomUUID();
-        // Prettify the filename to use as the default asset name.
         const prettyName = prettifyAssetName(filename);
         const sql = 'INSERT INTO assets (id, presentation_id, mime_type, name, data) VALUES (?, ?, ?, ?, ?)';
         await dbPool.query(sql, [assetId, presentationId, mimeType, prettyName, data]);
         
         res.status(201).json({ assetId });
-
     } catch (error) {
         console.error('Failed to upload asset:', error);
         res.status(500).json({ error: 'Database insert failed for asset.' });
     }
 });
 
-
 // Get an asset by ID
-app.get('/api/assets/:assetId', async (req, res) => {
+apiRouter.get('/assets/:assetId', async (req, res) => {
     try {
         const { assetId } = req.params;
         const [rows] = await dbPool.query('SELECT data, mime_type FROM assets WHERE id = ?', [assetId]);
-
         if (rows.length > 0) {
             const asset = rows[0];
             res.setHeader('Content-Type', asset.mime_type);
-            // Cache the asset for 1 year
             res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
             res.send(asset.data);
         } else {
@@ -244,20 +218,17 @@ app.get('/api/assets/:assetId', async (req, res) => {
 });
 
 // Update an asset's name
-app.put('/api/presentations/:presentationId/assets/:assetId', async (req, res) => {
+apiRouter.put('/presentations/:presentationId/assets/:assetId', async (req, res) => {
     try {
         const { presentationId, assetId } = req.params;
         const { name } = req.body;
-
         if (!name || typeof name !== 'string' || name.trim() === '') {
             return res.status(400).json({ error: 'Asset name must be a non-empty string.' });
         }
-
         const [result] = await dbPool.query(
             'UPDATE assets SET name = ? WHERE id = ? AND presentation_id = ?',
             [name.trim(), assetId, presentationId]
         );
-
         if (result.affectedRows > 0) {
             res.status(204).send();
         } else {
@@ -269,9 +240,8 @@ app.put('/api/presentations/:presentationId/assets/:assetId', async (req, res) =
     }
 });
 
-
 // Delete an asset by ID
-app.delete('/api/presentations/:presentationId/assets/:assetId', async (req, res) => {
+apiRouter.delete('/presentations/:presentationId/assets/:assetId', async (req, res) => {
     try {
         const { presentationId, assetId } = req.params;
         const [result] = await dbPool.query(
@@ -279,7 +249,7 @@ app.delete('/api/presentations/:presentationId/assets/:assetId', async (req, res
             [assetId, presentationId]
         );
         if (result.affectedRows > 0) {
-            res.status(204).send(); // No content
+            res.status(204).send();
         } else {
             res.status(404).json({ error: 'Asset not found or does not belong to this presentation.' });
         }
@@ -289,25 +259,16 @@ app.delete('/api/presentations/:presentationId/assets/:assetId', async (req, res
     }
 });
 
+// Mount the API router
+app.use('/api', apiRouter);
 
 // === FRONTEND SERVING (for production) ===
-
 const buildPath = path.join(__dirname, 'build');
-
-// Serve static files from the 'build' directory.
-// When Apache proxies a request like /game/assets/index.js to the Node server,
-// it becomes /assets/index.js. express.static at the root will correctly find
-// and serve the file from /build/assets/index.js.
 app.use(express.static(buildPath));
 
-// For any other GET request that isn't an API route or a static file,
-// serve the main index.html file. This is the fallback for client-side routing,
-// allowing React Router to handle URLs like /editor/123.
+// For any other GET request, serve the main index.html file.
+// This is the fallback for client-side routing.
 app.get('*', (req, res) => {
-  // A simple check to avoid sending index.html for mistyped API calls.
-  if (req.originalUrl.startsWith('/api/')) {
-    return res.status(404).json({ error: 'API endpoint not found.' });
-  }
   res.sendFile(path.join(buildPath, 'index.html'));
 });
 
