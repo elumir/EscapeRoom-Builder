@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import * as gameService from '../services/presentationService';
-import type { Game, Puzzle } from '../types';
+import type { Game, Puzzle, InventoryObject } from '../types';
 import Icon from '../components/Icon';
 import { useBroadcastChannel } from '../hooks/useBroadcastChannel';
 import ObjectItem from '../components/presenter/ObjectItem';
@@ -9,6 +9,7 @@ import PuzzleItem from '../components/presenter/PuzzleItem';
 import ActionItem from '../components/presenter/ActionItem';
 import { usePresenterState } from '../hooks/usePresenterState';
 import MarkdownRenderer from '../components/MarkdownRenderer';
+import { generateUUID } from '../utils/uuid';
 
 interface BroadcastMessage {
   type: 'GOTO_ROOM' | 'STATE_UPDATE';
@@ -35,6 +36,7 @@ const PresenterView: React.FC = () => {
   const [activePuzzleTab, setActivePuzzleTab] = useState<'open' | 'complete'>('open');
   const [selectedAct, setSelectedAct] = useState(1);
   const [objectRemoveModalText, setObjectRemoveModalText] = useState<string | null>(null);
+  const [customItems, setCustomItems] = useState<InventoryObject[]>([]);
   
   const { 
     lockingPuzzlesByRoomId, 
@@ -47,18 +49,55 @@ const PresenterView: React.FC = () => {
     discardedObjects,
   } = usePresenterState(game);
 
-  const prevInventoryCountRef = useRef(inventoryObjects.length);
+  const handleAddCustomItem = () => {
+    const name = window.prompt("Enter the name for the new custom item:");
+    if (name && name.trim()) {
+      const newItem: InventoryObject = {
+        id: `custom-${generateUUID()}`,
+        name: name.trim(),
+        description: '', // Custom items have no description
+        showInInventory: true,
+        wasEverInInventory: true,
+        addedToInventoryTimestamp: Date.now(),
+        image: null,
+        showImageOverlay: false,
+      };
+      setCustomItems(prev => [newItem, ...prev]);
+    }
+  };
+
+  const handleToggleCustomItem = (itemId: string, newState: boolean) => {
+    setCustomItems(prev => prev.map(item => 
+      item.id === itemId 
+        ? { ...item, showInInventory: newState } 
+        : item
+    ));
+  };
+
+  const combinedInventoryObjects = useMemo(() => {
+    const customInventory = customItems.filter(item => item.showInInventory);
+    return [...customInventory, ...inventoryObjects]
+      .sort((a, b) => (b.addedToInventoryTimestamp || 0) - (a.addedToInventoryTimestamp || 0));
+  }, [customItems, inventoryObjects]);
+
+  const combinedDiscardedObjects = useMemo(() => {
+    const customDiscarded = customItems.filter(item => !item.showInInventory && item.wasEverInInventory);
+    return [...customDiscarded, ...discardedObjects]
+      .sort((a, b) => (b.addedToInventoryTimestamp || 0) - (a.addedToInventoryTimestamp || 0));
+  }, [customItems, discardedObjects]);
+
+  const prevInventoryCountRef = useRef(combinedInventoryObjects.length);
   
   useEffect(() => {
     // If an item was added and the inventory tab is not active, show notification.
-    if (inventoryObjects.length > prevInventoryCountRef.current && activeTab !== 'inventory') {
+    if (combinedInventoryObjects.length > prevInventoryCountRef.current && activeTab !== 'inventory') {
         setShowInventoryNotification(true);
     }
-    prevInventoryCountRef.current = inventoryObjects.length;
-  }, [inventoryObjects.length, activeTab]);
+    prevInventoryCountRef.current = combinedInventoryObjects.length;
+  }, [combinedInventoryObjects.length, activeTab]);
 
   // This effect handles making new items' descriptions visible by default.
-  const inventoryObjectIds = useMemo(() => new Set(inventoryObjects.map(o => o.id)), [inventoryObjects]);
+  const inventoryObjectIds = useMemo(() => new Set(combinedInventoryObjects.map(o => o.id)), [combinedInventoryObjects]);
   const prevInventoryObjectIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
@@ -79,7 +118,7 @@ const PresenterView: React.FC = () => {
   }, [inventoryObjectIds]);
 
   const handleToggleAllInventoryDescriptions = useCallback(() => {
-      const allIds = inventoryObjects.map(obj => obj.id);
+      const allIds = combinedInventoryObjects.map(obj => obj.id);
       // Determine if the action should be to show all or hide all
       const shouldShowAll = allIds.some(id => !visibleDescriptionIds.has(id));
 
@@ -94,13 +133,13 @@ const PresenterView: React.FC = () => {
               return newVisible;
           });
       }
-  }, [inventoryObjects, visibleDescriptionIds]);
+  }, [combinedInventoryObjects, visibleDescriptionIds]);
 
   const areAllDescriptionsVisible = useMemo(() => {
-      if (inventoryObjects.length === 0) return false;
-      const allIds = inventoryObjects.map(obj => obj.id);
+      if (combinedInventoryObjects.length === 0) return false;
+      const allIds = combinedInventoryObjects.map(obj => obj.id);
       return allIds.every(id => visibleDescriptionIds.has(id));
-  }, [inventoryObjects, visibleDescriptionIds]);
+  }, [combinedInventoryObjects, visibleDescriptionIds]);
 
 
   const isPresentationWindowOpen = presentationWindow && !presentationWindow.closed;
@@ -498,6 +537,7 @@ const PresenterView: React.FC = () => {
         visitedRoomIds: game.rooms.length > 0 ? [game.rooms[0].id] : [],
     };
     
+    setCustomItems([]); // Also clear custom items on reset
     setCurrentRoomIndex(0);
     postMessage({ type: 'GOTO_ROOM', roomIndex: 0 });
     
@@ -871,9 +911,16 @@ const PresenterView: React.FC = () => {
                 )}
                 {activeTab === 'inventory' && (
                     <div className="space-y-4">
-                        {inventoryObjects.length > 0 ? (
+                        <button
+                          onClick={handleAddCustomItem}
+                          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-slate-700 text-slate-200 rounded-lg hover:bg-slate-600 transition-colors duration-200"
+                        >
+                          <Icon as="plus" className="w-4 h-4" />
+                          Add Custom Item
+                        </button>
+                        {combinedInventoryObjects.length > 0 ? (
                             <>
-                                <div className="flex justify-between items-center mb-1">
+                                <div className="flex justify-between items-center -mb-3">
                                     <p className="text-xs text-slate-400 italic">Click the trash icon to discard an object.</p>
                                     <button
                                         onClick={handleToggleAllInventoryDescriptions}
@@ -884,12 +931,13 @@ const PresenterView: React.FC = () => {
                                         <Icon as={areAllDescriptionsVisible ? 'eye-slash' : 'eye'} className="w-5 h-5" />
                                     </button>
                                 </div>
-                                {inventoryObjects.map(obj => {
+                                {combinedInventoryObjects.map(obj => {
+                                    const isCustom = obj.id.startsWith('custom-');
                                     return (
                                         <ObjectItem 
                                             key={obj.id} 
                                             obj={obj} 
-                                            onToggle={handleToggleObject}
+                                            onToggle={isCustom ? handleToggleCustomItem : handleToggleObject}
                                             lockingPuzzleName={lockingPuzzlesByObjectId.get(obj.id)}
                                             showVisibilityToggle={true}
                                             isDescriptionVisible={visibleDescriptionIds.has(obj.id)}
@@ -906,15 +954,16 @@ const PresenterView: React.FC = () => {
                 )}
                  {activeTab === 'discarded' && (
                     <div className="space-y-4">
-                        {discardedObjects.length > 0 ? (
+                        {combinedDiscardedObjects.length > 0 ? (
                             <>
                                 <p className="text-xs text-slate-400 italic">Toggle to move object back to inventory.</p>
-                                {discardedObjects.map(obj => {
+                                {combinedDiscardedObjects.map(obj => {
+                                    const isCustom = obj.id.startsWith('custom-');
                                     return (
                                         <ObjectItem 
                                             key={obj.id} 
                                             obj={obj} 
-                                            onToggle={handleToggleObject}
+                                            onToggle={isCustom ? handleToggleCustomItem : handleToggleObject}
                                             isDescriptionVisible={true}
                                         />
                                     );
