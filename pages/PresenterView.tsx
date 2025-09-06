@@ -12,8 +12,9 @@ import MarkdownRenderer from '../components/MarkdownRenderer';
 import { generateUUID } from '../utils/uuid';
 
 interface BroadcastMessage {
-  type: 'GOTO_ROOM' | 'STATE_UPDATE';
+  type: 'GOTO_ROOM' | 'STATE_SYNC';
   roomIndex?: number;
+  game?: Game;
   customItems?: InventoryObject[];
 }
 
@@ -149,8 +150,10 @@ const PresenterView: React.FC = () => {
   const postMessage = useBroadcastChannel<BroadcastMessage>(channelName, () => {});
 
   useEffect(() => {
-    postMessage({ type: 'STATE_UPDATE', customItems });
-  }, [customItems, postMessage]);
+    if (game) {
+      postMessage({ type: 'STATE_SYNC', game, customItems });
+    }
+  }, [customItems, postMessage, game]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -191,18 +194,17 @@ const PresenterView: React.FC = () => {
 
   const updateAndBroadcast = useCallback(async (updatedGame: Game) => {
     setGame(updatedGame);
+    // Optimistically broadcast the new state immediately.
+    postMessage({ type: 'STATE_SYNC', game: updatedGame, customItems });
+
     try {
         await gameService.saveGame(updatedGame);
-        postMessage({ type: 'STATE_UPDATE', customItems });
     } catch (error) {
         console.error("Failed to save game state:", error);
-        // Don't alert for public games as saving is expected to fail
         if (game?.visibility !== 'public') {
            alert("A change could not be saved. Please check your connection.");
         } else {
-            // For public games, we can still broadcast the state optimistically
             console.warn("Presenter is not the owner; state changes are local to this session.");
-            postMessage({ type: 'STATE_UPDATE', customItems });
         }
     }
   }, [postMessage, customItems, game?.visibility]);

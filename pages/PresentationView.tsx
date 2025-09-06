@@ -6,8 +6,9 @@ import Room from '../components/Slide';
 import { useBroadcastChannel } from '../hooks/useBroadcastChannel';
 
 interface BroadcastMessage {
-  type: 'GOTO_ROOM' | 'STATE_UPDATE';
+  type: 'GOTO_ROOM' | 'STATE_SYNC';
   roomIndex?: number;
+  game?: Game;
   customItems?: InventoryObject[];
 }
 
@@ -22,33 +23,35 @@ const PresentationView: React.FC = () => {
 
   const channelName = `game-${id}`;
 
-  const fetchLatestState = async () => {
-    if (id) {
-      // Use the new service function that can fetch public or private games
-      const data = await gameService.getGameForPresentation(id);
-      if (data) {
-        setGame(data);
-        setStatus('success');
-      } else {
-        setStatus('error');
-      }
-    }
-  };
-
-  useBroadcastChannel<BroadcastMessage>(channelName, async (message) => {
+  useBroadcastChannel<BroadcastMessage>(channelName, (message) => {
     if (message.customItems) {
       setCustomItems(message.customItems);
     }
     if (message.type === 'GOTO_ROOM' && message.roomIndex !== undefined) {
       setCurrentRoomIndex(message.roomIndex);
     }
-    if (message.type === 'STATE_UPDATE') {
-      await fetchLatestState();
+    if (message.type === 'STATE_SYNC' && message.game) {
+      setGame(message.game);
+      if (message.customItems) {
+        setCustomItems(message.customItems);
+      }
     }
   });
 
   useEffect(() => {
-    fetchLatestState();
+    if (id) {
+      const fetchInitialState = async () => {
+        // Use the new service function that can fetch public or private games
+        const data = await gameService.getGameForPresentation(id);
+        if (data) {
+          setGame(data);
+          setStatus('success');
+        } else {
+          setStatus('error');
+        }
+      };
+      fetchInitialState();
+    }
   }, [id]);
 
   const inventoryItems = useMemo(() => {
