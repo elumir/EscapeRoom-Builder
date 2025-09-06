@@ -165,7 +165,8 @@ const PresenterView: React.FC = () => {
     const fetchAndInitialize = async () => {
       if (!id) return;
       setStatus('loading');
-      const data = await gameService.getGame(id);
+      // Use the new service function that can fetch public or private games
+      const data = await gameService.getGameForPresentation(id);
       if (data) {
         if (data.rooms.length > 0 && data.visitedRoomIds.length === 0) {
           // On first load, mark the initial room as visited
@@ -174,7 +175,9 @@ const PresenterView: React.FC = () => {
             visitedRoomIds: [data.rooms[0].id],
           };
           setGame(initialVisited);
-          await gameService.saveGame(initialVisited);
+          await gameService.saveGame(initialVisited).catch(err => {
+            console.warn("Could not save initial visited room state. This is expected for public games.", err.message);
+          });
         } else {
           setGame(data);
         }
@@ -184,17 +187,6 @@ const PresenterView: React.FC = () => {
       }
     };
     fetchAndInitialize();
-
-    const handleStorageChange = async (e: StorageEvent) => {
-      if (e.key === 'presentations' && id) {
-        const data = await gameService.getGame(id);
-        if (data) {
-          setGame(data);
-        }
-      }
-    };
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
   }, [id]);
 
   const updateAndBroadcast = useCallback(async (updatedGame: Game) => {
@@ -204,9 +196,16 @@ const PresenterView: React.FC = () => {
         postMessage({ type: 'STATE_UPDATE', customItems });
     } catch (error) {
         console.error("Failed to save game state:", error);
-        alert("A change could not be saved. Please check your connection.");
+        // Don't alert for public games as saving is expected to fail
+        if (game?.visibility !== 'public') {
+           alert("A change could not be saved. Please check your connection.");
+        } else {
+            // For public games, we can still broadcast the state optimistically
+            console.warn("Presenter is not the owner; state changes are local to this session.");
+            postMessage({ type: 'STATE_UPDATE', customItems });
+        }
     }
-  }, [postMessage, customItems]);
+  }, [postMessage, customItems, game?.visibility]);
 
   const goToRoom = useCallback((index: number) => {
     if (!game) return;
@@ -651,7 +650,7 @@ const PresenterView: React.FC = () => {
   }
   
   if (status === 'error' || !game) {
-    return <div className="h-screen bg-slate-800 text-white flex items-center justify-center">Error: Could not load game.</div>;
+    return <div className="h-screen bg-slate-800 text-white flex items-center justify-center">Error: Could not load game. It may be private or does not exist.</div>;
   }
   
   const currentRoom = game.rooms[currentRoomIndex];
@@ -800,10 +799,10 @@ const PresenterView: React.FC = () => {
                 Restart Game
             </button>
             {isPresentationWindowOpen ? (
-            <span className="flex items-center gap-2 px-4 py-2 bg-slate-600 text-white rounded-lg cursor-not-allowed">
+            <button className="flex items-center gap-2 px-4 py-2 bg-slate-600 text-white rounded-lg cursor-not-allowed">
                 <Icon as="present" className="w-5 h-5" />
                 Window Open
-            </span>
+            </button>
             ) : (
             <button
                 onClick={handleOpenGameWindow}

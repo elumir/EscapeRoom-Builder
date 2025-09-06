@@ -24,7 +24,8 @@ const PresentationView: React.FC = () => {
 
   const fetchLatestState = async () => {
     if (id) {
-      const data = await gameService.getGame(id);
+      // Use the new service function that can fetch public or private games
+      const data = await gameService.getGameForPresentation(id);
       if (data) {
         setGame(data);
         setStatus('success');
@@ -68,7 +69,7 @@ const PresentationView: React.FC = () => {
   }
 
   if (status === 'error' || !game) {
-     return <div className="w-screen h-screen bg-black flex items-center justify-center text-white">Could not load game.</div>;
+     return <div className="w-screen h-screen bg-black flex items-center justify-center text-white">Could not load game. It may be private or does not exist.</div>;
   }
 
   const currentRoom = game.rooms[currentRoomIndex];

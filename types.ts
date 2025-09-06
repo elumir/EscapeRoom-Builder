@@ -74,6 +74,7 @@ export interface Room {
 export interface Game {
   id: string;
   title: string;
+  visibility: 'private' | 'public';
   globalBackgroundColor: string | null;
   mapDisplayMode: 'layered' | 'room-specific';
   rooms: Room[];

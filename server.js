@@ -97,6 +97,30 @@ gameRouter.get('/api/user', (req, res) => {
   }
 });
 
+// Public, un-authenticated route to get a presentation for viewing/presenting
+gameRouter.get('/api/public/presentation/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [rows] = await dbPool.query("SELECT data FROM presentations WHERE id = ? AND visibility = 'public'", [id]);
+    if (rows.length > 0) {
+      let presentationData = rows[0].data;
+      if (typeof presentationData === 'string') {
+        presentationData = parseStringData(presentationData);
+      }
+      if (presentationData) {
+        res.json(presentationData);
+      } else {
+        return res.status(500).json({ error: 'Failed to parse public presentation data.' });
+      }
+    } else {
+      res.status(404).json({ error: 'Public presentation not found.' });
+    }
+  } catch (error) {
+    console.error(`Failed to fetch public presentation ${req.params.id}:`, error);
+    res.status(500).json({ error: 'Database query failed' });
+  }
+});
+
 
 // === API ROUTER ===
 const apiRouter = express.Router();
@@ -153,8 +177,8 @@ apiRouter.post('/presentations', async (req, res) => {
     if (!presentationData || !presentationData.id || !presentationData.title) {
         return res.status(400).json({ error: 'Invalid presentation data provided.' });
     }
-    const sql = 'INSERT INTO presentations (id, user_id, title, data) VALUES (?, ?, ?, ?)';
-    await dbPool.query(sql, [presentationData.id, userId, presentationData.title, JSON.stringify(presentationData)]);
+    const sql = 'INSERT INTO presentations (id, user_id, title, data, visibility) VALUES (?, ?, ?, ?, ?)';
+    await dbPool.query(sql, [presentationData.id, userId, presentationData.title, JSON.stringify(presentationData), presentationData.visibility || 'private']);
     res.status(201).json(presentationData);
   } catch (error) {
     console.error('Failed to create presentation:', error);
@@ -170,8 +194,8 @@ apiRouter.put('/presentations/:id', async (req, res) => {
      if (!presentationData || !presentationData.id || !presentationData.title) {
         return res.status(400).json({ error: 'Invalid presentation data provided.' });
     }
-    const sql = 'UPDATE presentations SET title = ?, data = ?, updated_at = NOW() WHERE id = ? AND user_id = ?';
-    const [result] = await dbPool.query(sql, [presentationData.title, JSON.stringify(presentationData), req.params.id, userId]);
+    const sql = 'UPDATE presentations SET title = ?, data = ?, visibility = ?, updated_at = NOW() WHERE id = ? AND user_id = ?';
+    const [result] = await dbPool.query(sql, [presentationData.title, JSON.stringify(presentationData), presentationData.visibility || 'private', req.params.id, userId]);
     if (result.affectedRows > 0) {
         res.json(presentationData);
     } else {
@@ -179,6 +203,49 @@ apiRouter.put('/presentations/:id', async (req, res) => {
     }
   } catch (error) {
     console.error(`Failed to update presentation ${req.params.id}:`, error);
+    res.status(500).json({ error: 'Database update failed' });
+  }
+});
+
+// Update a presentation's visibility (and check ownership)
+apiRouter.put('/presentations/:id/visibility', async (req, res) => {
+  try {
+    const userId = req.oidc.user.sub;
+    const { id } = req.params;
+    const { visibility } = req.body;
+
+    if (!visibility || !['private', 'public'].includes(visibility)) {
+      return res.status(400).json({ error: 'Invalid visibility value provided.' });
+    }
+
+    // First, we need to get the existing data to update it
+    const [rows] = await dbPool.query('SELECT data FROM presentations WHERE id = ? AND user_id = ?', [id, userId]);
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Presentation not found or you do not have permission to modify it.' });
+    }
+
+    let presentationData = rows[0].data;
+    if (typeof presentationData === 'string') {
+      presentationData = parseStringData(presentationData);
+    }
+    if (!presentationData) {
+      return res.status(500).json({ error: 'Failed to parse existing presentation data.' });
+    }
+
+    // Update the visibility property within the JSON data
+    presentationData.visibility = visibility;
+
+    const sql = 'UPDATE presentations SET visibility = ?, data = ?, updated_at = NOW() WHERE id = ? AND user_id = ?';
+    const [result] = await dbPool.query(sql, [visibility, JSON.stringify(presentationData), id, userId]);
+    
+    if (result.affectedRows > 0) {
+      res.status(200).json({ success: true, visibility });
+    } else {
+      // This case should be rare given the check above, but it's good practice
+      res.status(404).json({ error: 'Presentation not found or you do not have permission to modify it.' });
+    }
+  } catch (error) {
+    console.error(`Failed to update visibility for presentation ${req.params.id}:`, error);
     res.status(500).json({ error: 'Database update failed' });
   }
 });

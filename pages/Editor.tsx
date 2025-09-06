@@ -63,6 +63,7 @@ const Editor: React.FC = () => {
   const [collapsedActs, setCollapsedActs] = useState<Record<number, boolean>>({});
   const [objectModalState, setObjectModalState] = useState<{ object: InventoryObject; index: number } | null>(null);
   const [modalObjectData, setModalObjectData] = useState<InventoryObject | null>(null);
+  const [copySuccess, setCopySuccess] = useState(false);
 
 
   const objectRemoveDropdownRef = useRef<HTMLDivElement>(null);
@@ -801,6 +802,27 @@ const Editor: React.FC = () => {
     updateGame(updatedGame);
   };
 
+  const handleVisibilityChange = async (isPublic: boolean) => {
+    if (!game) return;
+    const newVisibility = isPublic ? 'public' : 'private';
+    try {
+      await gameService.updateGameVisibility(game.id, newVisibility);
+      setGame({ ...game, visibility: newVisibility });
+    } catch (error) {
+      console.error("Failed to update visibility:", error);
+      alert("Could not update game visibility. Please try again.");
+    }
+  };
+
+  const handleCopyLink = () => {
+    if (!game || game.visibility !== 'public') return;
+    const link = `${window.location.origin}/game/presenter/${game.id}`;
+    navigator.clipboard.writeText(link).then(() => {
+        setCopySuccess(true);
+        setTimeout(() => setCopySuccess(false), 2000);
+    });
+  };
+
   const toggleActCollapse = (actNumber: number) => {
       setCollapsedActs(prev => ({
           ...prev,
@@ -843,7 +865,7 @@ const Editor: React.FC = () => {
   }
   
   if (status === 'error') {
-     return <div className="flex items-center justify-center h-screen">Error: Game not found.</div>;
+     return <div className="flex items-center justify-center h-screen">Error: Game not found or you do not have permission to edit it.</div>;
   }
 
   if (!game || !game.rooms[selectedRoomIndex]) {
@@ -904,9 +926,9 @@ const Editor: React.FC = () => {
             </div>
         </div>
        )}
-       {isSettingsModalOpen && (
+       {isSettingsModalOpen && game && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 backdrop-blur-sm">
-            <div className="bg-white dark:bg-slate-800 p-8 rounded-lg shadow-2xl w-full max-w-md border border-slate-200 dark:border-slate-700">
+            <div className="bg-white dark:bg-slate-800 p-8 rounded-lg shadow-2xl w-full max-w-lg border border-slate-200 dark:border-slate-700">
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200">Game Settings</h2>
                     <button onClick={() => setIsSettingsModalOpen(false)} className="p-1.5 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700">
@@ -915,6 +937,46 @@ const Editor: React.FC = () => {
                 </div>
                 
                 <div className="space-y-6">
+                    {/* SHARING SECTION */}
+                    <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-700">
+                        <div className="flex justify-between items-center">
+                            <h3 className="font-semibold text-slate-700 dark:text-slate-300">Sharing</h3>
+                            <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer">
+                                <span>Private</span>
+                                <input
+                                    type="checkbox"
+                                    className="sr-only peer"
+                                    checked={game.visibility === 'public'}
+                                    onChange={(e) => handleVisibilityChange(e.target.checked)}
+                                />
+                                <div className="relative w-11 h-6 bg-slate-300 dark:bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-600"></div>
+                                <span>Public</span>
+                            </label>
+                        </div>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+                            {game.visibility === 'private' 
+                                ? 'Only you can present this game.' 
+                                : 'Anyone with the link can present this game. They cannot edit it.'
+                            }
+                        </p>
+                        {game.visibility === 'public' && (
+                            <div className="mt-4">
+                                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Shareable Presenter Link</label>
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="text"
+                                        readOnly
+                                        value={`${window.location.origin}/game/presenter/${game.id}`}
+                                        className="w-full text-sm px-3 py-1.5 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300"
+                                    />
+                                    <button onClick={handleCopyLink} className="px-3 py-1.5 bg-brand-600 text-white rounded-md text-sm hover:bg-brand-700 transition-colors w-24 text-center">
+                                        {copySuccess ? 'Copied!' : 'Copy'}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
                     <div>
                         <div className="flex justify-between items-center mb-2">
                             <h3 className="font-semibold text-slate-700 dark:text-slate-300">Global Background Color</h3>
@@ -1873,577 +1935,426 @@ const Editor: React.FC = () => {
           </button>
         </div>
       </header>
-      
-      <div className="flex flex-1 overflow-hidden">
-        {/* Left Sidebar - Thumbnails */}
-        <aside className="w-48 bg-white dark:bg-slate-800 p-2 overflow-y-auto shadow-lg">
-            <div ref={roomsContainerRef}>
-              {Object.entries(roomsByAct).sort(([a], [b]) => Number(a) - Number(b)).map(([act, rooms]) => (
-                <div key={`act-${act}`}>
-                    <button 
-                      onClick={() => toggleActCollapse(Number(act))}
-                      className="w-full flex justify-between items-center text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider px-1 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md"
-                    >
-                        <span>Act {act}</span>
-                        <Icon as="chevron-down" className={`w-4 h-4 transition-transform ${!collapsedActs[Number(act)] ? 'rotate-180' : ''}`} />
-                    </button>
-                  {!collapsedActs[Number(act)] && (
-                    <div className="space-y-2 mt-1">
-                      {rooms.map((room) => {
-                        const index = room.originalIndex;
-                        const roomMapPreview = game.mapDisplayMode === 'room-specific'
-                          ? [room.mapImage].filter(Boolean)
-                          : visibleMapImages;
-                        return (
-                          <div 
-                            key={room.id}
-                            draggable
-                            onDragStart={() => handleDragStart(index)}
-                            onDragOver={(e) => handleDragOver(e, index)}
-                            onDragLeave={handleDragLeave}
-                            onDrop={() => handleDrop(index)}
-                            onDragEnd={handleDragEnd}
-                            onClick={() => selectRoom(index)} 
-                            className={`relative group cursor-pointer rounded-md overflow-hidden border-2 ${selectedRoomIndex === index ? 'border-brand-500' : 'border-transparent hover:border-brand-300'} ${draggedRoomIndex === index ? 'opacity-50' : ''}`}
-                            >
-                              {dropTargetIndex === index && draggedRoomIndex !== index && (
-                                <div className="absolute top-0 left-0 w-full h-1 bg-brand-500 z-10" />
-                              )}
-                              <div className="flex items-start gap-2">
-                                <span className="text-xs font-bold text-slate-500 dark:text-slate-400 p-1">{index + 1}</span>
-                                <div className="flex-1 transform scale-[0.95] origin-top-left">
-                                   <Room room={room} inventoryItems={inventoryItems} visibleMapImages={roomMapPreview} className="shadow-md" globalBackgroundColor={game.globalBackgroundColor} />
-                                </div>
-                              </div>
-                              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 p-1 bg-black/50 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                                <Icon as="reorder" className="w-5 h-5" />
-                              </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              ))}
+      <main className="flex flex-1 overflow-hidden">
+        {/* Room List (Left Column) */}
+        <div className="w-64 bg-white dark:bg-slate-800 p-4 flex flex-col border-r border-slate-200 dark:border-slate-700">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold text-slate-700 dark:text-slate-300">Rooms</h2>
+            <div className="flex gap-1">
+              <button onClick={addRoom} className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full" title="Add Room">
+                <Icon as="plus" className="w-5 h-5" />
+              </button>
+              <button onClick={deleteRoom} className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full" title="Delete Selected Room">
+                <Icon as="trash" className="w-5 h-5" />
+              </button>
             </div>
-            <button onClick={addRoom} className="w-full mt-4 flex items-center justify-center gap-2 p-2 bg-slate-200 dark:bg-slate-700 rounded-md hover:bg-slate-300 dark:hover:bg-slate-600 transition">
-               <Icon as="plus" className="w-4 h-4"/> Add Room
-            </button>
-        </aside>
+          </div>
+          <div ref={roomsContainerRef} className="flex-1 overflow-y-auto space-y-2 pr-2 -mr-2">
+              {Object.entries(roomsByAct).map(([act, rooms]) => {
+                  const actNumber = parseInt(act, 10);
+                  const isCollapsed = collapsedActs[actNumber];
+                  return (
+                      <div key={act} className="border-t border-slate-200 dark:border-slate-700 first:border-t-0">
+                          <button onClick={() => toggleActCollapse(actNumber)} className="w-full text-left font-semibold text-slate-500 dark:text-slate-400 py-2 flex justify-between items-center">
+                              <span>Act {act}</span>
+                               <Icon as="chevron-down" className={`w-4 h-4 transition-transform ${isCollapsed ? '' : 'rotate-180'}`} />
+                          </button>
+                          {!isCollapsed && rooms.map(room => (
+                              <div
+                                  key={room.id}
+                                  draggable
+                                  onDragStart={() => handleDragStart(room.originalIndex)}
+                                  onDragOver={(e) => handleDragOver(e, room.originalIndex)}
+                                  onDragLeave={handleDragLeave}
+                                  onDrop={() => handleDrop(room.originalIndex)}
+                                  onDragEnd={handleDragEnd}
+                                  className={`p-2 rounded-lg cursor-pointer flex items-center gap-2 mb-2 relative
+                                      ${room.originalIndex === selectedRoomIndex ? 'bg-brand-100 dark:bg-brand-900/50' : 'hover:bg-slate-100 dark:hover:bg-slate-700'}
+                                      ${draggedRoomIndex === room.originalIndex ? 'opacity-50' : ''}
+                                  `}
+                                  onClick={() => selectRoom(room.originalIndex)}
+                              >
+                                  {dropTargetIndex === room.originalIndex && (
+                                      <div className={`absolute left-0 right-0 ${draggedRoomIndex !== null && draggedRoomIndex > room.originalIndex ? 'top-0' : 'bottom-0'} h-0.5 bg-brand-500`}></div>
+                                  )}
+                                  <Icon as="reorder" className="w-5 h-5 text-slate-400 dark:text-slate-500 flex-shrink-0" />
+                                  <span className="truncate">{room.name}</span>
+                              </div>
+                          ))}
+                      </div>
+                  );
+              })}
+          </div>
+        </div>
 
-        {/* Main Area - Editor */}
-        <main className="flex-1 flex flex-col p-4 md:p-8 bg-slate-200 dark:bg-slate-900 overflow-y-auto">
-            <div className='w-full max-w-4xl mx-auto'>
-              <div className="flex justify-end mb-2 h-6">
-                {hasSolvedState && (
-                  <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer">
-                      <span>Preview Solved State</span>
-                      <input
-                          type="checkbox"
-                          className="sr-only peer"
-                          checked={previewSolved}
-                          onChange={(e) => setPreviewSolved(e.target.checked)}
-                      />
-                      <div className="relative w-11 h-6 bg-slate-300 dark:bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-600"></div>
-                  </label>
-                )}
+        {/* Room Editor (Center Column) */}
+        <div className="flex-1 flex flex-col overflow-y-auto p-6">
+          <div className="flex items-baseline gap-4 mb-4">
+              <input 
+                  type="text" 
+                  value={editingRoomName} 
+                  onChange={e => setEditingRoomName(e.target.value)}
+                  className="text-2xl font-bold bg-transparent focus:bg-white dark:focus:bg-slate-800 outline-none rounded-md px-2 py-1 flex-grow"
+              />
+              <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium text-slate-500 dark:text-slate-400">Act:</label>
+                  <input
+                      type="number"
+                      value={editingRoomAct}
+                      onChange={e => setEditingRoomAct(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                      min="1"
+                      className="w-16 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
+                  />
               </div>
-              <div className="relative w-full aspect-video">
-                <Room room={{...currentRoom, isSolved: previewSolved}} inventoryItems={inventoryItems} visibleMapImages={visibleMapImages} globalBackgroundColor={game.globalBackgroundColor} />
-                <div className={`absolute inset-0 flex ${currentRoom.isFullScreenImage ? 'pointer-events-none' : ''}`}>
-                  <div className={`h-full group relative ${currentRoom.isFullScreenImage ? 'w-full' : 'w-[70%]'}`}>
-                      <label className={`w-full h-full cursor-pointer flex items-center justify-center bg-black/0 hover:bg-black/30 transition-colors duration-300 ${currentRoom.isFullScreenImage ? 'pointer-events-auto' : ''}`}>
-                        <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'image')} className="sr-only" />
-                          {!currentRoom.image && (
-                            <div className="w-full h-full flex flex-col items-center justify-center gap-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                <div className="text-white text-center pointer-events-none">
-                                    <p className="font-bold text-lg">Upload New Image</p>
-                                    <p className="text-sm">Click or drag & drop</p>
-                                </div>
+          </div>
+          
+          <div className="mb-6">
+              <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-semibold text-slate-700 dark:text-slate-300">Room Background Color</h3>
+                  {game.globalBackgroundColor && (
+                      <span className="text-xs text-slate-500 dark:text-slate-400 italic">Global color is active</span>
+                  )}
+              </div>
+              <div className={`flex flex-wrap gap-2 p-3 bg-slate-100 dark:bg-slate-700/50 rounded-lg ${game.globalBackgroundColor ? 'opacity-50' : ''}`}>
+                  {COLORS.map(color => (
+                      <button 
+                          key={color} 
+                          onClick={() => changeRoomProperty('backgroundColor', color)} 
+                          disabled={!!game.globalBackgroundColor}
+                          className={`w-8 h-8 rounded-full border-2 ${currentRoom.backgroundColor === color ? 'border-brand-500 ring-2 ring-brand-500' : 'border-slate-300 dark:border-slate-600'} ${game.globalBackgroundColor ? 'cursor-not-allowed' : ''}`} 
+                          style={{backgroundColor: color}}
+                      />
+                  ))}
+              </div>
+          </div>
+          
+           {/* IMAGE UPLOADERS */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            {['image', 'mapImage', 'solvedImage'].map(prop => {
+                const title = { image: 'Room Image', mapImage: 'Map Image', solvedImage: 'Solved State Image' }[prop] || '';
+                const imageId = currentRoom[prop as keyof RoomType] as string | null;
+                return (
+                    <div key={prop}>
+                        <h3 className="font-semibold text-slate-700 dark:text-slate-300 mb-2">{title}</h3>
+                        <div className="relative group w-full aspect-video bg-slate-100 dark:bg-slate-700/50 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600">
+                            {imageId && <img src={`${API_BASE_URL}/assets/${imageId}`} alt={title} className="w-full h-full object-cover rounded-lg" />}
+                            <label className="absolute inset-0 cursor-pointer hover:bg-black/40 transition-colors rounded-lg flex items-center justify-center">
+                                <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], prop as 'image' | 'mapImage' | 'solvedImage')} className="sr-only" />
+                                {!imageId && (
+                                    <div className="text-center text-slate-400 dark:text-slate-500 group-hover:opacity-0 transition-opacity">
+                                        <Icon as="gallery" className="w-10 h-10 mx-auto" />
+                                        <p className="text-xs mt-1">Upload Image</p>
+                                    </div>
+                                )}
+                            </label>
+                            {(imageId || !imageId) && (
+                              <div className="absolute inset-0 bg-black/60 p-2 flex flex-col justify-center items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                                <label className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors cursor-pointer">
+                                  <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], prop as 'image' | 'mapImage' | 'solvedImage')} className="sr-only" />
+                                  <Icon as="edit" className="w-3.5 h-3.5" />
+                                  Upload New
+                                </label>
                                 <button
-                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('image'); }}
-                                    className="pointer-events-auto flex items-center gap-2 text-sm px-3 py-1.5 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors"
-                                >
-                                    <Icon as="gallery" className="w-4 h-4" />
-                                    Select existing image
-                                </button>
-                            </div>
-                          )}
-                      </label>
-                      {currentRoom.image && (
-                          <div className="absolute bottom-0 left-0 right-0 bg-black/60 p-2 flex justify-end items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-                              <button
-                                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('image'); }}
+                                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary(prop as 'image' | 'mapImage' | 'solvedImage'); }}
                                   className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors"
-                                  title="Select an existing image"
                                 >
                                   <Icon as="gallery" className="w-3.5 h-3.5" />
-                                  Select an existing image
-                              </button>
-                              <button
-                                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); changeRoomProperty('image', null); }}
-                                  className="pointer-events-auto p-1.5 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
-                                  aria-label="Clear room image"
-                                  title="Clear Image"
-                                >
-                                  <Icon as="trash" className="w-4 h-4" />
-                              </button>
-                          </div>
-                      )}
-                  </div>
-                   <div className={`h-full ${currentRoom.isFullScreenImage ? 'hidden' : 'w-[30%]'}`}>
-                     <div className="h-1/2 relative group">
-                          <label className="w-full h-full cursor-pointer flex items-center justify-center bg-black/0 hover:bg-black/30 transition-colors duration-300">
-                              <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'mapImage')} className="sr-only" />
-                              {!currentRoom.mapImage && (
-                                <div className="w-full h-full flex flex-col items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-2">
-                                    <div className="text-white text-center pointer-events-none">
-                                        <p className="font-bold text-sm">Upload New</p>
-                                        <p className="text-xs">Map Image</p>
-                                    </div>
-                                    <button
-                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('mapImage'); }}
-                                        className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors"
-                                    >
-                                        <Icon as="gallery" className="w-3.5 h-3.5" />
-                                        Select existing image
-                                    </button>
-                                </div>
-                              )}
-                          </label>
-                           {currentRoom.mapImage && (
-                              <div className="absolute bottom-0 left-0 right-0 bg-black/60 p-2 flex justify-end items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                                  From Library
+                                </button>
+                                {imageId && (
                                   <button
-                                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('mapImage'); }}
-                                      className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors"
-                                      title="Select an existing image"
+                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); changeRoomProperty(prop as keyof RoomType, null); }}
+                                    className="pointer-events-auto p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                                    title="Clear Image"
                                   >
-                                      <Icon as="gallery" className="w-3.5 h-3.5" />
-                                      Select an existing image
+                                    <Icon as="trash" className="w-4 h-4" />
                                   </button>
-                                  <button
-                                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); changeRoomProperty('mapImage', null); }}
-                                      className="pointer-events-auto p-1.5 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
-                                      aria-label="Clear map image"
-                                      title="Clear Image"
-                                  >
-                                      <Icon as="trash" className="w-4 h-4" />
-                                  </button>
+                                )}
                               </div>
-                          )}
-                     </div>
+                            )}
+                        </div>
+                    </div>
+                );
+            })}
+          </div>
+
+          <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer mb-6">
+            <input 
+              type="checkbox" 
+              checked={currentRoom.isFullScreenImage} 
+              onChange={e => changeRoomProperty('isFullScreenImage', e.target.checked)} 
+            />
+            Display main room image full-screen (hides sidebar).
+          </label>
+          
+          {/* Room Descriptions */}
+          <div className="grid grid-cols-2 gap-6">
+            <div>
+              <div className="flex justify-between items-center mb-1">
+                <h3 className="font-semibold text-slate-700 dark:text-slate-300">Room Description</h3>
+                <button onClick={() => setModalContent({ type: 'notes', content: editingRoomNotes })} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full text-slate-400 dark:text-slate-500" title="Edit in fullscreen">
+                  <Icon as="expand" className="w-4 h-4"/>
+                </button>
+              </div>
+              <div className="flex items-center gap-1 border border-slate-300 dark:border-slate-600 rounded-t-lg bg-slate-50 dark:bg-slate-700/50 p-1">
+                  <button onClick={() => applyFormatting('bold', 'notes')} title="Bold" className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded font-bold">B</button>
+                  <button onClick={() => applyFormatting('italic', 'notes')} title="Italic" className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded italic">I</button>
+                  <div className="h-5 w-px bg-slate-300 dark:bg-slate-600 mx-1"></div>
+                  <button onClick={() => applyFormatting('highlight', 'notes', 'y')} title="Highlight Yellow" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
+                      <div className="w-4 h-4 rounded-sm bg-yellow-400 border border-yellow-500"></div>
+                  </button>
+                   <button onClick={() => applyFormatting('highlight', 'notes', 'c')} title="Highlight Cyan" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
+                      <div className="w-4 h-4 rounded-sm bg-cyan-400 border border-cyan-500"></div>
+                  </button>
+                   <button onClick={() => applyFormatting('highlight', 'notes', 'm')} title="Highlight Pink" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
+                      <div className="w-4 h-4 rounded-sm bg-pink-400 border border-pink-500"></div>
+                  </button>
+                   <button onClick={() => applyFormatting('highlight', 'notes', 'l')} title="Highlight Lime" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
+                      <div className="w-4 h-4 rounded-sm bg-lime-400 border border-lime-500"></div>
+                  </button>
+              </div>
+              <textarea 
+                  ref={descriptionTextareaRef}
+                  value={editingRoomNotes} 
+                  onChange={e => setEditingRoomNotes(e.target.value)} 
+                  placeholder="The room is dark and smells of mildew..."
+                  className="w-full h-48 px-3 py-2 border border-t-0 border-slate-300 dark:border-slate-600 rounded-b-lg bg-slate-50 dark:bg-slate-700 focus:outline-none resize-y"
+              />
+            </div>
+            <div>
+              <div className="flex justify-between items-center mb-1">
+                  <h3 className="font-semibold text-slate-700 dark:text-slate-300">Solved Description</h3>
+                  <button onClick={() => setModalContent({ type: 'solvedNotes', content: editingRoomSolvedNotes })} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full text-slate-400 dark:text-slate-500" title="Edit in fullscreen">
+                    <Icon as="expand" className="w-4 h-4"/>
+                  </button>
+              </div>
+              <div className="flex items-center gap-1 border border-slate-300 dark:border-slate-600 rounded-t-lg bg-slate-50 dark:bg-slate-700/50 p-1">
+                  <button onClick={() => applyFormatting('bold', 'solvedNotes')} title="Bold" className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded font-bold">B</button>
+                  <button onClick={() => applyFormatting('italic', 'solvedNotes')} title="Italic" className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded italic">I</button>
+                  <div className="h-5 w-px bg-slate-300 dark:bg-slate-600 mx-1"></div>
+                  <button onClick={() => applyFormatting('highlight', 'solvedNotes', 'y')} title="Highlight Yellow" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
+                      <div className="w-4 h-4 rounded-sm bg-yellow-400 border border-yellow-500"></div>
+                  </button>
+                  <button onClick={() => applyFormatting('highlight', 'solvedNotes', 'c')} title="Highlight Cyan" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
+                      <div className="w-4 h-4 rounded-sm bg-cyan-400 border border-cyan-500"></div>
+                  </button>
+                  <button onClick={() => applyFormatting('highlight', 'solvedNotes', 'm')} title="Highlight Pink" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
+                      <div className="w-4 h-4 rounded-sm bg-pink-400 border border-pink-500"></div>
+                  </button>
+                  <button onClick={() => applyFormatting('highlight', 'solvedNotes', 'l')} title="Highlight Lime" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
+                      <div className="w-4 h-4 rounded-sm bg-lime-400 border border-lime-500"></div>
+                  </button>
+              </div>
+              <textarea 
+                  ref={solvedDescriptionTextareaRef}
+                  value={editingRoomSolvedNotes} 
+                  onChange={e => setEditingRoomSolvedNotes(e.target.value)} 
+                  placeholder="The room is now brightly lit..."
+                  className="w-full h-48 px-3 py-2 border border-t-0 border-slate-300 dark:border-slate-600 rounded-b-lg bg-slate-50 dark:bg-slate-700 focus:outline-none resize-y"
+              />
+            </div>
+          </div>
+          <div className="mt-4">
+              <h3 className="font-semibold text-slate-700 dark:text-slate-300">When entering this room</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
+                  Automatically remove objects from player inventory.
+              </p>
+              <div className="relative" ref={objectRemoveDropdownRef}>
+                  <button type="button" onClick={() => setOpenObjectRemoveDropdown(prev => !prev)} className="w-full text-left px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 flex justify-between items-center text-sm">
+                      <span>{`${currentRoom.objectRemoveIds?.length || 0} objects selected`}</span>
+                      <Icon as="chevron-down" className={`w-4 h-4 transition-transform ${openObjectRemoveDropdown ? 'rotate-180' : ''}`} />
+                  </button>
+                  {openObjectRemoveDropdown && (
+                      <div className="absolute z-10 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg flex flex-col max-h-60">
+                          <div className="p-2 border-b border-slate-200 dark:border-slate-700">
+                              <input 
+                                  type="text"
+                                  value={objectRemoveSearch}
+                                  onChange={(e) => setObjectRemoveSearch(e.target.value)}
+                                  placeholder="Search all game objects..."
+                                  className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
+                              />
+                          </div>
+                          <div className="overflow-y-auto p-2">
+                              {filteredObjectsForRemoval.length > 0 ? (
+                                  filteredObjectsForRemoval.map(obj => (
+                                      <label key={obj.id} className="flex items-center gap-2 text-sm p-1 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 rounded">
+                                          <input 
+                                              type="checkbox" 
+                                              checked={currentRoom.objectRemoveIds?.includes(obj.id)} 
+                                              onChange={e => {
+                                                  const currentIds = currentRoom.objectRemoveIds || [];
+                                                  const newIds = e.target.checked
+                                                      ? [...currentIds, obj.id]
+                                                      : currentIds.filter(id => id !== obj.id);
+                                                  changeRoomProperty('objectRemoveIds', newIds);
+                                              }}
+                                          />
+                                          <span className="truncate">{obj.name} <span className="text-xs text-slate-400">({obj.roomName})</span></span>
+                                      </label>
+                                  ))
+                              ) : (
+                                  <p className="text-xs text-slate-500 dark:text-slate-400 italic text-center py-2">No matching objects found.</p>
+                              )}
+                          </div>
+                      </div>
+                  )}
+              </div>
+              <textarea 
+                  value={editingRoomObjectRemoveText} 
+                  onChange={e => setEditingRoomObjectRemoveText(e.target.value)} 
+                  placeholder="Optional text to show players when objects are removed."
+                  className="w-full mt-2 h-20 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:outline-none resize-y text-sm"
+              />
+          </div>
+        </div>
+
+        {/* Dynamic Content (Right Column) */}
+        <div className="w-96 bg-white dark:bg-slate-800 p-4 flex flex-col border-l border-slate-200 dark:border-slate-700">
+          <div className="flex-1 overflow-y-auto space-y-6 pr-2 -mr-2">
+              <div>
+                  <div className="flex justify-between items-center mb-2">
+                      <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300">Objects in this Room</h3>
+                      <button onClick={addObject} className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full" title="Add Object">
+                          <Icon as="plus" className="w-5 h-5" />
+                      </button>
                   </div>
+                  <div ref={objectsContainerRef} className="space-y-4">
+                      {editingRoomObjects.map((obj, index) => {
+                         const locks = objectLockMap.get(obj.id);
+                         return (
+                            <div key={obj.id} className="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-700">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                      <p className="font-semibold">{obj.name || <span className="italic text-slate-500">Untitled Object</span>}</p>
+                                      {locks && (
+                                        <div className="flex items-center gap-1 text-xs text-red-500 mt-1" title={`Locked by: ${locks.join(', ')}`}>
+                                          <Icon as="lock" className="w-3 h-3"/>
+                                          <span>Locked</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <button onClick={() => setObjectModalState({ object: { ...obj }, index })} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title="Edit Object">
+                                        <Icon as="edit" className="w-4 h-4" />
+                                      </button>
+                                      <button onClick={() => deleteObject(index)} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title="Delete Object">
+                                        <Icon as="trash" className="w-4 h-4" />
+                                      </button>
+                                    </div>
+                                </div>
+                            </div>
+                         )
+                      })}
+                      {editingRoomObjects.length === 0 && <p className="text-sm text-slate-500 dark:text-slate-400 italic">No objects in this room.</p>}
+                  </div>
+              </div>
+
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300">Puzzles in this Room</h3>
+                  <button onClick={addPuzzle} className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full" title="Add Puzzle">
+                      <Icon as="plus" className="w-5 h-5" />
+                  </button>
+                </div>
+                <div ref={puzzlesContainerRef} className="space-y-2">
+                    {editingRoomPuzzles.map((puzzle, index) => {
+                      const locks = puzzleLockMap.get(puzzle.id);
+                      return (
+                        <div 
+                          key={puzzle.id} 
+                          className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-700"
+                        >
+                          <div className="flex-grow min-w-0">
+                            <p className="font-semibold truncate">{puzzle.name || <span className="italic text-slate-500">Untitled Puzzle</span>}</p>
+                            {locks && (
+                              <div className="flex items-center gap-1 text-xs text-red-500 mt-1" title={`Locked by: ${locks.join(', ')}`}>
+                                <Icon as="lock" className="w-3 h-3"/>
+                                <span>Locked</span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            <button onClick={() => setPuzzleModalState({ puzzle: { ...puzzle }, index })} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title="Edit Puzzle">
+                              <Icon as="edit" className="w-4 h-4" />
+                            </button>
+                            <button onClick={(e) => handleDeletePuzzle(e, index)} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title="Delete Puzzle">
+                              <Icon as="trash" className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                    {editingRoomPuzzles.length === 0 && <p className="text-sm text-slate-500 dark:text-slate-400 italic">No puzzles in this room.</p>}
                 </div>
               </div>
-            </div>
-            
-            <div className="w-full max-w-4xl mx-auto mt-6 bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md">
-                <h3 className="font-semibold mb-3 text-slate-700 dark:text-slate-300">Objects</h3>
-                <div className="space-y-2 max-h-96 overflow-y-auto pr-2" ref={objectsContainerRef}>
-                  {editingRoomObjects.length > 0 ? editingRoomObjects.map((obj, index) => {
-                    const lockingPuzzles = objectLockMap.get(obj.id);
-                    return (
-                        <div
-                            key={obj.id}
-                            onClick={() => setObjectModalState({ object: { ...obj }, index })}
-                            className={`flex items-center gap-2 p-2 rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer transition-colors hover:bg-slate-100 dark:hover:bg-slate-700 ${index % 2 === 0 ? '' : 'bg-slate-50 dark:bg-slate-700/50'}`}
-                        >
-                            {lockingPuzzles && (
-                                <div className="flex items-center gap-1 text-slate-400 dark:text-slate-500 flex-shrink-0" title={`Locked by: ${lockingPuzzles.join(', ')}`}>
-                                    <Icon as="lock" className="w-4 h-4" />
-                                    {lockingPuzzles.length > 1 && (
-                                        <span className="text-xs font-semibold bg-slate-200 dark:bg-slate-700 rounded-full h-4 w-4 flex items-center justify-center">
-                                            {lockingPuzzles.length}
-                                        </span>
-                                    )}
-                                </div>
-                            )}
-                            <div className="flex-grow min-w-0">
-                                <p className="font-semibold text-sm text-slate-800 dark:text-slate-200 truncate">
-                                  {obj.name || <span className="italic text-slate-500">Untitled Object</span>}
-                                </p>
-                                <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                                  {obj.description}
-                                </p>
-                            </div>
-                            <div className="flex items-center gap-2 flex-shrink-0">
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); deleteObject(index); }}
-                                    className="text-red-500 hover:text-red-700 dark:hover:text-red-400 p-1.5 rounded-full hover:bg-red-100 dark:hover:bg-red-900/50"
-                                    title="Delete Object"
-                                >
-                                  <Icon as="trash" className="w-4 h-4" />
-                                </button>
-                            </div>
-                        </div>
-                    );
-                  }) : (
-                    <p className="text-slate-500 dark:text-slate-400 text-sm">No objects for this room.</p>
-                  )}
-                </div>
-                <button onClick={addObject} className="mt-3 flex items-center gap-2 text-sm px-3 py-1 bg-brand-100 text-brand-700 dark:bg-brand-900/50 dark:text-brand-300 rounded-md hover:bg-brand-200 dark:hover:bg-brand-900">
-                  <Icon as="plus" className="w-4 h-4"/> Add Object
-                </button>
-            </div>
 
-            <div className="w-full max-w-4xl mx-auto mt-6 bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md">
-                <h3 className="font-semibold mb-1 text-slate-700 dark:text-slate-300">Puzzles</h3>
-                <p className="text-xs italic text-slate-500 dark:text-slate-400 mb-3">Puzzles lock other elements.</p>
-                 <div className="space-y-2 max-h-96 overflow-y-auto pr-2" ref={puzzlesContainerRef}>
-                    {editingRoomPuzzles.length > 0 ? editingRoomPuzzles.map((puzzle, index) => {
-                      const lockingPuzzles = puzzleLockMap.get(puzzle.id);
-                      return (
-                        <div
-                            key={puzzle.id}
-                            onClick={() => {
-                                setPuzzleModalState({ puzzle: { ...puzzle }, index });
-                                setModalPuzzleObjectsSearch('');
-                                setModalPuzzlePuzzlesSearch('');
-                                setModalPuzzleRoomsSearch('');
-                                setModalPuzzleRoomSolvesSearch('');
-                                setModalPuzzleActionsSearch('');
-                                setModalPuzzleCompletedActionsSearch('');
-                                setModalPuzzleDiscardObjectsSearch('');
-                                setModalPuzzleActsSearch('');
-                            }}
-                            className={`flex items-center justify-between p-2 rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer transition-colors hover:bg-slate-100 dark:hover:bg-slate-700 ${index % 2 === 0 ? '' : 'bg-slate-50 dark:bg-slate-700/50'}`}
-                        >
-                          <div className="flex items-center gap-2 min-w-0">
-                             {lockingPuzzles && (
-                                <div className="flex items-center gap-1 text-slate-400 dark:text-slate-500 flex-shrink-0" title={`Locked by: ${lockingPuzzles.join(', ')}`}>
-                                  <Icon as="lock" className="w-4 h-4" />
-                                  {lockingPuzzles.length > 1 && (
-                                    <span className="text-xs font-semibold bg-slate-200 dark:bg-slate-700 rounded-full h-4 w-4 flex items-center justify-center">
-                                      {lockingPuzzles.length}
-                                    </span>
-                                  )}
-                                </div>
-                              )}
-                              <span className="font-semibold text-sm text-slate-800 dark:text-slate-200 truncate">{puzzle.name}</span>
-                          </div>
-                            <div className="flex items-center gap-2 flex-shrink-0">
-                                <button
-                                    onClick={(e) => handleDeletePuzzle(e, index)}
-                                    className="text-red-500 hover:text-red-700 dark:hover:text-red-400 p-1.5 rounded-full hover:bg-red-100 dark:hover:bg-red-900/50 flex items-center justify-center"
-                                    title="Delete Puzzle"
-                                >
-                                    <Icon as="trash" className="w-4 h-4" />
-                                </button>
-                            </div>
-                        </div>
-                      );
-                    }) : (
-                        <p className="text-slate-500 dark:text-slate-400 text-sm">No puzzles for this room.</p>
-                    )}
-                 </div>
-                 <button onClick={addPuzzle} className="mt-3 flex items-center gap-2 text-sm px-3 py-1 bg-brand-100 text-brand-700 dark:bg-brand-900/50 dark:text-brand-300 rounded-md hover:bg-brand-200 dark:hover:bg-brand-900">
-                  <Icon as="plus" className="w-4 h-4"/> Add Puzzle
-                </button>
-            </div>
-            
-            <div className="w-full max-w-4xl mx-auto mt-6 bg-white dark:bg-slate-800 p-4 rounded-lg shadow-md">
-                <h3 className="font-semibold mb-1 text-slate-700 dark:text-slate-300">Player Actions & Host Responses</h3>
-                <p className="text-xs italic text-slate-500 dark:text-slate-400 mb-3">Create interactive events for when players want to do something (e.g., "look under the rug"). The host can then reveal text, an image, or play a sound.</p>
-                <div className="space-y-2 max-h-96 overflow-y-auto pr-2" ref={actionsContainerRef}>
-                    {editingRoomActions.length > 0 ? editingRoomActions.map((action, index) => {
-                      const lockingPuzzles = actionLockMap.get(action.id);
-                      return (
-                        <div
-                            key={action.id}
-                            onClick={() => setActionModalState({ action: { ...action }, index })}
-                            className={`flex items-center justify-between p-2 rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer transition-colors hover:bg-slate-100 dark:hover:bg-slate-700 ${index % 2 === 0 ? '' : 'bg-slate-50 dark:bg-slate-700/50'}`}
-                        >
-                            <div className="flex items-center gap-2 min-w-0">
-                              {lockingPuzzles && (
-                                <div className="flex items-center gap-1 text-slate-400 dark:text-slate-500 flex-shrink-0" title={`Locked by: ${lockingPuzzles.join(', ')}`}>
-                                  <Icon as="lock" className="w-4 h-4" />
-                                  {lockingPuzzles.length > 1 && (
-                                    <span className="text-xs font-semibold bg-slate-200 dark:bg-slate-700 rounded-full h-4 w-4 flex items-center justify-center">
-                                      {lockingPuzzles.length}
-                                    </span>
-                                  )}
-                                </div>
-                              )}
-                              <span className="font-semibold text-sm text-slate-800 dark:text-slate-200 truncate">
-                                  {action.name || <span className="italic text-slate-500 dark:text-slate-400">Untitled Action</span>}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2 flex-shrink-0">
-                                <button
-                                    onClick={(e) => handleDeleteAction(e, index)}
-                                    className="text-red-500 hover:text-red-700 dark:hover:text-red-400 p-1.5 rounded-full hover:bg-red-100 dark:hover:bg-red-900/50 flex items-center justify-center"
-                                    title="Delete Action"
-                                >
-                                    <Icon as="trash" className="w-4 h-4" />
-                                </button>
-                            </div>
-                        </div>
-                      );
-                    }) : (
-                        <p className="text-slate-500 dark:text-slate-400 text-sm">No actions for this room.</p>
-                    )}
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300">Player Actions & Host Responses</h3>
+                  <button onClick={addAction} className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full" title="Add Action">
+                      <Icon as="plus" className="w-5 h-5" />
+                  </button>
                 </div>
-                <button onClick={addAction} className="mt-3 flex items-center gap-2 text-sm px-3 py-1 bg-brand-100 text-brand-700 dark:bg-brand-900/50 dark:text-brand-300 rounded-md hover:bg-brand-200 dark:hover:bg-brand-900">
-                    <Icon as="plus" className="w-4 h-4"/> Add Action
-                </button>
-            </div>
-        </main>
-        
-        {/* Right Sidebar - Controls */}
-        <aside className="w-80 bg-white dark:bg-slate-800 flex flex-col shadow-lg">
-            <div className="flex-grow overflow-y-auto">
-                <Accordion title="Room Properties" defaultOpen={true}>
-                    <div className="space-y-4">
-                        <div>
-                          <h3 className="font-semibold text-sm mb-2 text-slate-600 dark:text-slate-400">Room Name</h3>
-                          <input
-                            type="text"
-                            value={editingRoomName}
-                            onChange={e => setEditingRoomName(e.target.value)}
-                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                          />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-sm mb-2 text-slate-600 dark:text-slate-400">Act Number</h3>
-                          <input
-                            type="number"
-                            value={editingRoomAct}
-                            onChange={e => setEditingRoomAct(Math.max(1, parseInt(e.target.value, 10) || 1))}
-                            min="1"
-                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                          />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-sm mb-2 text-slate-600 dark:text-slate-400">Background Color</h3>
-                          {game.globalBackgroundColor ? (
-                            <div className="p-3 text-sm text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700/50 rounded-md border border-slate-200 dark:border-slate-600">
-                              A global background color is active. Change it in{' '}
-                              <button onClick={() => setIsSettingsModalOpen(true)} className="font-semibold text-brand-600 dark:text-brand-400 hover:underline">
-                                Game Settings
-                              </button>.
-                            </div>
-                          ) : (
-                            <div className="flex flex-wrap gap-2">
-                                {COLORS.map(color => (
-                                <button key={color} onClick={() => changeRoomProperty('backgroundColor', color)} className={`w-8 h-8 rounded-full border-2 ${currentRoom.backgroundColor === color ? 'border-brand-500 ring-2 ring-brand-500' : 'border-slate-300 dark:border-slate-600'}`} style={{backgroundColor: color}}/>
-                                ))}
-                            </div>
-                          )}
-                        </div>
-                        <div>
-                            <label className="flex items-center justify-between gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer">
-                                <span>Full-Screen Image</span>
-                                <input
-                                    type="checkbox"
-                                    className="sr-only peer"
-                                    checked={currentRoom.isFullScreenImage || false}
-                                    onChange={(e) => changeRoomProperty('isFullScreenImage', e.target.checked)}
-                                />
-                                <div className="relative w-11 h-6 bg-slate-200 dark:bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-600"></div>
-                            </label>
-                        </div>
-                    </div>
-                </Accordion>
-                <Accordion title="Discard Objects">
-                    <div className="space-y-4">
-                        <div>
-                            <h3 className="font-semibold text-sm mb-2 text-slate-600 dark:text-slate-400">Discard Objects</h3>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">Visiting this room will discard the selected objects from the inventory to the discard column.</p>
-                            <div className="relative">
-                                <button
-                                    type="button"
-                                    onClick={() => setOpenObjectRemoveDropdown(!openObjectRemoveDropdown)}
-                                    className="w-full text-left px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 flex justify-between items-center text-sm"
-                                >
-                                    <span>{`${currentRoom.objectRemoveIds?.length || 0} object(s) selected`}</span>
-                                    <Icon as="chevron-down" className={`w-4 h-4 transition-transform ${openObjectRemoveDropdown ? 'rotate-180' : ''}`} />
-                                </button>
-                                {openObjectRemoveDropdown && (
-                                    <div ref={objectRemoveDropdownRef} className="absolute z-20 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg">
-                                        <div className="p-2 border-b border-slate-200 dark:border-slate-700">
-                                            <input 
-                                                type="text"
-                                                value={objectRemoveSearch}
-                                                onChange={(e) => setObjectRemoveSearch(e.target.value)}
-                                                placeholder="Search objects..."
-                                                className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
-                                            />
-                                        </div>
-                                        <div className="max-h-48 overflow-y-auto p-2">
-                                            {filteredObjectsForRemoval.length > 0 ? filteredObjectsForRemoval.map(obj => (
-                                                <label key={obj.id} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md p-2">
-                                                    <input
-                                                        type="checkbox"
-                                                        className="rounded border-slate-400 text-brand-600 focus:ring-brand-500"
-                                                        checked={currentRoom.objectRemoveIds?.includes(obj.id)}
-                                                        onChange={(e) => {
-                                                            const newLockedIds = e.target.checked
-                                                                ? [...(currentRoom.objectRemoveIds || []), obj.id]
-                                                                : (currentRoom.objectRemoveIds || []).filter(id => id !== obj.id);
-                                                            changeRoomProperty('objectRemoveIds', newLockedIds);
-                                                        }}
-                                                    />
-                                                    <div>
-                                                        <span>{obj.name}</span>
-                                                        <span className="text-xs text-slate-500 dark:text-slate-400 ml-2">({obj.roomName})</span>
-                                                    </div>
-                                                </label>
-                                            )) : (
-                                                <p className="text-xs text-slate-500 dark:text-slate-400 italic p-2">No objects found.</p>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                        <div>
-                            <h3 className="font-semibold text-sm mb-2 text-slate-600 dark:text-slate-400">Discard Text</h3>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">Optional text to show the presenter in a pop-up when objects are discarded.</p>
-                            <textarea
-                                value={editingRoomObjectRemoveText}
-                                onChange={e => setEditingRoomObjectRemoveText(e.target.value)}
-                                placeholder="e.g., The key dissolves in the lock..."
-                                className="w-full h-24 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none text-sm"
-                            />
-                        </div>
-                    </div>
-                </Accordion>
-                <Accordion 
-                    title="Room Description" 
-                    defaultOpen={true}
-                    headerContent={
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setModalContent({ type: 'notes', content: editingRoomNotes });
-                          }}
-                          className="p-1 rounded-full text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-                          title="Edit in larger view"
+                <div ref={actionsContainerRef} className="space-y-2">
+                    {(editingRoomActions).map((action, index) => {
+                      const locks = actionLockMap.get(action.id);
+                      return (
+                        <div 
+                          key={action.id} 
+                          className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-700"
                         >
-                          <Icon as="expand" className="w-4 h-4" />
-                        </button>
-                    }
-                >
-                    <div className="flex items-center gap-1 border border-slate-300 dark:border-slate-600 rounded-t-lg bg-slate-50 dark:bg-slate-700/50 p-1">
-                        <button onClick={() => applyFormatting('bold', 'notes')} title="Bold" className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded font-bold">B</button>
-                        <button onClick={() => applyFormatting('italic', 'notes')} title="Italic" className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded italic">I</button>
-                        <div className="h-5 w-px bg-slate-300 dark:bg-slate-600 mx-1"></div>
-                        <button onClick={() => applyFormatting('highlight', 'notes', 'y')} title="Highlight Yellow" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
-                            <div className="w-4 h-4 rounded-sm bg-yellow-400 border border-yellow-500"></div>
-                        </button>
-                        <button onClick={() => applyFormatting('highlight', 'notes', 'c')} title="Highlight Cyan" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
-                            <div className="w-4 h-4 rounded-sm bg-cyan-400 border border-cyan-500"></div>
-                        </button>
-                        <button onClick={() => applyFormatting('highlight', 'notes', 'm')} title="Highlight Pink" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
-                            <div className="w-4 h-4 rounded-sm bg-pink-400 border border-pink-500"></div>
-                        </button>
-                        <button onClick={() => applyFormatting('highlight', 'notes', 'l')} title="Highlight Lime" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
-                            <div className="w-4 h-4 rounded-sm bg-lime-400 border border-lime-500"></div>
-                        </button>
-                    </div>
-                    <textarea
-                        ref={descriptionTextareaRef}
-                        value={editingRoomNotes}
-                        onChange={e => setEditingRoomNotes(e.target.value)}
-                        placeholder="Add room description here..."
-                        className="w-full h-40 px-3 py-2 border border-t-0 border-slate-300 dark:border-slate-600 rounded-b-lg bg-slate-50 dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
-                    />
-                </Accordion>
-                <Accordion title="Solved State">
-                    <div className="space-y-4">
-                        <div>
-                            <h3 className="font-semibold text-sm mb-2 text-slate-600 dark:text-slate-400">Solved Image</h3>
-                            <div className="relative group w-24 h-24 bg-slate-100 dark:bg-slate-700 rounded-md border border-slate-200 dark:border-slate-600">
-                                {currentRoom.solvedImage && (
-                                    <img src={`${API_BASE_URL}/assets/${currentRoom.solvedImage}`} alt="Solved state preview" className="w-full h-full object-cover rounded-md" />
-                                )}
-                                <label className="absolute inset-0 cursor-pointer hover:bg-black/40 transition-colors rounded-md flex items-center justify-center">
-                                    <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'solvedImage')} className="sr-only" />
-                                    {!currentRoom.solvedImage && (
-                                        <>
-                                            {/* Default state: icon */}
-                                            <div className="text-center text-slate-400 dark:text-slate-500 group-hover:opacity-0 transition-opacity">
-                                                 <Icon as="gallery" className="w-8 h-8 mx-auto"/>
-                                                 <p className="text-xs mt-1">Add Image</p>
-                                            </div>
-                                            {/* Hover state: upload text + library button */}
-                                            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                 <div className="pointer-events-none text-white text-center">
-                                                    <p className="font-bold text-xs">Upload New</p>
-                                                </div>
-                                                <button
-                                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('solvedImage'); }}
-                                                    className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors text-center"
-                                                >
-                                                  <Icon as="gallery" className="w-3.5 h-3.5" />
-                                                  Select existing image
-                                                </button>
-                                            </div>
-                                        </>
-                                    )}
-                                </label>
-                                {currentRoom.solvedImage && (
-                                    <div className="absolute inset-0 bg-black/60 p-1 flex flex-col justify-center items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-                                        <button
-                                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('solvedImage'); }}
-                                            className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors"
-                                            title="Select an existing image"
-                                        >
-                                            <Icon as="gallery" className="w-3.5 h-3.5" />
-                                            Select an existing image
-                                        </button>
-                                        <button
-                                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); changeRoomProperty('solvedImage', null); }}
-                                            className="pointer-events-auto p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
-                                            title="Clear Image"
-                                        >
-                                            <Icon as="trash" className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
+                          <div className="flex-grow min-w-0">
+                            <p className="font-semibold truncate">{action.name || <span className="italic text-slate-500">Untitled Action</span>}</p>
+                            {locks && (
+                              <div className="flex items-center gap-1 text-xs text-red-500 mt-1" title={`Locked by: ${locks.join(', ')}`}>
+                                <Icon as="lock" className="w-3 h-3"/>
+                                <span>Locked</span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            <button onClick={() => setActionModalState({ action: { ...action }, index })} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title="Edit Action">
+                              <Icon as="edit" className="w-4 h-4" />
+                            </button>
+                            <button onClick={(e) => handleDeleteAction(e, index)} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title="Delete Action">
+                              <Icon as="trash" className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
-                        <div>
-                            <h3 className="font-semibold text-sm mb-2 text-slate-600 dark:text-slate-400 flex items-center gap-2">
-                                <span>Solved Description</span>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setModalContent({ type: 'solvedNotes', content: editingRoomSolvedNotes });
-                                  }}
-                                  className="p-1 rounded-full text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-                                  title="Edit in larger view"
-                                >
-                                  <Icon as="expand" className="w-4 h-4" />
-                                </button>
-                            </h3>
-                             <div className="flex items-center gap-1 border border-slate-300 dark:border-slate-600 rounded-t-lg bg-slate-50 dark:bg-slate-700/50 p-1">
-                                <button onClick={() => applyFormatting('bold', 'solvedNotes')} title="Bold" className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded font-bold">B</button>
-                                <button onClick={() => applyFormatting('italic', 'solvedNotes')} title="Italic" className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded italic">I</button>
-                                <div className="h-5 w-px bg-slate-300 dark:bg-slate-600 mx-1"></div>
-                                <button onClick={() => applyFormatting('highlight', 'solvedNotes', 'y')} title="Highlight Yellow" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"><div className="w-4 h-4 rounded-sm bg-yellow-400 border border-yellow-500"></div></button>
-                                <button onClick={() => applyFormatting('highlight', 'solvedNotes', 'c')} title="Highlight Cyan" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"><div className="w-4 h-4 rounded-sm bg-cyan-400 border border-cyan-500"></div></button>
-                                <button onClick={() => applyFormatting('highlight', 'solvedNotes', 'm')} title="Highlight Pink" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"><div className="w-4 h-4 rounded-sm bg-pink-400 border border-pink-500"></div></button>
-                                <button onClick={() => applyFormatting('highlight', 'solvedNotes', 'l')} title="Highlight Lime" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"><div className="w-4 h-4 rounded-sm bg-lime-400 border border-lime-500"></div></button>
-                            </div>
-                            <textarea
-                                ref={solvedDescriptionTextareaRef}
-                                value={editingRoomSolvedNotes}
-                                onChange={e => setEditingRoomSolvedNotes(e.target.value)}
-                                placeholder="Add solved description (optional)..."
-                                className="w-full h-40 px-3 py-2 border border-t-0 border-slate-300 dark:border-slate-600 rounded-b-lg bg-slate-50 dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
-                            />
-                        </div>
-                    </div>
-                </Accordion>
-                 <Accordion title="Actions">
-                     <button onClick={deleteRoom} className="w-full flex items-center gap-2 p-2 bg-red-50 dark:bg-red-900/50 text-red-600 dark:text-red-300 rounded-md hover:bg-red-100 dark:hover:bg-red-900 transition text-sm">
-                        <Icon as="trash" className="w-4 h-4" /> Delete Current Room
-                      </button>
-                 </Accordion>
+                      )
+                    })}
+                    {editingRoomActions.length === 0 && <p className="text-sm text-slate-500 dark:text-slate-400 italic">No actions in this room.</p>}
+                </div>
+              </div>
+          </div>
+          <div className="flex-shrink-0 pt-4 mt-4 border-t border-slate-200 dark:border-slate-700">
+            <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300">Player View Preview</h3>
+                {hasSolvedState && (
+                    <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer">
+                        <span>Show Solved State</span>
+                        <input
+                            type="checkbox"
+                            checked={previewSolved}
+                            onChange={e => setPreviewSolved(e.target.checked)}
+                            className="sr-only peer"
+                        />
+                        <div className="relative w-11 h-6 bg-slate-300 dark:bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-600"></div>
+                    </label>
+                )}
             </div>
-        </aside>
-      </div>
+            <div className="mt-2 aspect-video w-full rounded-lg overflow-hidden border border-slate-300 dark:border-slate-600">
+              <Room
+                room={{...currentRoom, isSolved: previewSolved}}
+                inventoryItems={inventoryItems}
+                visibleMapImages={visibleMapImages}
+                globalBackgroundColor={game.globalBackgroundColor}
+              />
+            </div>
+          </div>
+        </div>
+      </main>
     </div>
   );
 };

@@ -35,6 +35,31 @@ export const getGame = async (id: string): Promise<Game | undefined> => {
     }
 };
 
+export const getGameForPresentation = async (id: string): Promise<Game | undefined> => {
+    try {
+        // First, try the public endpoint. This works for anyone with a link to a public game.
+        const publicResponse = await fetch(`${API_BASE_URL}/public/presentation/${id}`);
+        if (publicResponse.ok) {
+            return await handleResponse(publicResponse);
+        }
+
+        // If the public endpoint fails (e.g., game is private, or user is owner),
+        // try the authenticated endpoint. This will work for the owner regardless of visibility.
+        if (publicResponse.status === 404 || publicResponse.status === 401 || publicResponse.status === 403) {
+            console.log("Public fetch failed, trying authenticated endpoint.");
+            return await getGame(id);
+        }
+        
+        // If it was another error, throw it.
+        await handleResponse(publicResponse);
+
+    } catch (error) {
+        console.error("Failed to fetch game for presentation from all sources:", error);
+        return undefined;
+    }
+    return undefined;
+};
+
 export const saveGame = async (game: Game): Promise<void> => {
     try {
         const response = await fetch(`${API_BASE_URL}/presentations/${game.id}`, {
@@ -45,6 +70,20 @@ export const saveGame = async (game: Game): Promise<void> => {
         await handleResponse(response);
     } catch (error) {
         console.error("Failed to save game:", error);
+        throw error;
+    }
+};
+
+export const updateGameVisibility = async (gameId: string, visibility: 'private' | 'public'): Promise<void> => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/presentations/${gameId}/visibility`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ visibility }),
+        });
+        await handleResponse(response);
+    } catch (error) {
+        console.error("Failed to update game visibility:", error);
         throw error;
     }
 };
@@ -71,6 +110,7 @@ export const createGame = async (title: string): Promise<Game> => {
     const newGame: Game = {
         id: generateUUID(),
         title,
+        visibility: 'private',
         globalBackgroundColor: '#000000',
         mapDisplayMode: 'layered',
         rooms: [newRoom],

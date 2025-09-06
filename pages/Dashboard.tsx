@@ -190,7 +190,14 @@ const Dashboard: React.FC = () => {
                                                 globalBackgroundColor={g.globalBackgroundColor}
                                               />
                                             </div>
-                                            <h3 className="text-lg font-semibold px-4 pt-2 truncate text-slate-800 dark:text-slate-200 group-hover:text-brand-600 dark:group-hover:text-brand-400">{g.title}</h3>
+                                            <div className="flex justify-between items-start px-4 pt-2">
+                                                <h3 className="text-lg font-semibold truncate text-slate-800 dark:text-slate-200 group-hover:text-brand-600 dark:group-hover:text-brand-400">{g.title}</h3>
+                                                {g.visibility === 'public' && (
+                                                    <span className="text-xs font-semibold bg-sky-100 text-sky-800 dark:bg-sky-900/50 dark:text-sky-300 px-2 py-0.5 rounded-full flex-shrink-0">
+                                                        Public
+                                                    </span>
+                                                )}
+                                            </div>
                                         </Link>
                                         <p className="text-sm text-slate-500 dark:text-slate-400 px-4 pb-2">{g.rooms.length} room(s)</p>
                                     </div>
