@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Room as RoomType } from '../types';
 import Icon from './Icon';
+import { API_BASE_URL } from '../services/presentationService';
 
 interface RoomProps {
   room: RoomType;
@@ -42,7 +43,7 @@ const Room: React.FC<RoomProps> = ({ room, inventoryItems, visibleMapImages, cla
     >
       <div className={imageContainerClass}>
         {displayImage ? (
-          <img src={`/api/assets/${displayImage}`} alt="" className="w-full h-full object-cover" />
+          <img src={`${API_BASE_URL}/assets/${displayImage}`} alt="" className="w-full h-full object-cover" />
         ) : (
           <div className="text-slate-400 dark:text-slate-500 flex items-center justify-center w-full h-full">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-16 h-16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
@@ -58,7 +59,7 @@ const Room: React.FC<RoomProps> = ({ room, inventoryItems, visibleMapImages, cla
                {visibleMapImages && visibleMapImages.length > 0 ? (
                   <div className="absolute inset-0">
                       {visibleMapImages.map((mapImage, index) => (
-                          mapImage && <img key={index} src={`/api/assets/${mapImage}`} alt={`Map Layer ${index + 1}`} className="absolute inset-0 w-full h-full object-contain" />
+                          mapImage && <img key={index} src={`${API_BASE_URL}/assets/${mapImage}`} alt={`Map Layer ${index + 1}`} className="absolute inset-0 w-full h-full object-contain" />
                       ))}
                   </div>
                 ) : (
@@ -84,7 +85,7 @@ const Room: React.FC<RoomProps> = ({ room, inventoryItems, visibleMapImages, cla
 
       {overlayImageUrl && (
         <div className="absolute inset-0 z-20 bg-black/70 flex items-center justify-center p-4 backdrop-blur-sm">
-            <img src={`/api/assets/${overlayImageUrl}`} alt="Puzzle Overlay" className="max-w-full max-h-full object-contain rounded-lg shadow-2xl" />
+            <img src={`${API_BASE_URL}/assets/${overlayImageUrl}`} alt="Puzzle Overlay" className="max-w-full max-h-full object-contain rounded-lg shadow-2xl" />
         </div>
       )}
     </div>

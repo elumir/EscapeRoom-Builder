@@ -1,7 +1,7 @@
 import type { Game, Room, Asset } from '../types';
 import { generateUUID } from '../utils/uuid';
 
-const API_BASE_URL = '/api';
+export const API_BASE_URL = '/game/api';
 
 const handleResponse = async (response: Response) => {
     if (!response.ok) {

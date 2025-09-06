@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { Action } from '../../types';
 import Icon from '../Icon';
+import { API_BASE_URL } from '../../services/presentationService';
 
 const formatTime = (seconds: number) => {
     if (isNaN(seconds) || seconds === Infinity) {
@@ -32,7 +33,7 @@ const ActionItem: React.FC<{
             return;
         }
 
-        const audio = new Audio(`/api/assets/${action.sound}`);
+        const audio = new Audio(`${API_BASE_URL}/assets/${action.sound}`);
         audioRef.current = audio;
 
         const setAudioData = () => setDuration(audio.duration);

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { Puzzle } from '../../types';
 import Icon from '../Icon';
+import { API_BASE_URL } from '../../services/presentationService';
 
 const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
@@ -45,7 +46,7 @@ const PuzzleItem: React.FC<{
             return;
         }
 
-        const audio = new Audio(`/api/assets/${puzzle.sound}`);
+        const audio = new Audio(`${API_BASE_URL}/assets/${puzzle.sound}`);
         audioRef.current = audio;
 
         const setAudioData = () => setDuration(audio.duration);

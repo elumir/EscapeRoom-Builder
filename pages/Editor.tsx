@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import * as gameService from '../services/presentationService';
+import { API_BASE_URL } from '../services/presentationService';
 import type { Game, Room as RoomType, InventoryObject, Puzzle, Action, Asset } from '../types';
 import Room from '../components/Slide';
 import Icon from '../components/Icon';
@@ -1071,7 +1072,7 @@ const Editor: React.FC = () => {
                         <div className="flex-grow overflow-y-auto pr-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                             {assetLibrary.filter(asset => asset.mime_type.startsWith('image/')).map(asset => (
                                 <div key={asset.id} className="aspect-square group relative rounded-md overflow-hidden" onClick={() => handleSelectAsset(asset.id)}>
-                                    <img src={`/api/assets/${asset.id}`} alt="Game asset" className="w-full h-full object-cover"/>
+                                    <img src={`${API_BASE_URL}/assets/${asset.id}`} alt="Game asset" className="w-full h-full object-cover"/>
                                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors flex items-center justify-center cursor-pointer">
                                         <p className="text-white font-bold opacity-0 group-hover:opacity-100 transition-opacity">Select</p>
                                     </div>
@@ -1101,7 +1102,7 @@ const Editor: React.FC = () => {
                             <div key={asset.id} className="group relative rounded-md bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 flex flex-col">
                                 <div className="aspect-square w-full relative overflow-hidden">
                                     {asset.mime_type.startsWith('image/') ? (
-                                        <img src={`/api/assets/${asset.id}`} alt={asset.name} className="w-full h-full object-cover"/>
+                                        <img src={`${API_BASE_URL}/assets/${asset.id}`} alt={asset.name} className="w-full h-full object-cover"/>
                                     ) : (
                                         <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 p-2">
                                             <Icon as="audio" className="w-12 h-12 mb-2"/>
@@ -1196,7 +1197,7 @@ const Editor: React.FC = () => {
                       <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Image (Optional)</label>
                       <div className="relative group w-32 h-32 bg-slate-100 dark:bg-slate-700/50 rounded-md border-2 border-dashed border-slate-300 dark:border-slate-600">
                         {modalObjectData.image && (
-                          <img src={`/api/assets/${modalObjectData.image}`} alt={modalObjectData.name} className="w-full h-full object-cover rounded-md" />
+                          <img src={`${API_BASE_URL}/assets/${modalObjectData.image}`} alt={modalObjectData.name} className="w-full h-full object-cover rounded-md" />
                         )}
                         <label className="absolute inset-0 cursor-pointer hover:bg-black/40 transition-colors rounded-md flex items-center justify-center">
                           <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleModalObjectFileUpload(e.target.files[0])} className="sr-only" />
@@ -1309,7 +1310,7 @@ const Editor: React.FC = () => {
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Image</label>
                             {modalPuzzleData.image ? (
                                 <div className="flex items-center gap-2">
-                                    <img src={`/api/assets/${modalPuzzleData.image}`} alt="Puzzle preview" className="w-24 h-24 object-cover rounded-md border border-slate-300 dark:border-slate-600" />
+                                    <img src={`${API_BASE_URL}/assets/${modalPuzzleData.image}`} alt="Puzzle preview" className="w-24 h-24 object-cover rounded-md border border-slate-300 dark:border-slate-600" />
                                     <button onClick={() => handleModalPuzzleFileChange('image', null)} className="text-red-500 hover:text-red-700 text-xs self-end p-1">Clear</button>
                                 </div>
                             ) : (
@@ -1803,7 +1804,7 @@ const Editor: React.FC = () => {
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Image (Full Screen Overlay)</label>
                             {modalActionData.image ? (
                                 <div className="flex items-center gap-2">
-                                    <img src={`/api/assets/${modalActionData.image}`} alt="Action preview" className="w-24 h-24 object-cover rounded-md border border-slate-300 dark:border-slate-600" />
+                                    <img src={`${API_BASE_URL}/assets/${modalActionData.image}`} alt="Action preview" className="w-24 h-24 object-cover rounded-md border border-slate-300 dark:border-slate-600" />
                                     <button onClick={() => handleModalActionFileChange('image', null)} className="text-red-500 hover:text-red-700 text-xs self-end p-1">Clear Image</button>
                                 </div>
                             ) : (
@@ -2354,7 +2355,7 @@ const Editor: React.FC = () => {
                             <h3 className="font-semibold text-sm mb-2 text-slate-600 dark:text-slate-400">Solved Image</h3>
                             <div className="relative group w-24 h-24 bg-slate-100 dark:bg-slate-700 rounded-md border border-slate-200 dark:border-slate-600">
                                 {currentRoom.solvedImage && (
-                                    <img src={`/api/assets/${currentRoom.solvedImage}`} alt="Solved state preview" className="w-full h-full object-cover rounded-md" />
+                                    <img src={`${API_BASE_URL}/assets/${currentRoom.solvedImage}`} alt="Solved state preview" className="w-full h-full object-cover rounded-md" />
                                 )}
                                 <label className="absolute inset-0 cursor-pointer hover:bg-black/40 transition-colors rounded-md flex items-center justify-center">
                                     <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'solvedImage')} className="sr-only" />

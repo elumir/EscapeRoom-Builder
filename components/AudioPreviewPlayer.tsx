@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Icon from './Icon';
+import { API_BASE_URL } from '../services/presentationService';
 
 const formatTime = (seconds: number) => {
     if (isNaN(seconds) || seconds === Infinity) {
@@ -18,7 +19,7 @@ const AudioPreviewPlayer: React.FC<{ assetId: string }> = ({ assetId }) => {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        const audio = new Audio(`/api/assets/${assetId}`);
+        const audio = new Audio(`${API_BASE_URL}/assets/${assetId}`);
         audioRef.current = audio;
         setIsLoading(true);
 
