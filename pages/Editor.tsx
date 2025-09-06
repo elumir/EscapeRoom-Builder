@@ -451,7 +451,7 @@ const Editor: React.FC = () => {
   };
 
   const addAction = () => {
-    const newAction: Action = { id: generateUUID(), name: '', description: '', image: null, sound: null, showImageOverlay: false, isComplete: false };
+    const newAction: Action = { id: generateUUID(), name: '', description: '', image: null, sound: null, showImageOverlay: false, isComplete: false, hideCompleteButton: false };
     const newActions = [...editingRoomActions, newAction];
     setEditingRoomActions(newActions);
     
@@ -1716,6 +1716,17 @@ const Editor: React.FC = () => {
                                 <input type="file" accept="audio/*" onChange={(e) => handleModalActionFileChange('sound', e.target.files?.[0] || null)} className="text-sm w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100" />
                             )}
                         </div>
+                    </div>
+                    <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
+                        <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                className="rounded border-slate-400 text-brand-600 focus:ring-brand-500"
+                                checked={modalActionData.hideCompleteButton || false}
+                                onChange={e => handleModalActionChange('hideCompleteButton', e.target.checked)}
+                            />
+                            Hide complete button and have a puzzle complete it automatically.
+                        </label>
                     </div>
                 </div>
                 <div className="flex-shrink-0 mt-6 pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-4">

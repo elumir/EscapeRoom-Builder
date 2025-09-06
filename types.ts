@@ -48,6 +48,7 @@ export interface Action {
   sound: string | null;
   showImageOverlay: boolean;
   isComplete: boolean;
+  hideCompleteButton?: boolean;
 }
 
 export interface Room {

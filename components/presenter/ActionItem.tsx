@@ -97,16 +97,18 @@ const ActionItem: React.FC<{
                         {isLocked && <Icon as="lock" className="w-2 h-2 text-slate-400"/>}
                         {action.name}
                      </h4>
-                     <label className={`flex items-center transform scale-75 origin-center ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
-                        <input
-                            type="checkbox"
-                            checked={isComplete}
-                            onChange={(e) => onToggleComplete(action.id, e.target.checked)}
-                            className="sr-only peer"
-                            disabled={isLocked}
-                        />
-                        <div className="relative w-9 h-5 bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-600"></div>
-                    </label>
+                     {!action.hideCompleteButton && (
+                        <label className={`flex items-center transform scale-75 origin-center ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                            <input
+                                type="checkbox"
+                                checked={isComplete}
+                                onChange={(e) => onToggleComplete(action.id, e.target.checked)}
+                                className="sr-only peer"
+                                disabled={isLocked}
+                            />
+                            <div className="relative w-9 h-5 bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-600"></div>
+                        </label>
+                     )}
                 </div>
                 {lockingPuzzleName && (
                     <p className="text-red-500/80 text-[8px] leading-tight truncate mt-0.5">Locked by: {lockingPuzzleName}</p>
@@ -155,17 +157,19 @@ const ActionItem: React.FC<{
                         </label>
                     )}
 
-                    <label className={`flex items-center gap-2 text-sm ${isComplete ? 'text-slate-400' : 'text-green-300'} ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
-                        <span>Complete</span>
-                        <input
-                            type="checkbox"
-                            checked={isComplete}
-                            onChange={(e) => onToggleComplete(action.id, e.target.checked)}
-                            className="sr-only peer"
-                            disabled={isLocked}
-                        />
-                        <div className="relative w-11 h-6 bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
-                    </label>
+                    {!action.hideCompleteButton && (
+                        <label className={`flex items-center gap-2 text-sm ${isComplete ? 'text-slate-400' : 'text-green-300'} ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                            <span>Complete</span>
+                            <input
+                                type="checkbox"
+                                checked={isComplete}
+                                onChange={(e) => onToggleComplete(action.id, e.target.checked)}
+                                className="sr-only peer"
+                                disabled={isLocked}
+                            />
+                            <div className="relative w-11 h-6 bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                        </label>
+                    )}
                 </div>
             </div>
             <div className={`pl-4 ${isComplete ? 'text-slate-500' : 'text-slate-300'} whitespace-pre-wrap`}>
