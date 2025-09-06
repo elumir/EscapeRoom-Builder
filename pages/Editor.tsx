@@ -1740,95 +1740,108 @@ const Editor: React.FC = () => {
                     const lockingPuzzles = objectLockMap.get(obj.id);
                     const isExpanded = expandedObjectIds.has(obj.id);
                     return (
-                      <div key={obj.id} className="grid grid-cols-12 gap-2 items-start">
-                        <div className="col-span-3 flex items-center gap-2 pt-1">
-                          {lockingPuzzles && (
-                              <div className="flex items-center gap-1 text-slate-400 dark:text-slate-500 flex-shrink-0" title={`Locked by: ${lockingPuzzles.join(', ')}`}>
-                                <Icon as="lock" className="w-4 h-4" />
-                                {lockingPuzzles.length > 1 && (
-                                  <span className="text-xs font-semibold bg-slate-200 dark:bg-slate-700 rounded-full h-4 w-4 flex items-center justify-center">
-                                    {lockingPuzzles.length}
-                                  </span>
-                                )}
-                              </div>
-                          )}
-                          <input 
-                            type="text" 
-                            value={obj.name}
-                            onChange={(e) => handleObjectChange(index, 'name', e.target.value)}
-                            placeholder="Object name"
-                            className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
-                          />
-                        </div>
-                        <div className="col-span-5">
-                            {!isExpanded ? (
-                                <input 
-                                  type="text"
-                                  value={obj.description}
-                                  onChange={(e) => handleObjectChange(index, 'description', e.target.value)}
-                                  placeholder="Description"
-                                  className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
-                                />
-                            ) : (
-                                <textarea
-                                  value={obj.description}
-                                  onChange={(e) => handleObjectChange(index, 'description', e.target.value)}
-                                  placeholder="Description"
-                                  rows={4}
-                                  className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm resize-y"
-                                />
-                            )}
-                        </div>
-                        <div className="col-span-2 pt-1">
-                            <div className="relative group w-16 h-16 bg-slate-100 dark:bg-slate-700 rounded-md border border-slate-200 dark:border-slate-600">
-                                {obj.image && (
-                                    <img src={`/api/assets/${obj.image}`} alt={obj.name} className="w-full h-full object-cover rounded-md" />
-                                )}
-                                <label className="absolute inset-0 cursor-pointer hover:bg-black/40 transition-colors rounded-md flex items-center justify-center">
-                                    <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleObjectFileUpload(e.target.files[0], index)} className="sr-only" />
-                                    {!obj.image && (
-                                        <div className="text-center text-slate-400 dark:text-slate-500 group-hover:opacity-0 transition-opacity">
-                                            <Icon as="gallery" className="w-6 h-6 mx-auto"/>
-                                        </div>
-                                    )}
-                                </label>
-                                {obj.image ? (
-                                    <div className="absolute inset-0 bg-black/60 p-1 flex justify-center items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-                                        <button
-                                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary({ type: 'object', index }); }}
-                                            className="pointer-events-auto p-1.5 bg-slate-200 text-slate-800 rounded-full hover:bg-slate-300 transition-colors"
-                                            title="Select from Library"
-                                        >
-                                            <Icon as="gallery" className="w-4 h-4" />
-                                        </button>
-                                        <button
-                                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleObjectChange(index, 'image', null); }}
-                                            className="pointer-events-auto p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
-                                            title="Clear Image"
-                                        >
-                                            <Icon as="trash" className="w-4 h-4" />
-                                        </button>
+                        <div key={obj.id} className="grid grid-cols-12 gap-2 items-start py-1">
+                            <div className="col-span-4 flex items-center gap-2 pt-1">
+                                {lockingPuzzles && (
+                                    <div className="flex items-center gap-1 text-slate-400 dark:text-slate-500 flex-shrink-0" title={`Locked by: ${lockingPuzzles.join(', ')}`}>
+                                        <Icon as="lock" className="w-4 h-4" />
+                                        {lockingPuzzles.length > 1 && (
+                                            <span className="text-xs font-semibold bg-slate-200 dark:bg-slate-700 rounded-full h-4 w-4 flex items-center justify-center">
+                                                {lockingPuzzles.length}
+                                            </span>
+                                        )}
                                     </div>
+                                )}
+                                <input
+                                    type="text"
+                                    value={obj.name}
+                                    onChange={(e) => handleObjectChange(index, 'name', e.target.value)}
+                                    placeholder="Object name"
+                                    className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
+                                />
+                            </div>
+
+                            <div className="col-span-7">
+                                {!isExpanded ? (
+                                    <input
+                                        type="text"
+                                        value={obj.description}
+                                        onChange={(e) => handleObjectChange(index, 'description', e.target.value)}
+                                        placeholder="Description"
+                                        className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
+                                    />
                                 ) : (
-                                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 p-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                                        <div className="text-white text-center text-[10px] leading-tight">Upload New</div>
-                                        <button
-                                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary({ type: 'object', index }); }}
-                                            className="pointer-events-auto text-xs px-2 py-0.5 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors"
-                                        >
-                                            Library
-                                        </button>
+                                    <div className="p-3 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-700 rounded-md space-y-3">
+                                        <textarea
+                                            value={obj.description}
+                                            onChange={(e) => handleObjectChange(index, 'description', e.target.value)}
+                                            placeholder="Description"
+                                            rows={3}
+                                            className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-sm resize-y"
+                                        />
+                                        <div>
+                                            <h4 className="font-semibold text-sm mb-1 text-slate-600 dark:text-slate-400">Object Image</h4>
+                                            <div className="relative group w-24 h-24 bg-slate-100 dark:bg-slate-700 rounded-md border border-slate-200 dark:border-slate-600">
+                                                {obj.image && (
+                                                    <img src={`/api/assets/${obj.image}`} alt={obj.name} className="w-full h-full object-cover rounded-md" />
+                                                )}
+                                                <label className="absolute inset-0 cursor-pointer hover:bg-black/40 transition-colors rounded-md flex items-center justify-center">
+                                                    <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleObjectFileUpload(e.target.files[0], index)} className="sr-only" />
+                                                    {!obj.image && (
+                                                        <>
+                                                            <div className="text-center text-slate-400 dark:text-slate-500 group-hover:opacity-0 transition-opacity">
+                                                                <Icon as="gallery" className="w-8 h-8 mx-auto" />
+                                                                <p className="text-xs mt-1">Add Image</p>
+                                                            </div>
+                                                            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                <div className="pointer-events-none text-white text-center">
+                                                                    <p className="font-bold text-xs">Upload New</p>
+                                                                </div>
+                                                                <button
+                                                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary({ type: 'object', index }); }}
+                                                                    className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors text-center"
+                                                                >
+                                                                    <Icon as="gallery" className="w-3.5 h-3.5" />
+                                                                    Library
+                                                                </button>
+                                                            </div>
+                                                        </>
+                                                    )}
+                                                </label>
+                                                {obj.image && (
+                                                    <div className="absolute inset-0 bg-black/60 p-1 flex flex-col justify-center items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                                                        <button
+                                                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary({ type: 'object', index }); }}
+                                                            className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors"
+                                                            title="Select an existing image"
+                                                        >
+                                                            <Icon as="gallery" className="w-3.5 h-3.5" />
+                                                            Change
+                                                        </button>
+                                                        <button
+                                                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleObjectChange(index, 'image', null); }}
+                                                            className="pointer-events-auto p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                                                            title="Clear Image"
+                                                        >
+                                                            <Icon as="trash" className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
                                     </div>
                                 )}
                             </div>
+                            
+                            <div className="col-span-1 flex flex-col items-center justify-start gap-2 pt-1">
+                                <button onClick={() => toggleObjectExpansion(obj.id)} className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 p-1 rounded-full">
+                                    <Icon as={isExpanded ? 'collapse' : 'expand'} className="w-4 h-4" />
+                                </button>
+                                <button onClick={() => deleteObject(index)} className="text-red-500 hover:text-red-700 dark:hover:text-red-400 p-1 rounded-full">
+                                  <Icon as="trash" className="w-4 h-4" />
+                                </button>
+                            </div>
                         </div>
-                        <button onClick={() => toggleObjectExpansion(obj.id)} className="col-span-1 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 p-1 rounded-full flex items-center justify-center mt-1">
-                            <Icon as={isExpanded ? 'collapse' : 'expand'} className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => deleteObject(index)} className="col-span-1 text-red-500 hover:text-red-700 dark:hover:text-red-400 p-1 rounded-full flex items-center justify-center mt-1">
-                          <Icon as="trash" className="w-4 h-4" />
-                        </button>
-                      </div>
                     );
                   }) : (
                     <p className="text-slate-500 dark:text-slate-400 text-sm">No objects for this room.</p>
