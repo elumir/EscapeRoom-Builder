@@ -25,9 +25,7 @@ const Room: React.FC<RoomProps> = ({ room, inventoryItems, visibleMapImages, cla
 
   const itemCount = inventoryItems.length;
   let inventoryListClass = 'w-full text-xs md:text-sm lg:text-base';
-  if (itemCount > 8) { // Threshold for 3 columns
-    inventoryListClass += ' columns-3 gap-x-2 md:gap-x-3';
-  } else if (itemCount > 4) { // Threshold for 2 columns
+  if (itemCount > 4) { // Use 2 columns for more than 4 items
     inventoryListClass += ' columns-2 gap-x-2 md:gap-x-3';
   }
 
