@@ -10,6 +10,7 @@ export const usePresenterState = (game: Game | null) => {
                 lockingPuzzlesByRoomSolveId: new Map<string, string>(),
                 lockingPuzzlesByActionId: new Map<string, string>(),
                 lockingPuzzlesByObjectId: new Map<string, string>(),
+                lockingPuzzlesByActNumber: new Map<number, string>(),
                 inventoryObjects: [],
                 discardedObjects: [],
             };
@@ -33,11 +34,12 @@ export const usePresenterState = (game: Game | null) => {
         const roomSolveLockInfo = new Map<string, LockInfo>();
         const actionLockInfo = new Map<string, LockInfo>();
         const objectLockInfo = new Map<string, LockInfo>();
+        const actLockInfo = new Map<number, LockInfo>();
 
         // Populate the info maps by iterating through all puzzles
         game.rooms.forEach(room => {
             room.puzzles.forEach(puzzle => {
-                const addLock = (map: Map<string, LockInfo>, itemId: string) => {
+                const addLock = (map: Map<string | number, LockInfo>, itemId: string | number) => {
                     if (!map.has(itemId)) {
                         map.set(itemId, { requiredPuzzleIds: new Set(), lockingPuzzleNames: new Set() });
                     }
@@ -51,6 +53,7 @@ export const usePresenterState = (game: Game | null) => {
                 (puzzle.lockedRoomSolveIds || []).forEach(id => addLock(roomSolveLockInfo, id));
                 (puzzle.lockedActionIds || []).forEach(id => addLock(actionLockInfo, id));
                 (puzzle.lockedObjectIds || []).forEach(id => addLock(objectLockInfo, id));
+                (puzzle.lockedActNumbers || []).forEach(actNum => addLock(actLockInfo, actNum));
             });
         });
 
@@ -61,10 +64,11 @@ export const usePresenterState = (game: Game | null) => {
         const lockingPuzzlesByRoomSolveId = new Map<string, string>();
         const lockingPuzzlesByActionId = new Map<string, string>();
         const lockingPuzzlesByObjectId = new Map<string, string>();
+        const lockingPuzzlesByActNumber = new Map<number, string>();
 
         const populateFinalLockMap = (
-            finalMap: Map<string, string>,
-            infoMap: Map<string, LockInfo>
+            finalMap: Map<string | number, string>,
+            infoMap: Map<string | number, LockInfo>
         ) => {
             infoMap.forEach((info, itemId) => {
                 // Check if any required puzzle for this item is unsolved.
@@ -83,6 +87,7 @@ export const usePresenterState = (game: Game | null) => {
         populateFinalLockMap(lockingPuzzlesByRoomSolveId, roomSolveLockInfo);
         populateFinalLockMap(lockingPuzzlesByActionId, actionLockInfo);
         populateFinalLockMap(lockingPuzzlesByObjectId, objectLockInfo);
+        populateFinalLockMap(lockingPuzzlesByActNumber, actLockInfo);
 
         // 4. Calculate inventory and discarded objects
         const allObjectsWithRoomName = game.rooms.flatMap(r => r.objects.map(o => ({ ...o, roomName: r.name })));
@@ -101,6 +106,7 @@ export const usePresenterState = (game: Game | null) => {
             lockingPuzzlesByRoomSolveId,
             lockingPuzzlesByActionId,
             lockingPuzzlesByObjectId,
+            lockingPuzzlesByActNumber,
             inventoryObjects,
             discardedObjects,
         };

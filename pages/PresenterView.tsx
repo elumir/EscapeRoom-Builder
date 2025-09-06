@@ -42,6 +42,7 @@ const PresenterView: React.FC = () => {
     lockingPuzzlesByRoomSolveId,
     lockingPuzzlesByActionId,
     lockingPuzzlesByObjectId,
+    lockingPuzzlesByActNumber,
     inventoryObjects,
     discardedObjects,
   } = usePresenterState(game);
@@ -533,8 +534,16 @@ const PresenterView: React.FC = () => {
   }, [currentRoomIndex, game, availableActs]);
 
   const currentActIndex = availableActs.indexOf(selectedAct);
-  const canGoToPrevAct = currentActIndex > 0;
-  const canGoToNextAct = currentActIndex < availableActs.length - 1;
+
+  const prevActNumber = availableActs[currentActIndex - 1];
+  const isPrevActLocked = lockingPuzzlesByActNumber.has(prevActNumber);
+  const prevActLockingPuzzleName = lockingPuzzlesByActNumber.get(prevActNumber);
+  const canGoToPrevAct = currentActIndex > 0 && !isPrevActLocked;
+  
+  const nextActNumber = availableActs[currentActIndex + 1];
+  const isNextActLocked = lockingPuzzlesByActNumber.has(nextActNumber);
+  const nextActLockingPuzzleName = lockingPuzzlesByActNumber.get(nextActNumber);
+  const canGoToNextAct = currentActIndex < availableActs.length - 1 && !isNextActLocked;
 
   const handlePrevAct = () => {
     if (canGoToPrevAct) {
@@ -809,6 +818,7 @@ const PresenterView: React.FC = () => {
                                     disabled={!canGoToPrevAct}
                                     className="p-2 rounded-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-600"
                                     aria-label="Previous Act"
+                                    title={!canGoToPrevAct && isPrevActLocked ? `Locked by: ${prevActLockingPuzzleName}` : "Previous Act"}
                                 >
                                     <Icon as="prev" className="w-5 h-5" />
                                 </button>
@@ -820,6 +830,7 @@ const PresenterView: React.FC = () => {
                                     disabled={!canGoToNextAct}
                                     className="p-2 rounded-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-600"
                                     aria-label="Next Act"
+                                    title={!canGoToNextAct && isNextActLocked ? `Locked by: ${nextActLockingPuzzleName}` : "Next Act"}
                                 >
                                     <Icon as="next" className="w-5 h-5" />
                                 </button>
