@@ -168,7 +168,7 @@ const PuzzleItem: React.FC<{
                         disabled={isLocked}
                         className="px-1.5 py-0.5 bg-green-700 text-white rounded text-[9px] hover:bg-green-600 disabled:bg-slate-600 flex-shrink-0"
                     >
-                        Complete
+                        {puzzle.answer ? 'Solve' : 'Complete'}
                     </button>
                 </div>
                 {lockingPuzzleName && (
@@ -221,7 +221,7 @@ const PuzzleItem: React.FC<{
                         disabled={isLocked}
                         className="px-3 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-sm font-semibold"
                     >
-                        Complete
+                        {puzzle.answer ? 'Solve' : 'Complete'}
                     </button>
                 </div>
             </div>
