@@ -1282,9 +1282,10 @@ const Editor: React.FC = () => {
                                                                     type="checkbox" 
                                                                     checked={modalPuzzleData.lockedObjectIds?.includes(obj.id)} 
                                                                     onChange={e => {
-                                                                        const newLockedIds = e.target.checked 
-                                                                            ? [...modalPuzzleData.lockedObjectIds, obj.id] 
-                                                                            : modalPuzzleData.lockedObjectIds.filter(id => id !== obj.id);
+                                                                        const currentIds = modalPuzzleData.lockedObjectIds || [];
+                                                                        const newLockedIds = e.target.checked
+                                                                            ? [...currentIds, obj.id]
+                                                                            : currentIds.filter(id => id !== obj.id);
                                                                         handleModalPuzzleChange('lockedObjectIds', newLockedIds);
                                                                         if (e.target.checked && newLockedIds.length > 0) {
                                                                             handleModalPuzzleChange('autoAddLockedObjects', true);
