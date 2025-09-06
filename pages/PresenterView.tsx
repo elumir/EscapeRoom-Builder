@@ -552,6 +552,38 @@ const PresenterView: React.FC = () => {
     
     setIsResetModalOpen(false);
   };
+  
+  const handleOpenGameWindow = () => {
+    if (!id) return;
+    const screenWidth = window.screen.availWidth;
+    const screenHeight = window.screen.availHeight;
+    const aspectRatio = 16 / 9;
+
+    let width, height;
+
+    if ((screenWidth / screenHeight) > aspectRatio) {
+      // Screen is wider than 16:9, so height is the limiting factor.
+      height = screenHeight;
+      width = height * aspectRatio;
+    } else {
+      // Screen is taller or same as 16:9, so width is the limiting factor.
+      width = screenWidth;
+      height = width / aspectRatio;
+    }
+
+    width = Math.floor(width);
+    height = Math.floor(height);
+
+    const left = Math.floor((window.screen.availWidth - width) / 2);
+    const top = Math.floor((window.screen.availHeight - height) / 2);
+
+    const features = `width=${width},height=${height},left=${left},top=${top},location=no,menubar=no,toolbar=no,status=no`;
+    
+    const gameUrl = `/game/present/${id}`;
+    
+    const win = window.open(gameUrl, 'Game', features);
+    setPresentationWindow(win);
+  };
 
   const roomsByAct = useMemo(() => {
     if (!game) return {};
@@ -773,44 +805,13 @@ const PresenterView: React.FC = () => {
                 Window Open
             </span>
             ) : (
-            <a href={`/game/present/${id}`}
-                onClick={(e) => {
-                    e.preventDefault();
-                    
-                    const screenWidth = window.screen.availWidth;
-                    const screenHeight = window.screen.availHeight;
-                    const aspectRatio = 16 / 9;
-
-                    let width, height;
-
-                    if ((screenWidth / screenHeight) > aspectRatio) {
-                        // Screen is wider than 16:9 (e.g., ultrawide), so height is the limiting factor.
-                        height = screenHeight;
-                        width = height * aspectRatio;
-                    } else {
-                        // Screen is taller or same as 16:9, so width is the limiting factor.
-                        width = screenWidth;
-                        height = width / aspectRatio;
-                    }
-                    
-                    width = Math.floor(width);
-                    height = Math.floor(height);
-
-                    const left = Math.floor((window.screen.availWidth - width) / 2);
-                    const top = Math.floor((window.screen.availHeight - height) / 2);
-
-                    const features = `width=${width},height=${height},left=${left},top=${top},location=no,menubar=no,toolbar=no,status=no`;
-                    
-                    const win = window.open(e.currentTarget.href, 'Game', features);
-                    setPresentationWindow(win);
-                }}
-                target="_blank"
-                rel="noopener noreferrer"
+            <button
+                onClick={handleOpenGameWindow}
                 className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors duration-300 shadow"
             >
                 <Icon as="present" className="w-5 h-5" />
                 Open Game Window
-            </a>
+            </button>
             )}
         </div>
       </header>
