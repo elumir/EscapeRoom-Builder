@@ -204,10 +204,6 @@ const Editor: React.FC = () => {
   useDebouncedUpdater(editingRoomSolvedNotes, 'solvedNotes');
   useDebouncedUpdater(editingRoomAct, 'act');
   useDebouncedUpdater(editingRoomObjectRemoveText, 'objectRemoveText');
-  // Debouncers for lists are no longer needed for modal saves/deletes, but harmless to keep for other potential updates
-  useDebouncedUpdater(editingRoomObjects, 'objects');
-  useDebouncedUpdater(editingRoomPuzzles, 'puzzles');
-  useDebouncedUpdater(editingRoomActions, 'actions');
   
   useEffect(() => {
     setModalPuzzleData(puzzleModalState ? puzzleModalState.puzzle : null);
