@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import * as gameService from '../services/presentationService';
@@ -1282,14 +1280,24 @@ const Editor: React.FC = () => {
                                                                     type="checkbox" 
                                                                     checked={modalPuzzleData.lockedObjectIds?.includes(obj.id)} 
                                                                     onChange={e => {
-                                                                        const currentIds = modalPuzzleData.lockedObjectIds || [];
-                                                                        const newLockedIds = e.target.checked
-                                                                            ? [...currentIds, obj.id]
-                                                                            : currentIds.filter(id => id !== obj.id);
-                                                                        handleModalPuzzleChange('lockedObjectIds', newLockedIds);
-                                                                        if (e.target.checked && newLockedIds.length > 0) {
-                                                                            handleModalPuzzleChange('autoAddLockedObjects', true);
-                                                                        }
+                                                                        setModalPuzzleData(prevData => {
+                                                                            if (!prevData) return null;
+                                                                            const currentIds = prevData.lockedObjectIds || [];
+                                                                            const newLockedIds = e.target.checked
+                                                                                ? [...currentIds, obj.id]
+                                                                                : currentIds.filter(id => id !== obj.id);
+                                                                            
+                                                                            const newState: Puzzle = {
+                                                                                ...prevData,
+                                                                                lockedObjectIds: newLockedIds,
+                                                                            };
+                                                                    
+                                                                            if (e.target.checked && newLockedIds.length > 0) {
+                                                                                newState.autoAddLockedObjects = true;
+                                                                            }
+                                                                    
+                                                                            return newState;
+                                                                        });
                                                                     }} 
                                                                 />
                                                                 {obj.name}
@@ -1374,7 +1382,7 @@ const Editor: React.FC = () => {
                                                     <div key={room.id} className="p-2">
                                                         <h5 className="text-xs font-bold text-slate-500 dark:text-slate-400 sticky top-0 bg-white dark:bg-slate-800 py-1 px-2 -mx-2">{room.name}</h5>
                                                         {filteredPuzzles.map(p => (
-                                                          <label key={p.id} className="flex items-center gap-2 text-sm p-1 cursor-pointer"><input type="checkbox" checked={modalPuzzleData.lockedPuzzleIds?.includes(p.id)} onChange={e => handleModalPuzzleChange('lockedPuzzleIds', e.target.checked ? [...modalPuzzleData.lockedPuzzleIds, p.id] : modalPuzzleData.lockedPuzzleIds.filter(id => id !== p.id))} />{p.name}</label>
+                                                          <label key={p.id} className="flex items-center gap-2 text-sm p-1 cursor-pointer"><input type="checkbox" checked={modalPuzzleData.lockedPuzzleIds?.includes(p.id)} onChange={e => { const ids = modalPuzzleData.lockedPuzzleIds || []; handleModalPuzzleChange('lockedPuzzleIds', e.target.checked ? [...ids, p.id] : ids.filter(id => id !== p.id))}} />{p.name}</label>
                                                         ))}
                                                     </div>
                                                 )
@@ -1404,7 +1412,7 @@ const Editor: React.FC = () => {
                                             </div>
                                             <div className="overflow-y-auto p-2">
                                               {game.rooms.filter(r => r.id !== currentRoom.id && r.name.toLowerCase().includes(modalPuzzleRoomsSearch.toLowerCase())).map(room => (
-                                                <label key={room.id} className="flex items-center gap-2 text-sm p-1 cursor-pointer"><input type="checkbox" checked={modalPuzzleData.lockedRoomIds?.includes(room.id)} onChange={e => handleModalPuzzleChange('lockedRoomIds', e.target.checked ? [...modalPuzzleData.lockedRoomIds, room.id] : modalPuzzleData.lockedRoomIds.filter(id => id !== room.id))} />{room.name}</label>
+                                                <label key={room.id} className="flex items-center gap-2 text-sm p-1 cursor-pointer"><input type="checkbox" checked={modalPuzzleData.lockedRoomIds?.includes(room.id)} onChange={e => { const ids = modalPuzzleData.lockedRoomIds || []; handleModalPuzzleChange('lockedRoomIds', e.target.checked ? [...ids, room.id] : ids.filter(id => id !== room.id))}} />{room.name}</label>
                                               ))}
                                             </div>
                                         </div>
@@ -1449,7 +1457,7 @@ const Editor: React.FC = () => {
                                                     <input 
                                                       type="checkbox" 
                                                       checked={modalPuzzleData.lockedRoomSolveIds?.includes(room.id)} 
-                                                      onChange={e => handleModalPuzzleChange('lockedRoomSolveIds', e.target.checked ? [...modalPuzzleData.lockedRoomSolveIds, room.id] : modalPuzzleData.lockedRoomSolveIds.filter(id => id !== room.id))} 
+                                                      onChange={e => { const ids = modalPuzzleData.lockedRoomSolveIds || []; handleModalPuzzleChange('lockedRoomSolveIds', e.target.checked ? [...ids, room.id] : ids.filter(id => id !== room.id))}}
                                                     />
                                                     {room.name}
                                                   </label>
