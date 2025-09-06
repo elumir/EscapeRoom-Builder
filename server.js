@@ -294,19 +294,20 @@ app.delete('/api/presentations/:presentationId/assets/:assetId', async (req, res
 
 const buildPath = path.join(__dirname, 'build');
 
-// Serve static files from the 'build' directory, but only for requests to '/game'
-// This aligns with the `base: '/game/'` config in Vite.
-// For example, a request to /game/assets/index-123.js will correctly serve /build/assets/index-123.js
-app.use('/game', express.static(buildPath));
+// Serve static files from the 'build' directory.
+// When Apache proxies a request like /game/assets/index.js to the Node server,
+// it becomes /assets/index.js. express.static at the root will correctly find
+// and serve the file from /build/assets/index.js.
+app.use(express.static(buildPath));
 
-// Redirect the root URL to the application's base path for a seamless user experience.
-app.get('/', (req, res) => {
-  res.redirect('/game');
-});
-
-// For any route under /game that is not a static file, serve the main index.html.
-// This is the fallback for client-side routing (e.g., when a user refreshes on /game/editor/xyz).
-app.get('/game/*', (req, res) => {
+// For any other GET request that isn't an API route or a static file,
+// serve the main index.html file. This is the fallback for client-side routing,
+// allowing React Router to handle URLs like /editor/123.
+app.get('*', (req, res) => {
+  // A simple check to avoid sending index.html for mistyped API calls.
+  if (req.originalUrl.startsWith('/api/')) {
+    return res.status(404).json({ error: 'API endpoint not found.' });
+  }
   res.sendFile(path.join(buildPath, 'index.html'));
 });
 
