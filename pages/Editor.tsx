@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import * as gameService from '../services/presentationService';
@@ -58,6 +59,7 @@ const Editor: React.FC = () => {
   const [actionModalState, setActionModalState] = useState<{ action: Action; index: number } | null>(null);
   const [modalActionData, setModalActionData] = useState<Action | null>(null);
   const [collapsedActs, setCollapsedActs] = useState<Record<number, boolean>>({});
+  const [expandedObjectIds, setExpandedObjectIds] = useState<Set<string>>(new Set());
 
 
   const objectRemoveDropdownRef = useRef<HTMLDivElement>(null);
@@ -400,6 +402,18 @@ const Editor: React.FC = () => {
   const deleteObject = (index: number) => {
     setEditingRoomObjects(editingRoomObjects.filter((_, i) => i !== index));
   }
+  
+  const toggleObjectExpansion = (objectId: string) => {
+    setExpandedObjectIds(prev => {
+        const newSet = new Set(prev);
+        if (newSet.has(objectId)) {
+            newSet.delete(objectId);
+        } else {
+            newSet.add(objectId);
+        }
+        return newSet;
+    });
+  };
 
   const addPuzzle = () => {
     const newPuzzle: Puzzle = { id: generateUUID(), name: 'New Puzzle', answer: '', isSolved: false, unsolvedText: '', solvedText: '', image: null, sound: null, showImageOverlay: false, lockedObjectIds: [], discardObjectIds: [], lockedRoomIds: [], lockedPuzzleIds: [], lockedRoomSolveIds: [], lockedActionIds: [], completedActionIds: [], autoAddLockedObjects: false };
@@ -1688,9 +1702,10 @@ const Editor: React.FC = () => {
                 <div className="space-y-3 max-h-48 overflow-y-auto pr-2" ref={objectsContainerRef}>
                   {editingRoomObjects.length > 0 ? editingRoomObjects.map((obj, index) => {
                     const lockingPuzzles = objectLockMap.get(obj.id);
+                    const isExpanded = expandedObjectIds.has(obj.id);
                     return (
-                      <div key={obj.id} className="grid grid-cols-12 gap-2 items-center">
-                        <div className="col-span-4 flex items-center gap-2">
+                      <div key={obj.id} className="grid grid-cols-12 gap-2 items-start">
+                        <div className="col-span-4 flex items-center gap-2 pt-1">
                           {lockingPuzzles && (
                               <div className="flex items-center gap-1 text-slate-400 dark:text-slate-500 flex-shrink-0" title={`Locked by: ${lockingPuzzles.join(', ')}`}>
                                 <Icon as="lock" className="w-4 h-4" />
@@ -1709,14 +1724,29 @@ const Editor: React.FC = () => {
                             className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
                           />
                         </div>
-                        <input 
-                          type="text"
-                          value={obj.description}
-                          onChange={(e) => handleObjectChange(index, 'description', e.target.value)}
-                          placeholder="Description"
-                          className="col-span-7 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
-                        />
-                        <button onClick={() => deleteObject(index)} className="col-span-1 text-red-500 hover:text-red-700 dark:hover:text-red-400 p-1 rounded-full flex items-center justify-center">
+                        <div className="col-span-6">
+                            {!isExpanded ? (
+                                <input 
+                                  type="text"
+                                  value={obj.description}
+                                  onChange={(e) => handleObjectChange(index, 'description', e.target.value)}
+                                  placeholder="Description"
+                                  className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
+                                />
+                            ) : (
+                                <textarea
+                                  value={obj.description}
+                                  onChange={(e) => handleObjectChange(index, 'description', e.target.value)}
+                                  placeholder="Description"
+                                  rows={4}
+                                  className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm resize-y"
+                                />
+                            )}
+                        </div>
+                        <button onClick={() => toggleObjectExpansion(obj.id)} className="col-span-1 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 p-1 rounded-full flex items-center justify-center mt-1">
+                            <Icon as={isExpanded ? 'collapse' : 'expand'} className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => deleteObject(index)} className="col-span-1 text-red-500 hover:text-red-700 dark:hover:text-red-400 p-1 rounded-full flex items-center justify-center mt-1">
                           <Icon as="trash" className="w-4 h-4" />
                         </button>
                       </div>
