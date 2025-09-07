@@ -85,6 +85,9 @@ const PresenterView: React.FC = () => {
   const [isFadingOut, setIsFadingOut] = useState(false);
   const fadeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Soundboard State
+  const [soundboardClips, setSoundboardClips] = useState<Map<string, {audio: HTMLAudioElement, isPlaying: boolean}>>(new Map());
+
   const soundtrackConfigKey = useMemo(() => {
     if (!game?.soundtrack) return null;
     const trackIds = game.soundtrack.map(t => t.id).join(',');
@@ -193,6 +196,47 @@ const PresenterView: React.FC = () => {
         currentAudio.removeEventListener('timeupdate', handleTimeUpdate);
     };
   }, [soundtrack, soundtrack?.currentTrackIndex]);
+
+  // Effect for soundboard clips
+  useEffect(() => {
+    const newClipsMap = new Map<string, { audio: HTMLAudioElement; isPlaying: boolean }>();
+    const soundboardData = game?.soundboard || [];
+
+    soundboardData.forEach(clip => {
+        const audio = new Audio(`${API_BASE_URL}/assets/${clip.id}`);
+        audio.preload = 'auto';
+
+        const handleEnded = () => {
+            setSoundboardClips(prevClips => {
+                const newMap = new Map(prevClips);
+                const currentClip = newMap.get(clip.id);
+                if (currentClip) {
+                    newMap.set(clip.id, { ...currentClip, isPlaying: false });
+                }
+                return newMap;
+            });
+        };
+
+        audio.addEventListener('ended', handleEnded);
+        // Store the listener with the audio element to remove it in cleanup
+        (audio as any)._handleEnded = handleEnded; 
+        
+        newClipsMap.set(clip.id, { audio, isPlaying: false });
+    });
+
+    setSoundboardClips(newClipsMap);
+
+    return () => {
+        soundboardClips.forEach(({ audio }) => {
+            audio.pause();
+            const handleEnded = (audio as any)._handleEnded;
+            if (handleEnded) {
+                audio.removeEventListener('ended', handleEnded);
+            }
+            audio.src = ''; // Release resource
+        });
+    };
+  }, [game?.soundboard]);
 
 
   const handleAddCustomItem = () => {
@@ -912,6 +956,27 @@ const PresenterView: React.FC = () => {
     }, interval);
   };
 
+  const handlePlaySoundboardClip = (clipId: string) => {
+    setSoundboardClips(prevClips => {
+        const newMap = new Map(prevClips);
+        const clip = newMap.get(clipId);
+        
+        if (!clip) return prevClips;
+
+        if (clip.isPlaying) {
+            clip.audio.pause();
+            clip.audio.currentTime = 0;
+            newMap.set(clipId, { ...clip, isPlaying: false });
+        } else {
+            clip.audio.currentTime = 0;
+            clip.audio.play().catch(e => console.error("Soundboard clip play failed:", e));
+            newMap.set(clipId, { ...clip, isPlaying: true });
+        }
+
+        return newMap;
+    });
+  };
+
   if (status === 'loading') {
     return <div className="h-screen bg-slate-800 text-white flex items-center justify-center">Loading Presenter View...</div>;
   }
@@ -1264,54 +1329,78 @@ const PresenterView: React.FC = () => {
             <div className="flex-grow overflow-y-auto bg-slate-700/50 p-4 rounded-lg">
                 <MarkdownRenderer content={currentRoom.isSolved ? currentRoom.solvedNotes : currentRoom.notes} />
             </div>
-
-            {soundtrack && (
-                <div className="flex-shrink-0 bg-slate-700/50 p-3 rounded-lg space-y-3">
-                    <h3 className="text-md font-semibold text-slate-300">Soundtrack</h3>
-                    <div className="text-center">
-                        <p className="text-sm font-medium text-slate-200 truncate">{game.soundtrack?.[soundtrack.currentTrackIndex]?.name || 'Unnamed Track'}</p>
+            
+            <div className="flex-shrink-0 flex flex-col gap-4">
+                {soundtrack && (
+                    <div className="bg-slate-700/50 p-3 rounded-lg space-y-3">
+                        <h3 className="text-md font-semibold text-slate-300">Soundtrack</h3>
+                        <div className="text-center">
+                            <p className="text-sm font-medium text-slate-200 truncate">{game.soundtrack?.[soundtrack.currentTrackIndex]?.name || 'Unnamed Track'}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs text-slate-400 font-mono">{formatTime(progress)}</span>
+                            <input
+                                type="range"
+                                min="0"
+                                max={duration || 0}
+                                value={progress}
+                                onChange={handleSoundtrackSeek}
+                                className="w-full h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-brand-500 [&::-webkit-slider-thumb]:rounded-full"
+                            />
+                            <span className="text-xs text-slate-400 font-mono">{formatTime(duration)}</span>
+                        </div>
+                        <div className="flex items-center justify-center gap-4">
+                            <button onClick={handleSoundtrackPrev} className="p-2 text-slate-300 hover:text-white rounded-full hover:bg-slate-600"><Icon as="prev" className="w-5 h-5"/></button>
+                            <button onClick={handleSoundtrackRewind} className="p-2 text-slate-300 hover:text-white rounded-full hover:bg-slate-600"><Icon as="rewind" className="w-5 h-5"/></button>
+                            <button onClick={handleSoundtrackPlayPause} className="p-3 text-white bg-brand-600 rounded-full hover:bg-brand-700">
+                                {soundtrack.isPlaying ? (
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path d="M5.5 3.5A1.5 1.5 0 017 5v10a1.5 1.5 0 01-3 0V5a1.5 1.5 0 011.5-1.5zM12.5 3.5A1.5 1.5 0 0114 5v10a1.5 1.5 0 01-3 0V5a1.5 1.5 0 011.5-1.5z" /></svg>
+                                ) : (
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" /></svg>
+                                )}
+                            </button>
+                            <button onClick={handleSoundtrackNext} className="p-2 text-slate-300 hover:text-white rounded-full hover:bg-slate-600"><Icon as="next" className="w-5 h-5"/></button>
+                            <button onClick={handleSoundtrackFadeOut} disabled={isFadingOut || !soundtrack?.isPlaying} className="p-2 text-slate-300 hover:text-white rounded-full hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed" title="Fade Out & Stop">
+                                <Icon as="stop" className="w-5 h-5"/>
+                            </button>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Icon as={soundtrack.mode === 'shuffle' ? 'shuffle' : 'audio'} className="w-4 h-4 text-slate-400 flex-shrink-0"/>
+                            <input
+                                type="range"
+                                min="0"
+                                max="1"
+                                step="0.05"
+                                value={soundtrack.volume}
+                                onChange={e => handleSoundtrackVolumeChange(parseFloat(e.target.value))}
+                                className="w-full h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-brand-500 [&::-webkit-slider-thumb]:rounded-full"
+                            />
+                        </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <span className="text-xs text-slate-400 font-mono">{formatTime(progress)}</span>
-                        <input
-                            type="range"
-                            min="0"
-                            max={duration || 0}
-                            value={progress}
-                            onChange={handleSoundtrackSeek}
-                            className="w-full h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-brand-500 [&::-webkit-slider-thumb]:rounded-full"
-                        />
-                        <span className="text-xs text-slate-400 font-mono">{formatTime(duration)}</span>
+                )}
+                {(game.soundboard && game.soundboard.length > 0) && (
+                    <div className="bg-slate-700/50 p-3 rounded-lg">
+                        <h3 className="text-md font-semibold text-slate-300 mb-3">Sound Board</h3>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                            {game.soundboard.map(clip => {
+                                const isPlaying = soundboardClips.get(clip.id)?.isPlaying ?? false;
+                                return (
+                                    <button
+                                        key={clip.id}
+                                        onClick={() => handlePlaySoundboardClip(clip.id)}
+                                        className={`flex items-center justify-center gap-2 p-2 rounded-lg text-xs font-semibold transition-colors text-white ${
+                                            isPlaying ? 'bg-rose-600 hover:bg-rose-700' : 'bg-slate-600 hover:bg-slate-500'
+                                        }`}
+                                    >
+                                        <Icon as={isPlaying ? 'stop' : 'play'} className="w-4 h-4 flex-shrink-0" />
+                                        <span className="truncate">{clip.name}</span>
+                                    </button>
+                                )
+                            })}
+                        </div>
                     </div>
-                    <div className="flex items-center justify-center gap-4">
-                        <button onClick={handleSoundtrackPrev} className="p-2 text-slate-300 hover:text-white rounded-full hover:bg-slate-600"><Icon as="prev" className="w-5 h-5"/></button>
-                        <button onClick={handleSoundtrackRewind} className="p-2 text-slate-300 hover:text-white rounded-full hover:bg-slate-600"><Icon as="rewind" className="w-5 h-5"/></button>
-                        <button onClick={handleSoundtrackPlayPause} className="p-3 text-white bg-brand-600 rounded-full hover:bg-brand-700">
-                            {soundtrack.isPlaying ? (
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path d="M5.5 3.5A1.5 1.5 0 017 5v10a1.5 1.5 0 01-3 0V5a1.5 1.5 0 011.5-1.5zM12.5 3.5A1.5 1.5 0 0114 5v10a1.5 1.5 0 01-3 0V5a1.5 1.5 0 011.5-1.5z" /></svg>
-                            ) : (
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" /></svg>
-                            )}
-                        </button>
-                        <button onClick={handleSoundtrackNext} className="p-2 text-slate-300 hover:text-white rounded-full hover:bg-slate-600"><Icon as="next" className="w-5 h-5"/></button>
-                        <button onClick={handleSoundtrackFadeOut} disabled={isFadingOut || !soundtrack?.isPlaying} className="p-2 text-slate-300 hover:text-white rounded-full hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed" title="Fade Out & Stop">
-                            <Icon as="stop" className="w-5 h-5"/>
-                        </button>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Icon as={soundtrack.mode === 'shuffle' ? 'shuffle' : 'audio'} className="w-4 h-4 text-slate-400 flex-shrink-0"/>
-                        <input
-                            type="range"
-                            min="0"
-                            max="1"
-                            step="0.05"
-                            value={soundtrack.volume}
-                            onChange={e => handleSoundtrackVolumeChange(parseFloat(e.target.value))}
-                            className="w-full h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-brand-500 [&::-webkit-slider-thumb]:rounded-full"
-                        />
-                    </div>
-                </div>
-            )}
+                )}
+            </div>
         </div>
 
         {/* Column 3: INTERACTIVE ELEMENTS */}

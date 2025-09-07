@@ -14,6 +14,11 @@ export interface SoundtrackTrack {
   name: string;
 }
 
+export interface SoundboardClip {
+  id: string;
+  name: string;
+}
+
 export interface InventoryObject {
   id: string;
   name: string;
@@ -91,4 +96,5 @@ export interface Game {
   soundtrack?: SoundtrackTrack[];
   soundtrackMode?: 'sequential' | 'shuffle';
   soundtrackVolume?: number;
+  soundboard?: SoundboardClip[];
 }

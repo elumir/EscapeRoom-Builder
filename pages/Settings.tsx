@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import * as gameService from '../services/presentationService';
-import type { Game, Asset, SoundtrackTrack } from '../types';
+import type { Game, Asset, SoundtrackTrack, SoundboardClip } from '../types';
 import Icon from '../components/Icon';
 import AudioPreviewPlayer from '../components/AudioPreviewPlayer';
 
 type Status = 'loading' | 'success' | 'error';
-type Section = 'general' | 'sharing' | 'appearance' | 'soundtrack' | 'danger';
+type Section = 'general' | 'sharing' | 'appearance' | 'soundtrack' | 'soundboard' | 'danger';
 
 const Settings: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -17,7 +17,10 @@ const Settings: React.FC = () => {
     const [activeSection, setActiveSection] = useState<Section>('general');
     const [copySuccess, setCopySuccess] = useState(false);
     const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
+    const [assetModalTarget, setAssetModalTarget] = useState<'soundtrack' | 'soundboard' | null>(null);
     const [editingTrackName, setEditingTrackName] = useState<{ id: string; name: string } | null>(null);
+    const [editingClipName, setEditingClipName] = useState<{ id: string; name: string } | null>(null);
+
 
     useEffect(() => {
         if (id) {
@@ -67,42 +70,47 @@ const Settings: React.FC = () => {
             setTimeout(() => setCopySuccess(false), 2000);
         });
     };
+    
+    const openAssetModal = (target: 'soundtrack' | 'soundboard') => {
+        setAssetModalTarget(target);
+        setIsAssetModalOpen(true);
+    };
 
-    const handleSelectAssetForSoundtrack = (assetId: string) => {
-        if (!game) return;
+    const handleSelectAsset = (assetId: string) => {
+        if (!game || !assetModalTarget) return;
+
         const asset = assetLibrary.find(a => a.id === assetId);
-        if (asset) {
+        if (!asset) return;
+
+        if (assetModalTarget === 'soundtrack') {
             const newTrack: SoundtrackTrack = { id: asset.id, name: asset.name };
             const newSoundtrack = [...(game.soundtrack || []), newTrack];
             updateGame({ ...game, soundtrack: newSoundtrack });
+        } else if (assetModalTarget === 'soundboard') {
+            const newClip: SoundboardClip = { id: asset.id, name: asset.name };
+            const newSoundboard = [...(game.soundboard || []), newClip];
+            updateGame({ ...game, soundboard: newSoundboard });
         }
+        
         setIsAssetModalOpen(false);
     };
 
-    const handleSoundtrackUpload = async (file: File) => {
-        if (!game) return;
+    const handleAudioUpload = async (file: File) => {
+        if (!game || !assetModalTarget) return;
         try {
-            // 1. Upload the asset
             const { assetId } = await gameService.uploadAsset(game.id, file);
-            
-            // 2. Refresh the asset library to include the new asset
             const updatedAssets = await gameService.getAssetsForGame(game.id);
             setAssetLibrary(updatedAssets);
             
-            // 3. Find the newly uploaded asset
             const newAsset = updatedAssets.find(a => a.id === assetId);
             if (newAsset) {
-                // 4. Add it to the soundtrack
-                const newTrack: SoundtrackTrack = { id: newAsset.id, name: newAsset.name };
-                const newSoundtrack = [...(game.soundtrack || []), newTrack];
-                handleGamePropertyChange('soundtrack', newSoundtrack);
+                handleSelectAsset(newAsset.id);
             }
             
-            // 5. Close the modal
             setIsAssetModalOpen(false);
     
         } catch (error) {
-            console.error("Soundtrack upload failed:", error);
+            console.error("Audio upload failed:", error);
             alert("Failed to upload audio file. Please try again.");
         }
     };
@@ -111,6 +119,12 @@ const Settings: React.FC = () => {
         if (!game) return;
         const newSoundtrack = (game.soundtrack || []).filter(t => t.id !== trackId);
         updateGame({ ...game, soundtrack: newSoundtrack });
+    };
+    
+    const handleRemoveSoundboardClip = (clipId: string) => {
+        if (!game) return;
+        const newSoundboard = (game.soundboard || []).filter(c => c.id !== clipId);
+        updateGame({ ...game, soundboard: newSoundboard });
     };
 
     const handleSaveTrackName = () => {
@@ -130,6 +144,21 @@ const Settings: React.FC = () => {
         setEditingTrackName(null);
     };
 
+    const handleSaveClipName = () => {
+        if (!game || !editingClipName) return;
+        const originalClip = (game.soundboard || []).find(c => c.id === editingClipName.id);
+        if (!originalClip || !editingClipName.name.trim() || editingClipName.name === originalClip.name) {
+            setEditingClipName(null);
+            return;
+        }
+        const newName = editingClipName.name.trim();
+        const newSoundboard = (game.soundboard || []).map(clip =>
+            clip.id === editingClipName.id ? { ...clip, name: newName } : clip
+        );
+        updateGame({ ...game, soundboard: newSoundboard });
+        setEditingClipName(null);
+    };
+
     const handleDeleteGame = async () => {
         if (!game) return;
         if (window.confirm('Are you absolutely sure you want to delete this game? This action is permanent and cannot be undone.')) {
@@ -147,6 +176,7 @@ const Settings: React.FC = () => {
         { id: 'sharing', name: 'Sharing', icon: 'share' },
         { id: 'appearance', name: 'Appearance', icon: 'swatch' },
         { id: 'soundtrack', name: 'Soundtrack', icon: 'audio' },
+        { id: 'soundboard', name: 'Sound Board', icon: 'play' },
         { id: 'danger', name: 'Danger Zone', icon: 'trash' },
     ];
 
@@ -176,7 +206,7 @@ const Settings: React.FC = () => {
                                         accept="audio/*" 
                                         onChange={(e) => {
                                             if (e.target.files && e.target.files[0]) {
-                                                handleSoundtrackUpload(e.target.files[0]);
+                                                handleAudioUpload(e.target.files[0]);
                                             }
                                         }}
                                         className="sr-only"
@@ -193,7 +223,7 @@ const Settings: React.FC = () => {
                                 return (
                                     <div className="flex-grow overflow-y-auto pr-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                                         {filteredAssets.map(asset => (
-                                            <div key={asset.id} className="aspect-square group relative rounded-md overflow-hidden bg-slate-100 dark:bg-slate-700" onClick={() => handleSelectAssetForSoundtrack(asset.id)}>
+                                            <div key={asset.id} className="aspect-square group relative rounded-md overflow-hidden bg-slate-100 dark:bg-slate-700" onClick={() => handleSelectAsset(asset.id)}>
                                                 <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 p-2 text-center">
                                                     <Icon as="audio" className="w-12 h-12 mb-2"/>
                                                     <p className="text-xs font-semibold">{asset.name}</p>
@@ -429,7 +459,7 @@ const Settings: React.FC = () => {
                                             <p className="text-sm text-slate-500 dark:text-slate-400 italic text-center py-4">No tracks added to the soundtrack.</p>
                                         )}
                                     </div>
-                                    <button onClick={() => setIsAssetModalOpen(true)} className="w-full text-sm flex items-center justify-center gap-2 px-3 py-2 bg-brand-500/10 text-brand-700 dark:text-brand-300 dark:bg-brand-500/20 rounded-md hover:bg-brand-500/20 transition-colors">
+                                    <button onClick={() => openAssetModal('soundtrack')} className="w-full text-sm flex items-center justify-center gap-2 px-3 py-2 bg-brand-500/10 text-brand-700 dark:text-brand-300 dark:bg-brand-500/20 rounded-md hover:bg-brand-500/20 transition-colors">
                                         <Icon as="plus" className="w-4 h-4"/>
                                         Add Track from Library
                                     </button>
@@ -455,6 +485,60 @@ const Settings: React.FC = () => {
                                              />
                                         </div>
                                     </div>
+                                </div>
+                            </div>
+                        )}
+                        {activeSection === 'soundboard' && (
+                             <div className="space-y-6">
+                                <h2 className="text-2xl font-bold border-b border-slate-200 dark:border-slate-700 pb-4">Sound Board</h2>
+                                <p className="text-sm text-slate-500 dark:text-slate-400 -mt-4">
+                                    Manage short audio clips that can be played on-demand from the presenter view.
+                                </p>
+                                <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-700 space-y-4">
+                                    <div className="max-h-80 overflow-y-auto space-y-2 pr-2">
+                                        {(game.soundboard || []).length > 0 ? (
+                                            (game.soundboard || []).map(clip => (
+                                                <div key={clip.id} className="flex items-center justify-between p-2 bg-white dark:bg-slate-800 rounded-md shadow-sm">
+                                                    <div className="flex items-center gap-3 min-w-0">
+                                                        <Icon as="play" className="w-5 h-5 text-slate-500 flex-shrink-0" />
+                                                        <div className="flex-grow min-w-0">
+                                                            {editingClipName?.id === clip.id ? (
+                                                                <input
+                                                                    type="text"
+                                                                    value={editingClipName.name}
+                                                                    onChange={(e) => setEditingClipName({ ...editingClipName, name: e.target.value })}
+                                                                    onBlur={handleSaveClipName}
+                                                                    onKeyDown={(e) => {
+                                                                        if (e.key === 'Enter') { e.preventDefault(); (e.target as HTMLInputElement).blur(); }
+                                                                        if (e.key === 'Escape') { setEditingClipName(null); }
+                                                                    }}
+                                                                    className="w-full text-sm font-medium px-1 py-0.5 border border-brand-500 rounded bg-white dark:bg-slate-900 focus:outline-none"
+                                                                    autoFocus
+                                                                    onFocus={(e) => e.target.select()}
+                                                                />
+                                                            ) : (
+                                                                <p onClick={() => setEditingClipName({ id: clip.id, name: clip.name })}
+                                                                   className="text-sm truncate font-medium text-slate-700 dark:text-slate-300 cursor-pointer hover:underline"
+                                                                   title="Click to edit name">
+                                                                    {clip.name}
+                                                                </p>
+                                                            )}
+                                                            <AudioPreviewPlayer assetId={clip.id} />
+                                                        </div>
+                                                    </div>
+                                                    <button onClick={() => handleRemoveSoundboardClip(clip.id)} className="p-1 text-slate-400 hover:text-red-500 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 ml-4">
+                                                        <Icon as="trash" className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <p className="text-sm text-slate-500 dark:text-slate-400 italic text-center py-4">No sound clips added to the sound board.</p>
+                                        )}
+                                    </div>
+                                    <button onClick={() => openAssetModal('soundboard')} className="w-full text-sm flex items-center justify-center gap-2 px-3 py-2 bg-brand-500/10 text-brand-700 dark:text-brand-300 dark:bg-brand-500/20 rounded-md hover:bg-brand-500/20 transition-colors">
+                                        <Icon as="plus" className="w-4 h-4"/>
+                                        Add Sound Clip from Library
+                                    </button>
                                 </div>
                             </div>
                         )}

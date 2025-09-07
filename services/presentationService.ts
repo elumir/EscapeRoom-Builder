@@ -121,6 +121,7 @@ export const createGame = async (title: string): Promise<Game> => {
         soundtrack: [],
         soundtrackMode: 'sequential',
         soundtrackVolume: 0.5,
+        soundboard: [],
     };
 
     try {
