@@ -1799,7 +1799,7 @@ const Editor: React.FC = () => {
             Assets
           </button>
           <Link
-            to={`/game/settings/${id}`}
+            to={`/settings/${id}`}
             className="flex items-center gap-2 px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
           >
             <Icon as="settings" className="w-5 h-5" />
