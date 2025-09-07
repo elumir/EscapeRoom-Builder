@@ -1222,25 +1222,21 @@ const PresenterView: React.FC = () => {
                                 .map((room) => {
                                 const index = room.originalIndex;
                                 const isLocked = lockingPuzzlesByRoomId.has(room.id);
-                                const lockingPuzzleName = lockingPuzzlesByRoomId.get(room.id);
                                 return (
                                     <button
                                         key={room.id}
                                         onClick={() => goToRoom(index)}
                                         disabled={isLocked}
-                                        className={`w-full text-left p-3 rounded-lg transition-colors flex flex-col items-start ${
+                                        className={`w-full text-left p-3 rounded-lg transition-colors flex items-center justify-between ${
                                             currentRoomIndex === index
                                                 ? 'bg-brand-600 text-white font-bold shadow-lg'
                                                 : isLocked
                                                 ? 'bg-slate-700 opacity-50 cursor-not-allowed'
                                                 : 'bg-slate-700 hover:bg-slate-600'
                                         }`}
-                                        title={isLocked ? `Locked by: ${lockingPuzzleName}` : ''}
+                                        title={isLocked ? 'Locked' : ''}
                                     >
-                                        <div className="flex-1 min-w-0">
-                                            <h3 className="font-semibold text-sm truncate">{room.name}</h3>
-                                            {isLocked && <p className="text-red-500 text-xs truncate">Locked by: {lockingPuzzleName}</p>}
-                                        </div>
+                                        <h3 className="font-semibold text-sm truncate">{room.name}</h3>
                                         {isLocked && <Icon as="lock" className="w-4 h-4 text-slate-400 flex-shrink-0" />}
                                     </button>
                                 );
