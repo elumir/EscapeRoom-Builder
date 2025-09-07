@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import * as gameService from '../services/presentationService';
 import type { Game, Asset, SoundtrackTrack } from '../types';
@@ -36,10 +36,10 @@ const Settings: React.FC = () => {
         }
     }, [id]);
 
-    const updateGame = useCallback((updatedGame: Game) => {
+    const updateGame = (updatedGame: Game) => {
         setGame(updatedGame);
         gameService.saveGame(updatedGame);
-    }, []);
+    };
 
     const handleGamePropertyChange = (property: keyof Game, value: any) => {
         if (!game) return;
