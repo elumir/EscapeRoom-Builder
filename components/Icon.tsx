@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface IconProps {
-  as: 'plus' | 'trash' | 'present' | 'prev' | 'next' | 'close' | 'reorder' | 'expand' | 'collapse' | 'lock' | 'eye' | 'eye-slash' | 'chevron-down' | 'restart' | 'rewind' | 'settings' | 'gallery' | 'audio' | 'map' | 'edit' | 'shuffle' | 'swatch' | 'share';
+  as: 'plus' | 'trash' | 'present' | 'prev' | 'next' | 'close' | 'reorder' | 'expand' | 'collapse' | 'lock' | 'eye' | 'eye-slash' | 'chevron-down' | 'restart' | 'rewind' | 'settings' | 'gallery' | 'audio' | 'map' | 'edit' | 'shuffle' | 'swatch' | 'share' | 'stop';
   className?: string;
 }
 
@@ -127,6 +127,11 @@ const icons = {
   share: (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.195.025.39.05.588.08m-5.858 2.106c.195-.025.39-.05.588-.08m5.858 0a2.25 2.25 0 0 1 2.25 2.25m0-2.25a2.25 2.25 0 0 0-2.25 2.25m0 0v3.126c0 .199-.02.395-.057.588m-6.161-4.41a2.25 2.25 0 0 1 2.25-2.25m0 0a2.25 2.25 0 0 0-2.25-2.25m0 0v3.126c0 .199.02.395.057.588m6.161 2.206a2.25 2.25 0 0 1-2.25 2.25m0 0a2.25 2.25 0 0 0 2.25 2.25m0 0v3.126c0 .199-.02.395-.057.588m-6.161-4.41a2.25 2.25 0 0 1 2.25-2.25m0 0a2.25 2.25 0 0 0-2.25-2.25m0 0v3.126c0 .199.02.395.057.588" />
+    </svg>
+  ),
+  stop: (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 7.5A2.25 2.25 0 0 1 7.5 5.25h9a2.25 2.25 0 0 1 2.25 2.25v9a2.25 2.25 0 0 1-2.25 2.25h-9a2.25 2.25 0 0 1-2.25-2.25v-9Z" />
     </svg>
   )
 };

@@ -31,6 +31,13 @@ const shuffleArray = (array: any[]) => {
   return newArray;
 };
 
+const formatTime = (seconds: number) => {
+    if (isNaN(seconds) || seconds === Infinity) return '0:00';
+    const minutes = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
+};
+
 const PresenterView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [game, setGame] = useState<Game | null>(null);
@@ -73,6 +80,10 @@ const PresenterView: React.FC = () => {
   } | null>(null);
   const soundtrackRef = useRef(soundtrack);
   useEffect(() => { soundtrackRef.current = soundtrack; }, [soundtrack]);
+  const [progress, setProgress] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [isFadingOut, setIsFadingOut] = useState(false);
+  const fadeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const playNextTrack = useCallback(() => {
     const currentSoundtrack = soundtrackRef.current;
@@ -151,6 +162,30 @@ const PresenterView: React.FC = () => {
           }
       }
   }, [soundtrack?.isPlaying, soundtrack?.currentTrackIndex]);
+
+  // Effect to manage UI updates for progress and duration of the current track
+  useEffect(() => {
+    if (!soundtrack) return;
+    const currentAudio = soundtrack.elements[soundtrack.currentTrackIndex];
+    if (!currentAudio) return;
+
+    const handleMetadata = () => setDuration(currentAudio.duration);
+    const handleTimeUpdate = () => setProgress(currentAudio.currentTime);
+    
+    currentAudio.addEventListener('loadedmetadata', handleMetadata);
+    currentAudio.addEventListener('timeupdate', handleTimeUpdate);
+
+    // Set initial values in case metadata is already loaded
+    if (currentAudio.duration) {
+        setDuration(currentAudio.duration);
+    }
+    setProgress(currentAudio.currentTime);
+
+    return () => {
+        currentAudio.removeEventListener('loadedmetadata', handleMetadata);
+        currentAudio.removeEventListener('timeupdate', handleTimeUpdate);
+    };
+  }, [soundtrack, soundtrack?.currentTrackIndex]);
 
 
   const handleAddCustomItem = () => {
@@ -813,11 +848,61 @@ const PresenterView: React.FC = () => {
       }
       setSoundtrack({ ...soundtrack, currentTrackIndex: prevTrackIndex });
   };
+
+  const handleSoundtrackRewind = () => {
+    if (!soundtrack) return;
+    const currentAudio = soundtrack.elements[soundtrack.currentTrackIndex];
+    if (currentAudio) {
+        currentAudio.currentTime = 0;
+    }
+  };
+
+  const handleSoundtrackSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!soundtrack) return;
+    const newTime = Number(e.target.value);
+    const currentAudio = soundtrack.elements[soundtrack.currentTrackIndex];
+    if (currentAudio) {
+        currentAudio.currentTime = newTime;
+        setProgress(newTime);
+    }
+  };
   
   const handleSoundtrackVolumeChange = (newVolume: number) => {
     if (!soundtrack) return;
     soundtrack.elements.forEach(el => el.volume = newVolume);
     setSoundtrack({ ...soundtrack, volume: newVolume });
+  };
+
+  const handleSoundtrackFadeOut = () => {
+    if (!soundtrack || isFadingOut || !soundtrack.isPlaying) return;
+
+    if (fadeIntervalRef.current) {
+        clearInterval(fadeIntervalRef.current);
+    }
+
+    setIsFadingOut(true);
+    const currentAudio = soundtrack.elements[soundtrack.currentTrackIndex];
+    const fadeDuration = 1500; // 1.5 seconds
+    const steps = 30;
+    const interval = fadeDuration / steps;
+    const initialVolume = currentAudio.volume;
+    const volumeStep = initialVolume / steps;
+
+    fadeIntervalRef.current = setInterval(() => {
+        if (currentAudio.volume > volumeStep) {
+            currentAudio.volume -= volumeStep;
+        } else {
+            currentAudio.volume = 0;
+            currentAudio.pause();
+            setSoundtrack(prev => (prev ? { ...prev, isPlaying: false } : null));
+
+            currentAudio.volume = soundtrack.volume; // Reset volume for next playback
+
+            clearInterval(fadeIntervalRef.current!);
+            fadeIntervalRef.current = null;
+            setIsFadingOut(false);
+        }
+    }, interval);
   };
 
   if (status === 'loading') {
@@ -966,30 +1051,6 @@ const PresenterView: React.FC = () => {
         <div className="flex-1 min-w-0">
             <h1 className="text-xl font-bold truncate">{game.title} - Presenter View</h1>
         </div>
-        {soundtrack && (
-            <div className="flex items-center gap-2 px-4">
-                <Icon as={soundtrack.mode === 'shuffle' ? 'shuffle' : 'audio'} className="w-5 h-5 text-slate-400 flex-shrink-0"/>
-                <p className="text-sm text-slate-300 truncate max-w-xs">{game.soundtrack?.[soundtrack.currentTrackIndex]?.name || 'Soundtrack'}</p>
-                <button onClick={handleSoundtrackPrev} className="p-2 text-slate-300 hover:text-white"><Icon as="prev" className="w-4 h-4"/></button>
-                <button onClick={handleSoundtrackPlayPause} className="p-2 text-slate-300 hover:text-white">
-                    {soundtrack.isPlaying ? (
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M5.5 3.5A1.5 1.5 0 017 5v10a1.5 1.5 0 01-3 0V5a1.5 1.5 0 011.5-1.5zM12.5 3.5A1.5 1.5 0 0114 5v10a1.5 1.5 0 01-3 0V5a1.5 1.5 0 011.5-1.5z" /></svg>
-                    ) : (
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" /></svg>
-                    )}
-                </button>
-                <button onClick={handleSoundtrackNext} className="p-2 text-slate-300 hover:text-white"><Icon as="next" className="w-4 h-4"/></button>
-                <input
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.05"
-                    value={soundtrack.volume}
-                    onChange={e => handleSoundtrackVolumeChange(parseFloat(e.target.value))}
-                    className="w-24 h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-brand-500 [&::-webkit-slider-thumb]:rounded-full"
-                />
-            </div>
-        )}
         <div className="flex items-center gap-2 flex-shrink-0">
             <button
                 onClick={() => setIsResetModalOpen(true)}
@@ -1196,6 +1257,54 @@ const PresenterView: React.FC = () => {
             <div className="flex-grow overflow-y-auto bg-slate-700/50 p-4 rounded-lg">
                 <MarkdownRenderer content={currentRoom.isSolved ? currentRoom.solvedNotes : currentRoom.notes} />
             </div>
+
+            {soundtrack && (
+                <div className="flex-shrink-0 bg-slate-700/50 p-3 rounded-lg space-y-3">
+                    <h3 className="text-md font-semibold text-slate-300">Soundtrack</h3>
+                    <div className="text-center">
+                        <p className="text-sm font-medium text-slate-200 truncate">{game.soundtrack?.[soundtrack.currentTrackIndex]?.name || 'Unnamed Track'}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs text-slate-400 font-mono">{formatTime(progress)}</span>
+                        <input
+                            type="range"
+                            min="0"
+                            max={duration || 0}
+                            value={progress}
+                            onChange={handleSoundtrackSeek}
+                            className="w-full h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-brand-500 [&::-webkit-slider-thumb]:rounded-full"
+                        />
+                        <span className="text-xs text-slate-400 font-mono">{formatTime(duration)}</span>
+                    </div>
+                    <div className="flex items-center justify-center gap-4">
+                        <button onClick={handleSoundtrackPrev} className="p-2 text-slate-300 hover:text-white rounded-full hover:bg-slate-600"><Icon as="prev" className="w-5 h-5"/></button>
+                        <button onClick={handleSoundtrackRewind} className="p-2 text-slate-300 hover:text-white rounded-full hover:bg-slate-600"><Icon as="rewind" className="w-5 h-5"/></button>
+                        <button onClick={handleSoundtrackPlayPause} className="p-3 text-white bg-brand-600 rounded-full hover:bg-brand-700">
+                            {soundtrack.isPlaying ? (
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path d="M5.5 3.5A1.5 1.5 0 017 5v10a1.5 1.5 0 01-3 0V5a1.5 1.5 0 011.5-1.5zM12.5 3.5A1.5 1.5 0 0114 5v10a1.5 1.5 0 01-3 0V5a1.5 1.5 0 011.5-1.5z" /></svg>
+                            ) : (
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" /></svg>
+                            )}
+                        </button>
+                        <button onClick={handleSoundtrackNext} className="p-2 text-slate-300 hover:text-white rounded-full hover:bg-slate-600"><Icon as="next" className="w-5 h-5"/></button>
+                        <button onClick={handleSoundtrackFadeOut} disabled={isFadingOut || !soundtrack?.isPlaying} className="p-2 text-slate-300 hover:text-white rounded-full hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed" title="Fade Out & Stop">
+                            <Icon as="stop" className="w-5 h-5"/>
+                        </button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Icon as={soundtrack.mode === 'shuffle' ? 'shuffle' : 'audio'} className="w-4 h-4 text-slate-400 flex-shrink-0"/>
+                        <input
+                            type="range"
+                            min="0"
+                            max="1"
+                            step="0.05"
+                            value={soundtrack.volume}
+                            onChange={e => handleSoundtrackVolumeChange(parseFloat(e.target.value))}
+                            className="w-full h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-brand-500 [&::-webkit-slider-thumb]:rounded-full"
+                        />
+                    </div>
+                </div>
+            )}
         </div>
 
         {/* Column 3: INTERACTIVE ELEMENTS */}
