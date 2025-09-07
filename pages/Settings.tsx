@@ -17,6 +17,7 @@ const Settings: React.FC = () => {
     const [activeSection, setActiveSection] = useState<Section>('general');
     const [copySuccess, setCopySuccess] = useState(false);
     const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
+    const [editingTrackName, setEditingTrackName] = useState<{ id: string; name: string } | null>(null);
 
     useEffect(() => {
         if (id) {
@@ -110,6 +111,23 @@ const Settings: React.FC = () => {
         if (!game) return;
         const newSoundtrack = (game.soundtrack || []).filter(t => t.id !== trackId);
         updateGame({ ...game, soundtrack: newSoundtrack });
+    };
+
+    const handleSaveTrackName = () => {
+        if (!game || !editingTrackName) return;
+
+        const originalTrack = (game.soundtrack || []).find(t => t.id === editingTrackName.id);
+        if (!originalTrack || !editingTrackName.name.trim() || editingTrackName.name === originalTrack.name) {
+            setEditingTrackName(null);
+            return;
+        }
+
+        const newName = editingTrackName.name.trim();
+        const newSoundtrack = (game.soundtrack || []).map(track =>
+            track.id === editingTrackName.id ? { ...track, name: newName } : track
+        );
+        updateGame({ ...game, soundtrack: newSoundtrack });
+        setEditingTrackName(null);
     };
 
     const handleDeleteGame = async () => {
@@ -371,8 +389,35 @@ const Settings: React.FC = () => {
                                                     <div className="flex items-center gap-3 min-w-0">
                                                         <Icon as="audio" className="w-5 h-5 text-slate-500 flex-shrink-0" />
                                                         <div className="flex-grow min-w-0">
-                                                          <p className="text-sm truncate font-medium text-slate-700 dark:text-slate-300">{track.name}</p>
-                                                          <AudioPreviewPlayer assetId={track.id} />
+                                                            {editingTrackName?.id === track.id ? (
+                                                                <input
+                                                                    type="text"
+                                                                    value={editingTrackName.name}
+                                                                    onChange={(e) => setEditingTrackName({ ...editingTrackName, name: e.target.value })}
+                                                                    onBlur={handleSaveTrackName}
+                                                                    onKeyDown={(e) => {
+                                                                        if (e.key === 'Enter') {
+                                                                            e.preventDefault();
+                                                                            (e.target as HTMLInputElement).blur();
+                                                                        }
+                                                                        if (e.key === 'Escape') {
+                                                                            setEditingTrackName(null);
+                                                                        }
+                                                                    }}
+                                                                    className="w-full text-sm font-medium px-1 py-0.5 border border-brand-500 rounded bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none"
+                                                                    autoFocus
+                                                                    onFocus={(e) => e.target.select()}
+                                                                />
+                                                            ) : (
+                                                                <p
+                                                                    onClick={() => setEditingTrackName({ id: track.id, name: track.name })}
+                                                                    className="text-sm truncate font-medium text-slate-700 dark:text-slate-300 cursor-pointer hover:underline"
+                                                                    title="Click to edit name"
+                                                                >
+                                                                    {track.name}
+                                                                </p>
+                                                            )}
+                                                            <AudioPreviewPlayer assetId={track.id} />
                                                         </div>
                                                     </div>
                                                     <button onClick={() => handleRemoveSoundtrackTrack(track.id)} className="p-1 text-slate-400 hover:text-red-500 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 ml-4">
