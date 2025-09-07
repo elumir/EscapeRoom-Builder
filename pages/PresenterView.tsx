@@ -85,6 +85,12 @@ const PresenterView: React.FC = () => {
   const [isFadingOut, setIsFadingOut] = useState(false);
   const fadeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  const soundtrackConfigKey = useMemo(() => {
+    if (!game?.soundtrack) return null;
+    const trackIds = game.soundtrack.map(t => t.id).join(',');
+    return `${trackIds}|${game.soundtrackMode ?? 'sequential'}|${game.soundtrackVolume ?? 0.5}`;
+  }, [game?.soundtrack, game?.soundtrackMode, game?.soundtrackVolume]);
+
   const playNextTrack = useCallback(() => {
     const currentSoundtrack = soundtrackRef.current;
     // Only proceed if we're currently playing. This prevents auto-play when a track ends while paused.
@@ -111,6 +117,7 @@ const PresenterView: React.FC = () => {
   useEffect(() => {
     // Clean up previous soundtrack elements and listeners if the game object changes
     const previousElements = soundtrackRef.current?.elements;
+    const wasPlaying = soundtrackRef.current?.isPlaying || false;
 
     // Initialize new soundtrack
     if (game?.soundtrack && game.soundtrack.length > 0) {
@@ -132,7 +139,7 @@ const PresenterView: React.FC = () => {
         elements,
         trackOrder,
         currentTrackIndex: trackOrder.length > 0 ? trackOrder[0] : 0,
-        isPlaying: false,
+        isPlaying: wasPlaying,
         volume: volume,
         mode: mode,
       });
@@ -147,7 +154,7 @@ const PresenterView: React.FC = () => {
         el.src = ''; // Release resource
       });
     };
-  }, [game, playNextTrack]);
+  }, [soundtrackConfigKey, playNextTrack]);
 
   // Effect to handle play/pause state changes
   useEffect(() => {
