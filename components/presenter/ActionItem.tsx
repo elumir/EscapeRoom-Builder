@@ -22,7 +22,7 @@ const ActionItem: React.FC<{
 }> = ({ action, onToggleImage, onToggleComplete, isLocked, lockingPuzzleName, variant = 'full' }) => {
     
     const isComplete = action.isComplete ?? false;
-    const isDisabled = isComplete || isLocked;
+    const isDisabled = !!isLocked;
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [progress, setProgress] = useState(0);
