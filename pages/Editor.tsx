@@ -255,7 +255,7 @@ const Editor: React.FC = () => {
   const addRoom = () => {
     if (!game) return;
     const latestAct = game.rooms.length > 0 ? Math.max(...game.rooms.map(r => r.act || 1)) : 1;
-    const newRoom: RoomType = { id: generateUUID(), name: `Room ${game.rooms.length + 1}`, image: null, mapImage: null, notes: '', backgroundColor: '#000000', isFullScreenImage: false, act: latestAct, objectRemoveIds: [], objectRemoveText: '', objects: [], puzzles: [], actions: [], isSolved: false, solvedImage: null, solvedNotes: '' };
+    const newRoom: RoomType = { id: generateUUID(), name: `Room ${game.rooms.length + 1}`, image: null, mapImage: null, notes: '', backgroundColor: '#000000', isFullScreenImage: false, act: latestAct, objectRemoveIds: [], objectRemoveText: '', objects: [], puzzles: [], actions: [], isSolved: false, solvedImage: null, solvedNotes: '', transitionType: 'none', transitionDuration: 1 };
     const newRooms = [...game.rooms, newRoom];
     updateGame({ ...game, rooms: newRooms });
     selectRoom(newRooms.length - 1, newRooms);
@@ -1962,6 +1962,48 @@ const Editor: React.FC = () => {
             />
             Display main room image full-screen (hides sidebar).
           </label>
+
+          <div className="mb-6">
+              <h3 className="font-semibold text-slate-700 dark:text-slate-300 mb-2">Room Transition</h3>
+              <div className="flex rounded-lg bg-slate-100 dark:bg-slate-700/50 p-1 max-w-sm">
+                  <button
+                      onClick={() => changeRoomProperty('transitionType', 'none')}
+                      className={`flex-1 text-center text-sm px-3 py-1.5 rounded-md transition-colors ${
+                          (currentRoom.transitionType === 'none' || !currentRoom.transitionType)
+                          ? 'bg-white dark:bg-slate-600 shadow-sm text-slate-800 dark:text-slate-100 font-semibold'
+                          : 'text-slate-600 dark:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-600/50'
+                      }`}
+                  >
+                      Instant Cut
+                  </button>
+                  <button
+                      onClick={() => changeRoomProperty('transitionType', 'fade')}
+                      className={`flex-1 text-center text-sm px-3 py-1.5 rounded-md transition-colors ${
+                          currentRoom.transitionType === 'fade'
+                          ? 'bg-white dark:bg-slate-600 shadow-sm text-slate-800 dark:text-slate-100 font-semibold'
+                          : 'text-slate-600 dark:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-600/50'
+                      }`}
+                  >
+                      Crossfade
+                  </button>
+              </div>
+              {currentRoom.transitionType === 'fade' && (
+                  <div className="mt-3 max-w-sm">
+                      <label htmlFor="fade-duration" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                          Fade Duration (seconds)
+                      </label>
+                      <input
+                          id="fade-duration"
+                          type="number"
+                          value={currentRoom.transitionDuration || 1}
+                          onChange={e => changeRoomProperty('transitionDuration', Math.max(0.1, parseFloat(e.target.value)) || 1)}
+                          min="0.1"
+                          step="0.1"
+                          className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
+                      />
+                  </div>
+              )}
+          </div>
           
           {/* Room Descriptions */}
           <div className="grid grid-cols-2 gap-6">

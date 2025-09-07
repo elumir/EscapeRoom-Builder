@@ -106,6 +106,8 @@ export const createGame = async (title: string): Promise<Game> => {
         solvedNotes: '',
         objectRemoveIds: [],
         objectRemoveText: '',
+        transitionType: 'none',
+        transitionDuration: 1,
     };
     const newGame: Game = {
         id: generateUUID(),

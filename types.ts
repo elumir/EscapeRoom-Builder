@@ -75,6 +75,8 @@ export interface Room {
   solvedNotes: string;
   objectRemoveIds: string[];
   objectRemoveText: string;
+  transitionType?: 'none' | 'fade';
+  transitionDuration?: number;
 }
 
 export interface Game {
