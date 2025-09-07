@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import * as gameService from '../services/presentationService';
+import { API_BASE_URL } from '../services/presentationService';
 import type { Game, Puzzle, InventoryObject } from '../types';
 import Icon from '../components/Icon';
 import { useBroadcastChannel } from '../hooks/useBroadcastChannel';
@@ -19,6 +20,16 @@ interface BroadcastMessage {
 }
 
 type Status = 'loading' | 'success' | 'error';
+
+// Helper to shuffle an array
+const shuffleArray = (array: any[]) => {
+  const newArray = [...array];
+  for (let i = newArray.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+  }
+  return newArray;
+};
 
 const PresenterView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -50,6 +61,97 @@ const PresenterView: React.FC = () => {
     inventoryObjects,
     discardedObjects,
   } = usePresenterState(game);
+  
+  // Soundtrack State
+  const [soundtrack, setSoundtrack] = useState<{
+    elements: HTMLAudioElement[];
+    trackOrder: number[];
+    currentTrackIndex: number;
+    isPlaying: boolean;
+    volume: number;
+    mode: 'sequential' | 'shuffle';
+  } | null>(null);
+  const soundtrackRef = useRef(soundtrack);
+  useEffect(() => { soundtrackRef.current = soundtrack; }, [soundtrack]);
+
+  const playNextTrack = useCallback(() => {
+    const currentSoundtrack = soundtrackRef.current;
+    // Only proceed if we're currently playing. This prevents auto-play when a track ends while paused.
+    if (!currentSoundtrack || !currentSoundtrack.isPlaying) return;
+
+    const { elements, trackOrder, currentTrackIndex } = currentSoundtrack;
+    if (elements.length === 0) return;
+    
+    const currentPositionInOrder = trackOrder.indexOf(currentTrackIndex);
+    const nextPositionInOrder = (currentPositionInOrder + 1) % trackOrder.length;
+    const nextTrackIndex = trackOrder[nextPositionInOrder];
+    
+    elements[currentTrackIndex].currentTime = 0; // Reset just-ended track
+    
+    const nextElement = elements[nextTrackIndex];
+    if (nextElement) {
+        nextElement.currentTime = 0;
+        nextElement.play().catch(e => console.error("Autoplay failed for next track:", e));
+    }
+
+    setSoundtrack(prev => prev ? { ...prev, currentTrackIndex: nextTrackIndex } : null);
+  }, []);
+
+  useEffect(() => {
+    // Clean up previous soundtrack elements and listeners if the game object changes
+    const previousElements = soundtrackRef.current?.elements;
+
+    // Initialize new soundtrack
+    if (game?.soundtrack && game.soundtrack.length > 0) {
+      const mode = game.soundtrackMode ?? 'sequential';
+      const volume = game.soundtrackVolume ?? 0.5;
+      
+      const elements = game.soundtrack.map(track => {
+        const audio = new Audio(`${API_BASE_URL}/assets/${track.id}`);
+        audio.volume = volume;
+        return audio;
+      });
+      
+      elements.forEach(el => { el.onended = playNextTrack; });
+      
+      const indices = Array.from(Array(elements.length).keys());
+      const trackOrder = mode === 'shuffle' ? shuffleArray(indices) : indices;
+
+      setSoundtrack({
+        elements,
+        trackOrder,
+        currentTrackIndex: trackOrder.length > 0 ? trackOrder[0] : 0,
+        isPlaying: false,
+        volume: volume,
+        mode: mode,
+      });
+    } else {
+      setSoundtrack(null);
+    }
+
+    return () => {
+      previousElements?.forEach(el => {
+        el.pause();
+        el.onended = null;
+        el.src = ''; // Release resource
+      });
+    };
+  }, [game, playNextTrack]);
+
+  // Effect to handle play/pause state changes
+  useEffect(() => {
+      if (!soundtrack) return;
+      const { elements, currentTrackIndex, isPlaying } = soundtrack;
+      const currentElement = elements[currentTrackIndex];
+      if (currentElement) {
+          if (isPlaying) {
+              currentElement.play().catch(e => console.error("Playback failed:", e));
+          } else {
+              currentElement.pause();
+          }
+      }
+  }, [soundtrack?.isPlaying, soundtrack?.currentTrackIndex]);
+
 
   const handleAddCustomItem = () => {
     const name = window.prompt("Enter the name for the new custom item:");
@@ -671,6 +773,52 @@ const PresenterView: React.FC = () => {
       }
     }
   };
+  
+  // --- Soundtrack Handlers ---
+  const handleSoundtrackPlayPause = () => {
+    if (!soundtrack) return;
+    setSoundtrack({ ...soundtrack, isPlaying: !soundtrack.isPlaying });
+  };
+
+  const handleSoundtrackNext = () => {
+      if (!soundtrack || soundtrack.elements.length < 2) return;
+      const { elements, trackOrder, currentTrackIndex, isPlaying } = soundtrack;
+      elements[currentTrackIndex].pause();
+      elements[currentTrackIndex].currentTime = 0;
+      
+      const currentPosition = trackOrder.indexOf(currentTrackIndex);
+      const nextPosition = (currentPosition + 1) % trackOrder.length;
+      const nextTrackIndex = trackOrder[nextPosition];
+      
+      if (isPlaying) {
+          elements[nextTrackIndex].currentTime = 0;
+          elements[nextTrackIndex].play().catch(e => console.error("Playback failed:", e));
+      }
+      setSoundtrack({ ...soundtrack, currentTrackIndex: nextTrackIndex });
+  };
+  
+  const handleSoundtrackPrev = () => {
+      if (!soundtrack || soundtrack.elements.length < 2) return;
+      const { elements, trackOrder, currentTrackIndex, isPlaying } = soundtrack;
+      elements[currentTrackIndex].pause();
+      elements[currentTrackIndex].currentTime = 0;
+
+      const currentPosition = trackOrder.indexOf(currentTrackIndex);
+      const prevPosition = (currentPosition - 1 + trackOrder.length) % trackOrder.length;
+      const prevTrackIndex = trackOrder[prevPosition];
+
+      if (isPlaying) {
+          elements[prevTrackIndex].currentTime = 0;
+          elements[prevTrackIndex].play().catch(e => console.error("Playback failed:", e));
+      }
+      setSoundtrack({ ...soundtrack, currentTrackIndex: prevTrackIndex });
+  };
+  
+  const handleSoundtrackVolumeChange = (newVolume: number) => {
+    if (!soundtrack) return;
+    soundtrack.elements.forEach(el => el.volume = newVolume);
+    setSoundtrack({ ...soundtrack, volume: newVolume });
+  };
 
   if (status === 'loading') {
     return <div className="h-screen bg-slate-800 text-white flex items-center justify-center">Loading Presenter View...</div>;
@@ -815,20 +963,46 @@ const PresenterView: React.FC = () => {
         </div>
       )}
       <header className="p-4 bg-slate-900 flex justify-between items-center flex-shrink-0">
-        <h1 className="text-xl font-bold">{game.title} - Presenter View</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex-1 min-w-0">
+            <h1 className="text-xl font-bold truncate">{game.title} - Presenter View</h1>
+        </div>
+        {soundtrack && (
+            <div className="flex items-center gap-2 px-4">
+                <Icon as={soundtrack.mode === 'shuffle' ? 'shuffle' : 'audio'} className="w-5 h-5 text-slate-400 flex-shrink-0"/>
+                <p className="text-sm text-slate-300 truncate max-w-xs">{game.soundtrack?.[soundtrack.currentTrackIndex]?.name || 'Soundtrack'}</p>
+                <button onClick={handleSoundtrackPrev} className="p-2 text-slate-300 hover:text-white"><Icon as="prev" className="w-4 h-4"/></button>
+                <button onClick={handleSoundtrackPlayPause} className="p-2 text-slate-300 hover:text-white">
+                    {soundtrack.isPlaying ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M5.5 3.5A1.5 1.5 0 017 5v10a1.5 1.5 0 01-3 0V5a1.5 1.5 0 011.5-1.5zM12.5 3.5A1.5 1.5 0 0114 5v10a1.5 1.5 0 01-3 0V5a1.5 1.5 0 011.5-1.5z" /></svg>
+                    ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" /></svg>
+                    )}
+                </button>
+                <button onClick={handleSoundtrackNext} className="p-2 text-slate-300 hover:text-white"><Icon as="next" className="w-4 h-4"/></button>
+                <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                    value={soundtrack.volume}
+                    onChange={e => handleSoundtrackVolumeChange(parseFloat(e.target.value))}
+                    className="w-24 h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-brand-500 [&::-webkit-slider-thumb]:rounded-full"
+                />
+            </div>
+        )}
+        <div className="flex items-center gap-2 flex-shrink-0">
             <button
                 onClick={() => setIsResetModalOpen(true)}
                 className="flex items-center gap-2 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors duration-300 shadow"
                 title="Restart Game"
             >
                 <Icon as="restart" className="w-5 h-5" />
-                Restart Game
+                <span className="hidden lg:inline">Restart Game</span>
             </button>
             {isPresentationWindowOpen ? (
             <button className="flex items-center gap-2 px-4 py-2 bg-slate-600 text-white rounded-lg cursor-not-allowed">
                 <Icon as="present" className="w-5 h-5" />
-                Window Open
+                <span className="hidden lg:inline">Window Open</span>
             </button>
             ) : (
             <button
@@ -836,7 +1010,7 @@ const PresenterView: React.FC = () => {
                 className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors duration-300 shadow"
             >
                 <Icon as="present" className="w-5 h-5" />
-                Open Game Window
+                <span className="hidden lg:inline">Open Window</span>
             </button>
             )}
         </div>
@@ -930,13 +1104,11 @@ const PresenterView: React.FC = () => {
                                         }`}
                                         title={isLocked ? `Locked by: ${lockingPuzzleName}` : ''}
                                     >
-                                        <div className="w-full flex items-center justify-between">
-                                            <span className="text-lg truncate">{room.name}</span>
-                                            {isLocked && <Icon as="lock" className="w-4 h-4 text-slate-400 flex-shrink-0" />}
+                                        <div className="flex-1 min-w-0">
+                                            <h3 className="font-semibold text-sm truncate">{room.name}</h3>
+                                            {isLocked && <p className="text-red-500 text-xs truncate">Locked by: {lockingPuzzleName}</p>}
                                         </div>
-                                        {isLocked && (
-                                            <span className="text-xs text-red-400 mt-1 truncate">Locked by: {lockingPuzzleName}</span>
-                                        )}
+                                        {isLocked && <Icon as="lock" className="w-4 h-4 text-slate-400 flex-shrink-0" />}
                                     </button>
                                 );
                             })}
@@ -945,248 +1117,178 @@ const PresenterView: React.FC = () => {
                 )}
                 {activeTab === 'inventory' && (
                     <div className="space-y-4">
-                        <button
-                          onClick={handleAddCustomItem}
-                          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-slate-700 text-slate-200 rounded-lg hover:bg-slate-600 transition-colors duration-200"
-                        >
-                          <Icon as="plus" className="w-4 h-4" />
-                          Add Custom Item
-                        </button>
+                        <div className="flex justify-between items-center">
+                            <h3 className="text-lg font-semibold text-slate-300">Inventory</h3>
+                             <div className="flex items-center gap-2">
+                                <button
+                                    onClick={handleToggleAllInventoryDescriptions}
+                                    className="p-1.5 text-slate-400 hover:text-white"
+                                    title={areAllDescriptionsVisible ? "Hide all descriptions" : "Show all descriptions"}
+                                >
+                                    <Icon as={areAllDescriptionsVisible ? "collapse" : "expand"} className="w-5 h-5" />
+                                </button>
+                                <button
+                                    onClick={handleAddCustomItem}
+                                    className="p-1.5 text-slate-400 hover:text-white"
+                                    title="Add custom temporary item"
+                                >
+                                    <Icon as="plus" className="w-5 h-5" />
+                                </button>
+                            </div>
+                        </div>
                         {combinedInventoryObjects.length > 0 ? (
-                            <>
-                                <div className="flex justify-between items-center -mb-3">
-                                    <p className="text-xs text-slate-400 italic">Click the trash icon to discard an object.</p>
-                                    <button
-                                        onClick={handleToggleAllInventoryDescriptions}
-                                        title={areAllDescriptionsVisible ? "Hide all descriptions" : "Show all descriptions"}
-                                        aria-label={areAllDescriptionsVisible ? "Hide all descriptions" : "Show all descriptions"}
-                                        className="text-slate-400 hover:text-white p-1 rounded-full"
-                                    >
-                                        <Icon as={areAllDescriptionsVisible ? 'eye-slash' : 'eye'} className="w-5 h-5" />
-                                    </button>
-                                </div>
-                                {combinedInventoryObjects.map(obj => {
-                                    const isCustom = obj.id.startsWith('custom-');
-                                    return (
-                                        <ObjectItem 
-                                            key={obj.id} 
-                                            obj={obj} 
-                                            onToggle={isCustom ? handleToggleCustomItem : handleToggleObject}
-                                            lockingPuzzleName={lockingPuzzlesByObjectId.get(obj.id)}
-                                            showVisibilityToggle={true}
-                                            isDescriptionVisible={visibleDescriptionIds.has(obj.id)}
-                                            onToggleDescription={handleToggleDescriptionVisibility}
-                                            onToggleImage={handleToggleObjectImage}
-                                        />
-                                    );
-                                })}
-                            </>
+                            combinedInventoryObjects.map(obj => (
+                                <ObjectItem 
+                                    key={obj.id} 
+                                    obj={obj} 
+                                    onToggle={obj.id.startsWith('custom-') ? handleToggleCustomItem : handleToggleObject}
+                                    showVisibilityToggle={true}
+                                    isDescriptionVisible={visibleDescriptionIds.has(obj.id)}
+                                    onToggleDescription={handleToggleDescriptionVisibility}
+                                    onToggleImage={handleToggleObjectImage}
+                                />
+                            ))
                         ) : (
-                            <p className="text-slate-400">Inventory is empty. Toggle objects to add them.</p>
+                            <p className="text-slate-400 italic">Inventory is empty.</p>
                         )}
                     </div>
                 )}
-                 {activeTab === 'discarded' && (
+                {activeTab === 'discarded' && (
                     <div className="space-y-4">
+                        <h3 className="text-lg font-semibold text-slate-300">Discarded Items</h3>
                         {combinedDiscardedObjects.length > 0 ? (
-                            <>
-                                <p className="text-xs text-slate-400 italic">Toggle to move object back to inventory.</p>
-                                {combinedDiscardedObjects.map(obj => {
-                                    const isCustom = obj.id.startsWith('custom-');
-                                    return (
-                                        <ObjectItem 
-                                            key={obj.id} 
-                                            obj={obj} 
-                                            onToggle={isCustom ? handleToggleCustomItem : handleToggleObject}
-                                            isDescriptionVisible={true}
-                                        />
-                                    );
-                                })}
-                            </>
+                             combinedDiscardedObjects.map(obj => (
+                                <div key={obj.id} className="p-3 bg-slate-700/50 rounded-lg opacity-60">
+                                    <h4 className="font-semibold text-slate-400 line-through">{obj.name}</h4>
+                                </div>
+                            ))
                         ) : (
-                            <p className="text-slate-400">No objects have been discarded yet.</p>
+                            <p className="text-slate-400 italic">No items have been discarded.</p>
                         )}
                     </div>
                 )}
             </div>
         </div>
+        
+        {/* Column 2: CURRENT ROOM STATE */}
+        <div className="col-span-5 flex flex-col gap-4 overflow-hidden">
+            <div className="flex-shrink-0 flex items-center justify-between">
+                <div className="flex-1 min-w-0">
+                    <h2 className="text-2xl font-bold truncate">{currentRoom.name}</h2>
+                </div>
+                {hasSolvedState && (
+                    <label className={`flex items-center gap-2 text-sm ${roomSolveIsLocked ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} ${currentRoom.isSolved ? 'text-green-300' : 'text-slate-400'}`}
+                        title={roomSolveIsLocked ? `Locked by: ${roomSolveLockingPuzzleName}` : ''}
+                    >
+                        <span>Solved</span>
+                        <input
+                            type="checkbox"
+                            checked={currentRoom.isSolved}
+                            onChange={e => handleToggleRoomSolved(currentRoom.id, e.target.checked)}
+                            className="sr-only peer"
+                            disabled={roomSolveIsLocked}
+                        />
+                        <div className="relative w-11 h-6 bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                    </label>
+                )}
+            </div>
+            
+            <div className="flex-grow overflow-y-auto bg-slate-700/50 p-4 rounded-lg">
+                <MarkdownRenderer content={currentRoom.isSolved ? currentRoom.solvedNotes : currentRoom.notes} />
+            </div>
+        </div>
 
-        {/* Column 2: Room Details */}
-        <div className="col-span-9 bg-slate-900 rounded-lg p-6 overflow-y-auto">
-            {currentRoom ? (
-              <>
-                <div>
-                    <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-lg font-semibold text-slate-300">Room Description</h2>
-                        {hasSolvedState && (
-                            <div title={roomSolveIsLocked ? `Locked by: ${roomSolveLockingPuzzleName}` : ''}>
-                                <label className={`flex items-center gap-2 text-sm ${currentRoom.isSolved ? 'text-slate-400' : 'text-green-300'} ${roomSolveIsLocked ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
-                                    <span>Mark Room as Solved</span>
-                                    <input
-                                        type="checkbox"
-                                        checked={currentRoom.isSolved}
-                                        onChange={(e) => handleToggleRoomSolved(currentRoom.id, e.target.checked)}
-                                        className="sr-only peer"
-                                        disabled={roomSolveIsLocked}
-                                    />
-                                    <div className="relative w-11 h-6 bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
-                                </label>
-                                {roomSolveIsLocked && (
-                                    <p className="text-red-500 text-xs text-right mt-1">Locked by: {roomSolveLockingPuzzleName}</p>
-                                )}
-                            </div>
-                        )}
+        {/* Column 3: INTERACTIVE ELEMENTS */}
+        <div className="col-span-4 flex flex-col gap-4 overflow-hidden">
+            {/* Available Objects */}
+            {!game.hideAvailableObjects && availableObjects.length > 0 && (
+                <div className="flex-shrink-0 bg-slate-700/50 p-3 rounded-lg">
+                    <h3 className="text-md font-semibold text-slate-300 mb-2">Available to Pick Up</h3>
+                    <div className="grid grid-cols-2 gap-x-2 gap-y-1">
+                        {availableObjects.map(obj => (
+                            <ObjectItem 
+                                key={obj.id}
+                                obj={obj}
+                                onToggle={handleToggleObject}
+                                variant="mini"
+                            />
+                        ))}
                     </div>
-                    <div className="bg-slate-800 p-6 rounded-lg border border-slate-700">
-                        <div className="prose prose-invert prose-lg max-w-none text-slate-200">
-                            {currentRoom.isSolved ? (
-                                currentRoom.solvedNotes ? (
-                                    <MarkdownRenderer content={currentRoom.solvedNotes} />
-                                ) : (
-                                    <span className="text-slate-400 italic">No solved description for this room.</span>
-                                )
-                            ) : (
-                                currentRoom.notes ? (
-                                   <MarkdownRenderer content={currentRoom.notes} />
-                                ) : (
-                                   <span className="text-slate-400 italic">No description for this room.</span>
-                                )
-                            )}
+                </div>
+            )}
+            
+            <div className="flex-grow flex flex-col gap-4 overflow-hidden">
+                {/* Puzzles */}
+                <div className="flex-grow flex flex-col overflow-hidden bg-slate-700/50 p-3 rounded-lg">
+                    <div className="flex-shrink-0 flex items-center justify-between mb-2">
+                        <h3 className="text-md font-semibold text-slate-300">Puzzles</h3>
+                        <div className="flex items-center gap-1 text-sm bg-slate-800 p-1 rounded-md">
+                            <button onClick={() => setActivePuzzleTab('open')} className={`px-2 py-0.5 rounded ${activePuzzleTab === 'open' ? 'bg-slate-600' : ''}`}>Open</button>
+                            <button onClick={() => setActivePuzzleTab('complete')} className={`px-2 py-0.5 rounded ${activePuzzleTab === 'complete' ? 'bg-slate-600' : ''}`}>Complete</button>
                         </div>
+                    </div>
+                    <div className="flex-grow overflow-y-auto pr-2 -mr-3 space-y-4">
+                        {activePuzzleTab === 'open' && (openPuzzles.length > 0 ? openPuzzles.map(puzzle => (
+                            <PuzzleItem 
+                                key={puzzle.id} 
+                                puzzle={puzzle} 
+                                onToggle={handleTogglePuzzle}
+                                onToggleImage={handleTogglePuzzleImage}
+                                onAttemptSolve={handleAttemptSolve}
+                                isLocked={lockingPuzzlesByPuzzleId.has(puzzle.id)}
+                                lockingPuzzleName={lockingPuzzlesByPuzzleId.get(puzzle.id)}
+                            />
+                        )) : <p className="text-sm text-slate-400 italic">No open puzzles in this room.</p>)}
+                        
+                        {activePuzzleTab === 'complete' && (completedPuzzles.length > 0 ? completedPuzzles.map(puzzle => (
+                             <PuzzleItem 
+                                key={puzzle.id} 
+                                puzzle={puzzle} 
+                                onToggle={() => {}}
+                                onToggleImage={() => {}}
+                                onAttemptSolve={() => {}}
+                            />
+                        )) : <p className="text-sm text-slate-400 italic">No completed puzzles in this room.</p>)}
                     </div>
                 </div>
                 
-                {currentRoom.actions && currentRoom.actions.length > 0 && (
-                  <div className="mt-8 pt-6 border-t border-slate-700">
-                    <div className="flex justify-between items-baseline mb-4 border-b border-slate-700">
-                        <h2 className="text-lg font-semibold text-slate-300">When players ask to...</h2>
-                        <div className="flex">
-                            <button
-                                onClick={() => setActiveActionTab('open')}
-                                className={`px-4 py-2 text-sm font-medium transition-colors ${activeActionTab === 'open' ? 'border-b-2 border-brand-500 text-white' : 'text-slate-400 hover:text-slate-200'}`}
-                            >
-                                Open <span className="text-xs bg-slate-700 px-1.5 py-0.5 rounded-full">{openActions.length}</span>
-                            </button>
-                            <button
-                                onClick={() => setActiveActionTab('complete')}
-                                className={`px-4 py-2 text-sm font-medium transition-colors ${activeActionTab === 'complete' ? 'border-b-2 border-brand-500 text-white' : 'text-slate-400 hover:text-slate-200'}`}
-                            >
-                                Complete <span className="text-xs bg-slate-700 px-1.5 py-0.5 rounded-full">{completedActions.length}</span>
-                            </button>
+                {/* Actions */}
+                <div className="flex-grow flex flex-col overflow-hidden bg-slate-700/50 p-3 rounded-lg">
+                    <div className="flex-shrink-0 flex items-center justify-between mb-2">
+                        <h3 className="text-md font-semibold text-slate-300">Player Actions</h3>
+                        <div className="flex items-center gap-1 text-sm bg-slate-800 p-1 rounded-md">
+                            <button onClick={() => setActiveActionTab('open')} className={`px-2 py-0.5 rounded ${activeActionTab === 'open' ? 'bg-slate-600' : ''}`}>Open</button>
+                            <button onClick={() => setActiveActionTab('complete')} className={`px-2 py-0.5 rounded ${activeActionTab === 'complete' ? 'bg-slate-600' : ''}`}>Complete</button>
                         </div>
                     </div>
-                    <div className="space-y-4">
-                        {activeActionTab === 'open' && (
-                            openActions.length > 0 ? (
-                                openActions.map(action => (
-                                    <ActionItem 
-                                        key={action.id} 
-                                        action={action} 
-                                        onToggleImage={handleToggleActionImage}
-                                        onToggleComplete={handleToggleActionComplete}
-                                    />
-                                ))
-                            ) : (
-                                <p className="text-slate-400 italic text-sm p-4">No open actions in this room.</p>
-                            )
-                        )}
-                        {activeActionTab === 'complete' && (
-                            completedActions.length > 0 ? (
-                                completedActions.map(action => (
-                                    <ActionItem 
-                                        key={action.id} 
-                                        action={action} 
-                                        onToggleImage={handleToggleActionImage}
-                                        onToggleComplete={handleToggleActionComplete}
-                                    />
-                                ))
-                            ) : (
-                                <p className="text-slate-400 italic text-sm p-4">No completed actions in this room.</p>
-                            )
-                        )}
+                    <div className="flex-grow overflow-y-auto pr-2 -mr-3 space-y-4">
+                        {activeActionTab === 'open' && (openActions.length > 0 ? openActions.map(action => (
+                            <ActionItem 
+                                key={action.id} 
+                                action={action} 
+                                onToggleImage={handleToggleActionImage}
+                                onToggleComplete={handleToggleActionComplete}
+                                isLocked={lockingPuzzlesByActionId.has(action.id)}
+                                lockingPuzzleName={lockingPuzzlesByActionId.get(action.id)}
+                            />
+                        )) : <p className="text-sm text-slate-400 italic">No available actions in this room.</p>)}
+                        
+                        {activeActionTab === 'complete' && (completedActions.length > 0 ? completedActions.map(action => (
+                            <ActionItem 
+                                key={action.id} 
+                                action={action} 
+                                onToggleImage={() => {}}
+                                onToggleComplete={() => {}}
+                            />
+                        )) : <p className="text-sm text-slate-400 italic">No completed actions in this room.</p>)}
                     </div>
-                  </div>
-                )}
-                
-                {currentRoom.puzzles && currentRoom.puzzles.length > 0 && (
-                  <div className="mt-8 pt-6 border-t border-slate-700">
-                    <div className="flex justify-between items-baseline mb-4 border-b border-slate-700">
-                        <h2 className="text-lg font-semibold text-slate-300">Puzzles</h2>
-                        <div className="flex">
-                            <button
-                                onClick={() => setActivePuzzleTab('open')}
-                                className={`px-4 py-2 text-sm font-medium transition-colors ${activePuzzleTab === 'open' ? 'border-b-2 border-brand-500 text-white' : 'text-slate-400 hover:text-slate-200'}`}
-                            >
-                                Open <span className="text-xs bg-slate-700 px-1.5 py-0.5 rounded-full">{openPuzzles.length}</span>
-                            </button>
-                            <button
-                                onClick={() => setActivePuzzleTab('complete')}
-                                className={`px-4 py-2 text-sm font-medium transition-colors ${activePuzzleTab === 'complete' ? 'border-b-2 border-brand-500 text-white' : 'text-slate-400 hover:text-slate-200'}`}
-                            >
-                                Complete <span className="text-xs bg-slate-700 px-1.5 py-0.5 rounded-full">{completedPuzzles.length}</span>
-                            </button>
-                        </div>
-                    </div>
-                    <div className="space-y-4">
-                        {activePuzzleTab === 'open' && (
-                             openPuzzles.length > 0 ? (
-                                openPuzzles.map(puzzle => (
-                                    <PuzzleItem 
-                                        key={puzzle.id} 
-                                        puzzle={puzzle} 
-                                        onToggle={handleTogglePuzzle} 
-                                        onAttemptSolve={handleAttemptSolve}
-                                        onToggleImage={handleTogglePuzzleImage}
-                                    />
-                                ))
-                             ) : (
-                                 <p className="text-slate-400 italic text-sm p-4">No open puzzles in this room.</p>
-                             )
-                        )}
-                        {activePuzzleTab === 'complete' && (
-                            completedPuzzles.length > 0 ? (
-                                completedPuzzles.map(puzzle => (
-                                    <PuzzleItem 
-                                        key={puzzle.id} 
-                                        puzzle={puzzle} 
-                                        onToggle={handleTogglePuzzle} 
-                                        onAttemptSolve={handleAttemptSolve}
-                                        onToggleImage={handleTogglePuzzleImage}
-                                    />
-                                ))
-                            ) : (
-                                <p className="text-slate-400 italic text-sm p-4">No completed puzzles in this room.</p>
-                            )
-                        )}
-                    </div>
-                  </div>
-                )}
-                
-                {!game.hideAvailableObjects && currentRoom.objects && currentRoom.objects.length > 0 && (
-                  <div className="mt-8 pt-6 border-t border-slate-700">
-                    <h2 className="text-lg font-semibold mb-4 text-slate-300 flex items-baseline gap-2">
-                      <span>Available Objects</span>
-                      <span className="text-xs font-normal text-slate-400">(Toggle to add to inventory)</span>
-                    </h2>
-                    <div className="space-y-4">
-                      {availableObjects.length > 0 ? (
-                        availableObjects.map(obj => (
-                            <ObjectItem key={obj.id} obj={obj} onToggle={handleToggleObject} />
-                        ))
-                      ) : (
-                         <p className="text-slate-400">All objects from this room are in the inventory or have been discarded.</p>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </>
-            ) : (
-                 <p className="text-slate-400">Select a room to see details.</p>
-            )}
+                </div>
+            </div>
         </div>
       </main>
     </div>
   );
 };
 
+// FIX: Added default export for the PresenterView component.
 export default PresenterView;

@@ -116,6 +116,9 @@ export const createGame = async (title: string): Promise<Game> => {
         rooms: [newRoom],
         visitedRoomIds: [],
         hideAvailableObjects: false,
+        soundtrack: [],
+        soundtrackMode: 'sequential',
+        soundtrackVolume: 0.5,
     };
 
     try {

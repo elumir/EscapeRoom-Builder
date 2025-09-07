@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import * as gameService from '../services/presentationService';
 import { API_BASE_URL } from '../services/presentationService';
-import type { Game, Room as RoomType, InventoryObject, Puzzle, Action, Asset } from '../types';
+import type { Game, Room as RoomType, InventoryObject, Puzzle, Action, Asset, SoundtrackTrack } from '../types';
 import Room from '../components/Slide';
 import Icon from '../components/Icon';
 import Accordion from '../components/Accordion';
@@ -47,7 +47,7 @@ const Editor: React.FC = () => {
   const [modalContent, setModalContent] = useState<{type: 'notes' | 'solvedNotes', content: string} | null>(null);
   const [assetLibrary, setAssetLibrary] = useState<Asset[]>([]);
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
-  const [assetModalTarget, setAssetModalTarget] = useState<'image' | 'mapImage' | 'solvedImage' | 'modal-object' | null>(null);
+  const [assetModalTarget, setAssetModalTarget] = useState<'image' | 'mapImage' | 'solvedImage' | 'modal-object' | 'soundtrack' | null>(null);
   const [isAssetManagerOpen, setIsAssetManagerOpen] = useState(false);
   const [deletingAssetId, setDeletingAssetId] = useState<string | null>(null);
   const [editingAssetName, setEditingAssetName] = useState<{ id: string; name: string } | null>(null);
@@ -302,18 +302,25 @@ const Editor: React.FC = () => {
       }
   };
   
-  const openAssetLibrary = (target: 'image' | 'mapImage' | 'solvedImage' | 'modal-object') => {
+  const openAssetLibrary = (target: 'image' | 'mapImage' | 'solvedImage' | 'modal-object' | 'soundtrack') => {
       setAssetModalTarget(target);
       setIsAssetModalOpen(true);
   };
 
   const handleSelectAsset = (assetId: string) => {
-      if (!assetModalTarget) return;
+      if (!assetModalTarget || !game) return;
 
-      if (typeof assetModalTarget === 'string' && assetModalTarget !== 'modal-object') {
-          changeRoomProperty(assetModalTarget, assetId);
+      if (assetModalTarget === 'soundtrack') {
+        const asset = assetLibrary.find(a => a.id === assetId);
+        if (asset) {
+          const newTrack: SoundtrackTrack = { id: asset.id, name: asset.name };
+          const newSoundtrack = [...(game.soundtrack || []), newTrack];
+          updateGame({ ...game, soundtrack: newSoundtrack });
+        }
       } else if (assetModalTarget === 'modal-object') {
           handleModalObjectChange('image', assetId);
+      } else {
+          changeRoomProperty(assetModalTarget, assetId);
       }
       
       setIsAssetModalOpen(false);
@@ -322,7 +329,7 @@ const Editor: React.FC = () => {
 
   const handleDeleteAsset = async (assetId: string) => {
       if (!game || deletingAssetId) return;
-      if (!window.confirm('Are you sure you want to delete this asset? This cannot be undone and will remove the asset from all rooms, puzzles, and actions.')) return;
+      if (!window.confirm('Are you sure you want to delete this asset? This cannot be undone and will remove the asset from all rooms, puzzles, actions, and the soundtrack.')) return;
 
       setDeletingAssetId(assetId);
       try {
@@ -332,52 +339,60 @@ const Editor: React.FC = () => {
               setAssetLibrary(prev => prev.filter(asset => asset.id !== assetId));
 
               let gameWasModified = false;
-              const updatedGame: Game = {
-                  ...game,
-                  rooms: game.rooms.map(room => {
-                      let roomModified = false;
-                      const newRoom = { ...room };
+              let updatedGame: Game = { ...game };
 
-                      if (newRoom.image === assetId) { newRoom.image = null; roomModified = true; }
-                      if (newRoom.mapImage === assetId) { newRoom.mapImage = null; roomModified = true; }
-                      if (newRoom.solvedImage === assetId) { newRoom.solvedImage = null; roomModified = true; }
+              // Remove from soundtrack
+              const initialSoundtrackLength = updatedGame.soundtrack?.length || 0;
+              const newSoundtrack = (updatedGame.soundtrack || []).filter(track => track.id !== assetId);
+              if (newSoundtrack.length < initialSoundtrackLength) {
+                  updatedGame.soundtrack = newSoundtrack;
+                  gameWasModified = true;
+              }
 
-                      const newObjects = (newRoom.objects || []).map(obj => {
-                          if (obj.image === assetId) {
-                              roomModified = true;
-                              return { ...obj, image: null };
-                          }
-                          return obj;
-                      });
+              // Remove from rooms, puzzles, objects, actions
+              updatedGame.rooms = updatedGame.rooms.map(room => {
+                  let roomModified = false;
+                  const newRoom = { ...room };
 
-                      const newPuzzles = newRoom.puzzles.map(puzzle => {
-                          let puzzleModified = false;
-                          const newPuzzle = { ...puzzle };
-                          if (newPuzzle.image === assetId) { newPuzzle.image = null; puzzleModified = true; }
-                          if (newPuzzle.sound === assetId) { newPuzzle.sound = null; puzzleModified = true; }
-                          if (puzzleModified) roomModified = true;
-                          return newPuzzle;
-                      });
-                      
-                      const newActions = (newRoom.actions || []).map(action => {
-                         let actionModified = false;
-                         const newAction = { ...action };
-                         if (newAction.image === assetId) { newAction.image = null; actionModified = true; }
-                         if (newAction.sound === assetId) { newAction.sound = null; actionModified = true; }
-                         if (actionModified) roomModified = true;
-                         return newAction;
-                      });
+                  if (newRoom.image === assetId) { newRoom.image = null; roomModified = true; }
+                  if (newRoom.mapImage === assetId) { newRoom.mapImage = null; roomModified = true; }
+                  if (newRoom.solvedImage === assetId) { newRoom.solvedImage = null; roomModified = true; }
 
-                      if (roomModified) {
-                          gameWasModified = true;
+                  const newObjects = (newRoom.objects || []).map(obj => {
+                      if (obj.image === assetId) {
+                          roomModified = true;
+                          return { ...obj, image: null };
                       }
-                      
-                      newRoom.objects = newObjects;
-                      newRoom.puzzles = newPuzzles;
-                      newRoom.actions = newActions;
-                      return newRoom;
-                  })
-              };
+                      return obj;
+                  });
+
+                  const newPuzzles = newRoom.puzzles.map(puzzle => {
+                      let puzzleModified = false;
+                      const newPuzzle = { ...puzzle };
+                      if (newPuzzle.image === assetId) { newPuzzle.image = null; puzzleModified = true; }
+                      if (newPuzzle.sound === assetId) { newPuzzle.sound = null; puzzleModified = true; }
+                      if (puzzleModified) roomModified = true;
+                      return newPuzzle;
+                  });
+                  
+                  const newActions = (newRoom.actions || []).map(action => {
+                     let actionModified = false;
+                     const newAction = { ...action };
+                     if (newAction.image === assetId) { newAction.image = null; actionModified = true; }
+                     if (newAction.sound === assetId) { newAction.sound = null; actionModified = true; }
+                     if (actionModified) roomModified = true;
+                     return newAction;
+                  });
+
+                  if (roomModified) {
+                      gameWasModified = true;
+                  }
+                  
+                  newRoom.objects = newObjects;
+                  newRoom.puzzles = newPuzzles;
+                  newRoom.actions = newActions;
+                  return newRoom;
+              });
 
               if (gameWasModified) {
                   updateGame(updatedGame);
@@ -408,12 +423,21 @@ const Editor: React.FC = () => {
         setEditingAssetName(null);
         return;
     }
+    const newName = editingAssetName.name.trim();
 
-    const success = await gameService.updateAssetName(game.id, editingAssetName.id, editingAssetName.name.trim());
+    const success = await gameService.updateAssetName(game.id, editingAssetName.id, newName);
     if (success) {
         setAssetLibrary(prev => prev.map(asset => 
-            asset.id === editingAssetName.id ? { ...asset, name: editingAssetName.name.trim() } : asset
+            asset.id === editingAssetName.id ? { ...asset, name: newName } : asset
         ));
+        
+        // Also update name in soundtrack if it exists there
+        if (game.soundtrack?.some(t => t.id === editingAssetName.id)) {
+            const newSoundtrack = game.soundtrack.map(t => 
+                t.id === editingAssetName.id ? { ...t, name: newName } : t
+            );
+            updateGame({ ...game, soundtrack: newSoundtrack });
+        }
     } else {
         alert('Failed to update asset name.');
     }
@@ -841,6 +865,17 @@ const Editor: React.FC = () => {
       }));
   };
 
+  const handleSoundtrackSettingsChange = (field: 'soundtrackMode' | 'soundtrackVolume', value: any) => {
+    if (!game) return;
+    updateGame({ ...game, [field]: value });
+  };
+  
+  const handleRemoveSoundtrackTrack = (trackId: string) => {
+    if (!game) return;
+    const newSoundtrack = (game.soundtrack || []).filter(t => t.id !== trackId);
+    updateGame({ ...game, soundtrack: newSoundtrack });
+  };
+
 
   const COLORS = ['#000000', '#ffffff', '#f87171', '#fbbf24', '#34d399', '#60a5fa', '#a78bfa'];
 
@@ -938,15 +973,15 @@ const Editor: React.FC = () => {
        )}
        {isSettingsModalOpen && game && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 backdrop-blur-sm">
-            <div className="bg-white dark:bg-slate-800 p-8 rounded-lg shadow-2xl w-full max-w-lg border border-slate-200 dark:border-slate-700">
-                <div className="flex justify-between items-center mb-6">
+            <div className="bg-white dark:bg-slate-800 p-8 rounded-lg shadow-2xl w-full max-w-2xl border border-slate-200 dark:border-slate-700 h-[90vh] flex flex-col">
+                <div className="flex-shrink-0 flex justify-between items-center mb-6">
                     <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200">Game Settings</h2>
                     <button onClick={() => setIsSettingsModalOpen(false)} className="p-1.5 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700">
                         <Icon as="close" className="w-5 h-5" />
                     </button>
                 </div>
                 
-                <div className="space-y-6">
+                <div className="flex-grow space-y-6 overflow-y-auto pr-4 -mr-4">
                     {/* SHARING SECTION */}
                     <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-700">
                         <div className="flex justify-between items-center">
@@ -986,7 +1021,55 @@ const Editor: React.FC = () => {
                             </div>
                         )}
                     </div>
-
+                    {/* SOUNDTRACK SECTION */}
+                    <div>
+                        <h3 className="font-semibold text-slate-700 dark:text-slate-300 mb-2">Soundtrack</h3>
+                        <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-700 space-y-4">
+                            <div className="max-h-40 overflow-y-auto space-y-2 pr-2">
+                                {(game.soundtrack || []).length > 0 ? (
+                                    (game.soundtrack || []).map(track => (
+                                        <div key={track.id} className="flex items-center justify-between p-2 bg-white dark:bg-slate-800 rounded-md shadow-sm">
+                                            <div className="flex items-center gap-2 min-w-0">
+                                                <Icon as="audio" className="w-5 h-5 text-slate-500 flex-shrink-0" />
+                                                <p className="text-sm truncate text-slate-700 dark:text-slate-300">{track.name}</p>
+                                            </div>
+                                            <button onClick={() => handleRemoveSoundtrackTrack(track.id)} className="p-1 text-slate-400 hover:text-red-500 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700">
+                                                <Icon as="trash" className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <p className="text-sm text-slate-500 dark:text-slate-400 italic text-center py-4">No tracks added to the soundtrack.</p>
+                                )}
+                            </div>
+                            <button onClick={() => openAssetLibrary('soundtrack')} className="w-full text-sm flex items-center justify-center gap-2 px-3 py-2 bg-brand-500/10 text-brand-700 dark:text-brand-300 dark:bg-brand-500/20 rounded-md hover:bg-brand-500/20 transition-colors">
+                                <Icon as="plus" className="w-4 h-4"/>
+                                Add Track from Library
+                            </button>
+                            <div className="grid grid-cols-2 gap-4 pt-2">
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Playback Mode</label>
+                                    <div className="flex rounded-lg bg-slate-100 dark:bg-slate-800 p-1">
+                                        <button onClick={() => handleSoundtrackSettingsChange('soundtrackMode', 'sequential')} className={`flex-1 text-center text-xs px-2 py-1 rounded-md transition-colors ${game.soundtrackMode !== 'shuffle' ? 'bg-white dark:bg-slate-600 shadow-sm font-semibold' : 'hover:bg-white/50'}`}>Sequential</button>
+                                        <button onClick={() => handleSoundtrackSettingsChange('soundtrackMode', 'shuffle')} className={`flex-1 text-center text-xs px-2 py-1 rounded-md transition-colors ${game.soundtrackMode === 'shuffle' ? 'bg-white dark:bg-slate-600 shadow-sm font-semibold' : 'hover:bg-white/50'}`}>Shuffle</button>
+                                    </div>
+                                </div>
+                                <div>
+                                     <label htmlFor="soundtrackVolume" className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Default Volume</label>
+                                     <input
+                                        id="soundtrackVolume"
+                                        type="range"
+                                        min="0"
+                                        max="1"
+                                        step="0.05"
+                                        value={game.soundtrackVolume ?? 0.5}
+                                        onChange={e => handleSoundtrackSettingsChange('soundtrackVolume', parseFloat(e.target.value))}
+                                        className="w-full h-2 bg-slate-200 dark:bg-slate-600 rounded-lg appearance-none cursor-pointer"
+                                     />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <div>
                         <div className="flex justify-between items-center mb-2">
                             <h3 className="font-semibold text-slate-700 dark:text-slate-300">Global Background Color</h3>
@@ -1069,7 +1152,7 @@ const Editor: React.FC = () => {
                     </button>
                 </div>
 
-                <div className="mt-8 flex justify-end">
+                <div className="flex-shrink-0 mt-8 flex justify-end">
                     <button 
                         type="button" 
                         onClick={() => setIsSettingsModalOpen(false)} 
@@ -1135,27 +1218,44 @@ const Editor: React.FC = () => {
             <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60] backdrop-blur-sm">
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-2xl w-full max-w-4xl h-[80vh] flex flex-col">
                     <div className="flex justify-between items-center mb-4">
-                        <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">Asset Library</h2>
+                        <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">
+                            {assetModalTarget === 'soundtrack' ? 'Audio Library' : 'Image Library'}
+                        </h2>
                         <button onClick={() => setIsAssetModalOpen(false)} className="p-1.5 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700">
                             <Icon as="close" className="w-5 h-5" />
                         </button>
                     </div>
-                    {assetLibrary.length > 0 ? (
-                        <div className="flex-grow overflow-y-auto pr-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                            {assetLibrary.filter(asset => asset.mime_type.startsWith('image/')).map(asset => (
-                                <div key={asset.id} className="aspect-square group relative rounded-md overflow-hidden" onClick={() => handleSelectAsset(asset.id)}>
-                                    <img src={`${API_BASE_URL}/assets/${asset.id}`} alt="Game asset" className="w-full h-full object-cover"/>
-                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors flex items-center justify-center cursor-pointer">
-                                        <p className="text-white font-bold opacity-0 group-hover:opacity-100 transition-opacity">Select</p>
-                                    </div>
+                    {(() => {
+                        const isAudio = assetModalTarget === 'soundtrack';
+                        const filteredAssets = assetLibrary.filter(asset => asset.mime_type.startsWith(isAudio ? 'audio/' : 'image/'));
+
+                        if (filteredAssets.length > 0) {
+                            return (
+                                <div className="flex-grow overflow-y-auto pr-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                                    {filteredAssets.map(asset => (
+                                        <div key={asset.id} className="aspect-square group relative rounded-md overflow-hidden bg-slate-100 dark:bg-slate-700" onClick={() => handleSelectAsset(asset.id)}>
+                                            {isAudio ? (
+                                                <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 p-2 text-center">
+                                                    <Icon as="audio" className="w-12 h-12 mb-2"/>
+                                                    <p className="text-xs font-semibold">{asset.name}</p>
+                                                </div>
+                                            ) : (
+                                                <img src={`${API_BASE_URL}/assets/${asset.id}`} alt={asset.name} className="w-full h-full object-cover"/>
+                                            )}
+                                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors flex items-center justify-center cursor-pointer">
+                                                <p className="text-white font-bold opacity-0 group-hover:opacity-100 transition-opacity">Select</p>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="flex-grow flex items-center justify-center text-slate-500 dark:text-slate-400">
-                            <p>No image assets uploaded for this game yet.</p>
-                        </div>
-                    )}
+                            );
+                        }
+                        return (
+                            <div className="flex-grow flex items-center justify-center text-slate-500 dark:text-slate-400">
+                                <p>No {isAudio ? 'audio' : 'image'} assets uploaded for this game yet.</p>
+                            </div>
+                        )
+                    })()}
                 </div>
             </div>
         )}

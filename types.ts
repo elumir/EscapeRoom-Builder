@@ -9,6 +9,11 @@ export interface Asset {
   mime_type: string;
 }
 
+export interface SoundtrackTrack {
+  id: string;
+  name: string;
+}
+
 export interface InventoryObject {
   id: string;
   name: string;
@@ -81,4 +86,7 @@ export interface Game {
   rooms: Room[];
   visitedRoomIds: string[];
   hideAvailableObjects?: boolean;
+  soundtrack?: SoundtrackTrack[];
+  soundtrackMode?: 'sequential' | 'shuffle';
+  soundtrackVolume?: number;
 }
