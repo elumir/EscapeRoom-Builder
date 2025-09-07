@@ -78,6 +78,34 @@ const Settings: React.FC = () => {
         setIsAssetModalOpen(false);
     };
 
+    const handleSoundtrackUpload = async (file: File) => {
+        if (!game) return;
+        try {
+            // 1. Upload the asset
+            const { assetId } = await gameService.uploadAsset(game.id, file);
+            
+            // 2. Refresh the asset library to include the new asset
+            const updatedAssets = await gameService.getAssetsForGame(game.id);
+            setAssetLibrary(updatedAssets);
+            
+            // 3. Find the newly uploaded asset
+            const newAsset = updatedAssets.find(a => a.id === assetId);
+            if (newAsset) {
+                // 4. Add it to the soundtrack
+                const newTrack: SoundtrackTrack = { id: newAsset.id, name: newAsset.name };
+                const newSoundtrack = [...(game.soundtrack || []), newTrack];
+                handleGamePropertyChange('soundtrack', newSoundtrack);
+            }
+            
+            // 5. Close the modal
+            setIsAssetModalOpen(false);
+    
+        } catch (error) {
+            console.error("Soundtrack upload failed:", error);
+            alert("Failed to upload audio file. Please try again.");
+        }
+    };
+
     const handleRemoveSoundtrackTrack = (trackId: string) => {
         if (!game) return;
         const newSoundtrack = (game.soundtrack || []).filter(t => t.id !== trackId);
@@ -121,9 +149,25 @@ const Settings: React.FC = () => {
                     <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-2xl w-full max-w-4xl h-[80vh] flex flex-col">
                         <div className="flex justify-between items-center mb-4">
                             <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">Audio Library</h2>
-                            <button onClick={() => setIsAssetModalOpen(false)} className="p-1.5 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700">
-                                <Icon as="close" className="w-5 h-5" />
-                            </button>
+                            <div className="flex items-center gap-4">
+                                <label className="cursor-pointer flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm">
+                                    <Icon as="plus" className="w-4 h-4" />
+                                    Upload New
+                                    <input 
+                                        type="file" 
+                                        accept="audio/*" 
+                                        onChange={(e) => {
+                                            if (e.target.files && e.target.files[0]) {
+                                                handleSoundtrackUpload(e.target.files[0]);
+                                            }
+                                        }}
+                                        className="sr-only"
+                                    />
+                                </label>
+                                <button onClick={() => setIsAssetModalOpen(false)} className="p-1.5 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700">
+                                    <Icon as="close" className="w-5 h-5" />
+                                </button>
+                            </div>
                         </div>
                         {(() => {
                             const filteredAssets = assetLibrary.filter(asset => asset.mime_type.startsWith('audio/'));
@@ -155,7 +199,7 @@ const Settings: React.FC = () => {
             )}
             <header className="bg-white dark:bg-slate-800 shadow-md p-2 flex justify-between items-center z-10 flex-shrink-0">
                 <div className="flex items-center gap-4">
-                    <Link to={`/game/editor/${id}`} className="flex items-center gap-2 text-slate-500 dark:text-slate-400 p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md">
+                    <Link to={`/editor/${id}`} className="flex items-center gap-2 text-slate-500 dark:text-slate-400 p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md">
                         <Icon as="prev" className="w-5 h-5" />
                         Back to Editor
                     </Link>
