@@ -1222,6 +1222,7 @@ const PresenterView: React.FC = () => {
                                 .map((room) => {
                                 const index = room.originalIndex;
                                 const isLocked = lockingPuzzlesByRoomId.has(room.id);
+                                const lockingPuzzleName = lockingPuzzlesByRoomId.get(room.id);
                                 return (
                                     <button
                                         key={room.id}
@@ -1234,9 +1235,11 @@ const PresenterView: React.FC = () => {
                                                 ? 'bg-slate-700 opacity-50 cursor-not-allowed'
                                                 : 'bg-slate-700 hover:bg-slate-600'
                                         }`}
-                                        title={isLocked ? 'Locked' : ''}
+                                        title={isLocked ? `Locked by: ${lockingPuzzleName}` : ''}
                                     >
-                                        <h3 className="font-semibold text-sm truncate">{room.name}</h3>
+                                        <div className="flex items-center gap-2 min-w-0">
+                                            <span className="font-semibold text-sm truncate">{room.name}</span>
+                                        </div>
                                         {isLocked && <Icon as="lock" className="w-4 h-4 text-slate-400 flex-shrink-0" />}
                                     </button>
                                 );
@@ -1258,10 +1261,10 @@ const PresenterView: React.FC = () => {
                                 </button>
                                 <button
                                     onClick={handleAddCustomItem}
-                                    className="p-1.5 text-slate-400 hover:text-white"
-                                    title="Add custom temporary item"
+                                    className="px-3 py-1.5 text-xs font-semibold bg-slate-600 text-slate-200 rounded-lg hover:bg-slate-500 transition-colors"
+                                    title="Add a temporary item to the inventory for this session"
                                 >
-                                    <Icon as="plus" className="w-5 h-5" />
+                                    + Custom Item
                                 </button>
                             </div>
                         </div>
