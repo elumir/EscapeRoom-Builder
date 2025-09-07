@@ -160,7 +160,7 @@ const ActionItem: React.FC<{
 
                     {!action.hideCompleteButton && (
                         <label className={`flex items-center gap-2 text-sm ${isComplete ? 'text-slate-400' : 'text-green-300'} ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
-                            <span>Complete</span>
+                            <span>Hide</span>
                             <input
                                 type="checkbox"
                                 checked={isComplete}
