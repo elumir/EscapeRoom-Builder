@@ -1218,6 +1218,38 @@ const PresenterView: React.FC = () => {
             )}
             
             <div className="flex-grow flex flex-col gap-4 overflow-hidden">
+                {/* Actions */}
+                <div className="flex-grow flex flex-col overflow-hidden bg-slate-700/50 p-3 rounded-lg">
+                    <div className="flex-shrink-0 flex items-center justify-between mb-2">
+                        <h3 className="text-md font-semibold text-slate-300">Player Actions</h3>
+                        <div className="flex items-center gap-1 text-sm bg-slate-800 p-1 rounded-md">
+                            <button onClick={() => setActiveActionTab('open')} className={`px-2 py-0.5 rounded ${activeActionTab === 'open' ? 'bg-slate-600' : ''}`}>Open</button>
+                            <button onClick={() => setActiveActionTab('complete')} className={`px-2 py-0.5 rounded ${activeActionTab === 'complete' ? 'bg-slate-600' : ''}`}>Complete</button>
+                        </div>
+                    </div>
+                    <div className="flex-grow overflow-y-auto pr-2 -mr-3 space-y-4">
+                        {activeActionTab === 'open' && (openActions.length > 0 ? openActions.map(action => (
+                            <ActionItem 
+                                key={action.id} 
+                                action={action} 
+                                onToggleImage={handleToggleActionImage}
+                                onToggleComplete={handleToggleActionComplete}
+                                isLocked={lockingPuzzlesByActionId.has(action.id)}
+                                lockingPuzzleName={lockingPuzzlesByActionId.get(action.id)}
+                            />
+                        )) : <p className="text-sm text-slate-400 italic">No available actions in this room.</p>)}
+                        
+                        {activeActionTab === 'complete' && (completedActions.length > 0 ? completedActions.map(action => (
+                            <ActionItem 
+                                key={action.id} 
+                                action={action} 
+                                onToggleImage={() => {}}
+                                onToggleComplete={() => {}}
+                            />
+                        )) : <p className="text-sm text-slate-400 italic">No completed actions in this room.</p>)}
+                    </div>
+                </div>
+
                 {/* Puzzles */}
                 <div className="flex-grow flex flex-col overflow-hidden bg-slate-700/50 p-3 rounded-lg">
                     <div className="flex-shrink-0 flex items-center justify-between mb-2">
@@ -1249,38 +1281,6 @@ const PresenterView: React.FC = () => {
                                 onAttemptSolve={() => {}}
                             />
                         )) : <p className="text-sm text-slate-400 italic">No completed puzzles in this room.</p>)}
-                    </div>
-                </div>
-                
-                {/* Actions */}
-                <div className="flex-grow flex flex-col overflow-hidden bg-slate-700/50 p-3 rounded-lg">
-                    <div className="flex-shrink-0 flex items-center justify-between mb-2">
-                        <h3 className="text-md font-semibold text-slate-300">Player Actions</h3>
-                        <div className="flex items-center gap-1 text-sm bg-slate-800 p-1 rounded-md">
-                            <button onClick={() => setActiveActionTab('open')} className={`px-2 py-0.5 rounded ${activeActionTab === 'open' ? 'bg-slate-600' : ''}`}>Open</button>
-                            <button onClick={() => setActiveActionTab('complete')} className={`px-2 py-0.5 rounded ${activeActionTab === 'complete' ? 'bg-slate-600' : ''}`}>Complete</button>
-                        </div>
-                    </div>
-                    <div className="flex-grow overflow-y-auto pr-2 -mr-3 space-y-4">
-                        {activeActionTab === 'open' && (openActions.length > 0 ? openActions.map(action => (
-                            <ActionItem 
-                                key={action.id} 
-                                action={action} 
-                                onToggleImage={handleToggleActionImage}
-                                onToggleComplete={handleToggleActionComplete}
-                                isLocked={lockingPuzzlesByActionId.has(action.id)}
-                                lockingPuzzleName={lockingPuzzlesByActionId.get(action.id)}
-                            />
-                        )) : <p className="text-sm text-slate-400 italic">No available actions in this room.</p>)}
-                        
-                        {activeActionTab === 'complete' && (completedActions.length > 0 ? completedActions.map(action => (
-                            <ActionItem 
-                                key={action.id} 
-                                action={action} 
-                                onToggleImage={() => {}}
-                                onToggleComplete={() => {}}
-                            />
-                        )) : <p className="text-sm text-slate-400 italic">No completed actions in this room.</p>)}
                     </div>
                 </div>
             </div>
