@@ -259,7 +259,7 @@ const PresenterView: React.FC = () => {
   const handleToggleCustomItem = (itemId: string, newState: boolean) => {
     setCustomItems(prev => prev.map(item => 
       item.id === itemId 
-        ? { ...item, showInInventory: newState } 
+        ? { ...item, showInInventory: newState, addedToInventoryTimestamp: newState ? Date.now() : item.addedToInventoryTimestamp } 
         : item
     ));
   };
@@ -1287,12 +1287,25 @@ const PresenterView: React.FC = () => {
                     </div>
                 )}
                 {activeTab === 'discarded' && (
-                    <div className="space-y-4">
+                    <div className="space-y-2">
                         <h3 className="text-lg font-semibold text-slate-300">Discarded Items</h3>
                         {combinedDiscardedObjects.length > 0 ? (
-                             combinedDiscardedObjects.map(obj => (
-                                <div key={obj.id} className="p-3 bg-slate-700/50 rounded-lg opacity-60">
-                                    <h4 className="font-semibold text-slate-400 line-through">{obj.name}</h4>
+                            combinedDiscardedObjects.map(obj => (
+                                <div key={obj.id} className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg opacity-80">
+                                    <h4 className="font-semibold text-slate-400 line-through truncate" title={obj.name}>{obj.name}</h4>
+                                    <button
+                                        onClick={() => {
+                                            if (obj.id.startsWith('custom-')) {
+                                                handleToggleCustomItem(obj.id, true);
+                                            } else {
+                                                handleToggleObject(obj.id, true);
+                                            }
+                                        }}
+                                        className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-600 rounded-full transition-colors flex-shrink-0"
+                                        title="Move back to inventory"
+                                    >
+                                        <Icon as="restart" className="w-4 h-4" />
+                                    </button>
                                 </div>
                             ))
                         ) : (
