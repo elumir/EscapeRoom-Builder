@@ -66,7 +66,7 @@ const Room: React.FC<RoomProps> = ({ room, inventoryObjects, visibleMapImages, c
 
   return (
     <div
-      className={`relative aspect-video w-full overflow-hidden shadow-lg flex transition-all duration-300 ${className}`}
+      className={`relative w-full h-full overflow-hidden shadow-lg flex transition-all duration-300 ${className}`}
       style={{ backgroundColor: isFullScreenImage ? '#000' : backgroundColor }}
     >
       <div className={imageContainerClass}>

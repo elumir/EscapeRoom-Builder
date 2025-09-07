@@ -21,6 +21,7 @@ const PresentationView: React.FC = () => {
   const [currentRoomIndex, setCurrentRoomIndex] = useState(0);
   const [previousRoomIndex, setPreviousRoomIndex] = useState<number | null>(null);
   const [customItems, setCustomItems] = useState<InventoryObject[]>([]);
+  const [isFadingOut, setIsFadingOut] = useState(false); // State to control the fade animation
 
   const channelName = `game-${id}`;
 
@@ -75,13 +76,34 @@ const PresentationView: React.FC = () => {
   const transitionDuration = isTransitioning ? (currentRoom?.transitionDuration || 1) : 0;
 
   useEffect(() => {
+    let fadeTimerId: number;
+    // FIX: Replaced `NodeJS.Timeout` with `ReturnType<typeof setTimeout>` to resolve a TypeScript type error.
+    // `NodeJS.Timeout` is specific to the Node.js environment, while this code runs in a browser context where `setTimeout` returns a different type (typically a number).
+    // Using `ReturnType<typeof setTimeout>` makes the code environment-agnostic.
+    let endTransitionTimerId: ReturnType<typeof setTimeout>;
+
     if (isTransitioning) {
-      const handle = setTimeout(() => {
-        setPreviousRoomIndex(null);
-      }, transitionDuration * 1000);
-      return () => clearTimeout(handle);
+        // When a transition starts, the previous room component is rendered.
+        // It starts with opacity-100 because isFadingOut is false.
+        
+        // On the next frame, we set isFadingOut to true to trigger the fade animation.
+        fadeTimerId = requestAnimationFrame(() => {
+            setIsFadingOut(true);
+        });
+
+        // After the animation duration, we remove the previous room from the DOM.
+        endTransitionTimerId = setTimeout(() => {
+            setPreviousRoomIndex(null);
+            setIsFadingOut(false); // Reset state for the next transition
+        }, transitionDuration * 1000);
     }
-  }, [isTransitioning, transitionDuration, currentRoomIndex]);
+
+    return () => {
+        // Cleanup timers if the component unmounts or dependencies change mid-transition.
+        cancelAnimationFrame(fadeTimerId);
+        clearTimeout(endTransitionTimerId);
+    };
+  }, [isTransitioning, transitionDuration]);
 
 
   if (status === 'loading') {
@@ -121,22 +143,14 @@ const PresentationView: React.FC = () => {
         <Room 
           room={currentRoom}
           {...calculateRoomProps(currentRoom)}
-          className="w-full h-full shadow-none"
+          className="absolute inset-0 shadow-none"
         />
 
         {/* Previous room is layered on top and fades out */}
         {isTransitioning && previousRoom &&
             <div 
-                className="absolute inset-0 w-full h-full opacity-0 transition-opacity"
+                className={`absolute inset-0 w-full h-full transition-opacity ${isFadingOut ? 'opacity-0' : 'opacity-100'}`}
                 style={{ transitionDuration: `${transitionDuration}s`, transitionTimingFunction: 'ease-in-out' }}
-                ref={el => {
-                    if (el) {
-                        el.style.opacity = '1';
-                        requestAnimationFrame(() => {
-                            el.style.opacity = '0';
-                        });
-                    }
-                }}
             >
                 <Room
                   room={previousRoom}
