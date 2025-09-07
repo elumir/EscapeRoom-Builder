@@ -2,6 +2,7 @@ import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
 import Editor from './pages/Editor';
+import Settings from './pages/Settings';
 import PresentationView from './pages/PresentationView';
 import PresenterView from './pages/PresenterView';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -27,6 +28,14 @@ const App: React.FC = () => {
               element={
                 <ProtectedRoute>
                   <Editor />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/settings/:id" 
+              element={
+                <ProtectedRoute>
+                  <Settings />
                 </ProtectedRoute>
               } 
             />

@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface IconProps {
-  as: 'plus' | 'trash' | 'present' | 'prev' | 'next' | 'close' | 'reorder' | 'expand' | 'collapse' | 'lock' | 'eye' | 'eye-slash' | 'chevron-down' | 'restart' | 'rewind' | 'settings' | 'gallery' | 'audio' | 'map' | 'edit' | 'shuffle';
+  as: 'plus' | 'trash' | 'present' | 'prev' | 'next' | 'close' | 'reorder' | 'expand' | 'collapse' | 'lock' | 'eye' | 'eye-slash' | 'chevron-down' | 'restart' | 'rewind' | 'settings' | 'gallery' | 'audio' | 'map' | 'edit' | 'shuffle' | 'swatch' | 'share';
   className?: string;
 }
 
@@ -117,6 +117,16 @@ const icons = {
   shuffle: (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 11.667 0m-11.667 0-3.181 3.183m0-11.667a8.25 8.25 0 0 1 11.667 0m0 0h-4.992m4.992 0-3.181-3.183m-11.667-3.183a8.25 8.25 0 0 1 11.667 0m0 0v4.992m0 0-3.181-3.183" />
+    </svg>
+  ),
+  swatch: (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h7.5" />
+    </svg>
+  ),
+  share: (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.195.025.39.05.588.08m-5.858 2.106c.195-.025.39-.05.588-.08m5.858 0a2.25 2.25 0 0 1 2.25 2.25m0-2.25a2.25 2.25 0 0 0-2.25 2.25m0 0v3.126c0 .199-.02.395-.057.588m-6.161-4.41a2.25 2.25 0 0 1 2.25-2.25m0 0a2.25 2.25 0 0 0-2.25-2.25m0 0v3.126c0 .199.02.395.057.588m6.161 2.206a2.25 2.25 0 0 1-2.25 2.25m0 0a2.25 2.25 0 0 0 2.25 2.25m0 0v3.126c0 .199-.02.395-.057.588m-6.161-4.41a2.25 2.25 0 0 1 2.25-2.25m0 0a2.25 2.25 0 0 0-2.25-2.25m0 0v3.126c0 .199.02.395.057.588" />
     </svg>
   )
 };

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import * as gameService from '../services/presentationService';
 import { API_BASE_URL } from '../services/presentationService';
-import type { Game, Room as RoomType, InventoryObject, Puzzle, Action, Asset, SoundtrackTrack } from '../types';
+import type { Game, Room as RoomType, InventoryObject, Puzzle, Action, Asset } from '../types';
 import Room from '../components/Slide';
 import Icon from '../components/Icon';
 import Accordion from '../components/Accordion';
@@ -38,7 +38,6 @@ const Editor: React.FC = () => {
   const [editingRoomPuzzles, setEditingRoomPuzzles] = useState<Puzzle[]>([]);
   const [editingRoomActions, setEditingRoomActions] = useState<Action[]>([]);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
-  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [openObjectRemoveDropdown, setOpenObjectRemoveDropdown] = useState<boolean>(false);
   const [objectRemoveSearch, setObjectRemoveSearch] = useState('');
   const [draggedRoomIndex, setDraggedRoomIndex] = useState<number | null>(null);
@@ -47,7 +46,7 @@ const Editor: React.FC = () => {
   const [modalContent, setModalContent] = useState<{type: 'notes' | 'solvedNotes', content: string} | null>(null);
   const [assetLibrary, setAssetLibrary] = useState<Asset[]>([]);
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
-  const [assetModalTarget, setAssetModalTarget] = useState<'image' | 'mapImage' | 'solvedImage' | 'modal-object' | 'soundtrack' | null>(null);
+  const [assetModalTarget, setAssetModalTarget] = useState<'image' | 'mapImage' | 'solvedImage' | 'modal-object' | null>(null);
   const [isAssetManagerOpen, setIsAssetManagerOpen] = useState(false);
   const [deletingAssetId, setDeletingAssetId] = useState<string | null>(null);
   const [editingAssetName, setEditingAssetName] = useState<{ id: string; name: string } | null>(null);
@@ -74,7 +73,6 @@ const Editor: React.FC = () => {
   const [collapsedActs, setCollapsedActs] = useState<Record<number, boolean>>({});
   const [objectModalState, setObjectModalState] = useState<{ object: InventoryObject; index: number } | null>(null);
   const [modalObjectData, setModalObjectData] = useState<InventoryObject | null>(null);
-  const [copySuccess, setCopySuccess] = useState(false);
 
 
   const objectRemoveDropdownRef = useRef<HTMLDivElement>(null);
@@ -302,7 +300,7 @@ const Editor: React.FC = () => {
       }
   };
   
-  const openAssetLibrary = (target: 'image' | 'mapImage' | 'solvedImage' | 'modal-object' | 'soundtrack') => {
+  const openAssetLibrary = (target: 'image' | 'mapImage' | 'solvedImage' | 'modal-object') => {
       setAssetModalTarget(target);
       setIsAssetModalOpen(true);
   };
@@ -310,14 +308,7 @@ const Editor: React.FC = () => {
   const handleSelectAsset = (assetId: string) => {
       if (!assetModalTarget || !game) return;
 
-      if (assetModalTarget === 'soundtrack') {
-        const asset = assetLibrary.find(a => a.id === assetId);
-        if (asset) {
-          const newTrack: SoundtrackTrack = { id: asset.id, name: asset.name };
-          const newSoundtrack = [...(game.soundtrack || []), newTrack];
-          updateGame({ ...game, soundtrack: newSoundtrack });
-        }
-      } else if (assetModalTarget === 'modal-object') {
+      if (assetModalTarget === 'modal-object') {
           handleModalObjectChange('image', assetId);
       } else {
           changeRoomProperty(assetModalTarget, assetId);
@@ -674,19 +665,6 @@ const Editor: React.FC = () => {
     setIsResetModalOpen(false);
   };
 
-  const handleDeleteGame = async () => {
-    if (!game) return;
-
-    if (window.confirm('Are you absolutely sure you want to delete this game? This action is permanent and cannot be undone.')) {
-      const success = await gameService.deleteGame(game.id);
-      if (success) {
-        navigate('/');
-      } else {
-        alert('Failed to delete game. Please try again.');
-      }
-    }
-  };
-
   const handleDragStart = (index: number) => {
     setDraggedRoomIndex(index);
   };
@@ -819,63 +797,12 @@ const Editor: React.FC = () => {
     }, 0);
   };
 
-  const handleGlobalColorChange = (color: string | null) => {
-    if (!game) return;
-    const updatedGame = { ...game, globalBackgroundColor: color };
-    updateGame(updatedGame);
-  };
-
-  const handleMapDisplayModeChange = (mode: 'room-specific' | 'layered') => {
-    if (!game) return;
-    const updatedGame = { ...game, mapDisplayMode: mode };
-    updateGame(updatedGame);
-  };
-
-  const handleHideAvailableObjectsChange = (hide: boolean) => {
-    if (!game) return;
-    const updatedGame = { ...game, hideAvailableObjects: hide };
-    updateGame(updatedGame);
-  };
-
-  const handleVisibilityChange = async (isPublic: boolean) => {
-    if (!game) return;
-    const newVisibility = isPublic ? 'public' : 'private';
-    try {
-      await gameService.updateGameVisibility(game.id, newVisibility);
-      setGame({ ...game, visibility: newVisibility });
-    } catch (error) {
-      console.error("Failed to update visibility:", error);
-      alert("Could not update game visibility. Please try again.");
-    }
-  };
-
-  const handleCopyLink = () => {
-    if (!game || game.visibility !== 'public') return;
-    const link = `${window.location.origin}/game/presenter/${game.id}`;
-    navigator.clipboard.writeText(link).then(() => {
-        setCopySuccess(true);
-        setTimeout(() => setCopySuccess(false), 2000);
-    });
-  };
-
   const toggleActCollapse = (actNumber: number) => {
       setCollapsedActs(prev => ({
           ...prev,
           [actNumber]: !prev[actNumber]
       }));
   };
-
-  const handleSoundtrackSettingsChange = (field: 'soundtrackMode' | 'soundtrackVolume', value: any) => {
-    if (!game) return;
-    updateGame({ ...game, [field]: value });
-  };
-  
-  const handleRemoveSoundtrackTrack = (trackId: string) => {
-    if (!game) return;
-    const newSoundtrack = (game.soundtrack || []).filter(t => t.id !== trackId);
-    updateGame({ ...game, soundtrack: newSoundtrack });
-  };
-
 
   const COLORS = ['#000000', '#ffffff', '#f87171', '#fbbf24', '#34d399', '#60a5fa', '#a78bfa'];
 
@@ -971,199 +898,6 @@ const Editor: React.FC = () => {
             </div>
         </div>
        )}
-       {isSettingsModalOpen && game && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 backdrop-blur-sm">
-            <div className="bg-white dark:bg-slate-800 p-8 rounded-lg shadow-2xl w-full max-w-2xl border border-slate-200 dark:border-slate-700 h-[90vh] flex flex-col">
-                <div className="flex-shrink-0 flex justify-between items-center mb-6">
-                    <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200">Game Settings</h2>
-                    <button onClick={() => setIsSettingsModalOpen(false)} className="p-1.5 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700">
-                        <Icon as="close" className="w-5 h-5" />
-                    </button>
-                </div>
-                
-                <div className="flex-grow space-y-6 overflow-y-auto pr-4 -mr-4">
-                    {/* SHARING SECTION */}
-                    <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-700">
-                        <div className="flex justify-between items-center">
-                            <h3 className="font-semibold text-slate-700 dark:text-slate-300">Sharing</h3>
-                            <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer">
-                                <span>Private</span>
-                                <input
-                                    type="checkbox"
-                                    className="sr-only peer"
-                                    checked={game.visibility === 'public'}
-                                    onChange={(e) => handleVisibilityChange(e.target.checked)}
-                                />
-                                <div className="relative w-11 h-6 bg-slate-300 dark:bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-600"></div>
-                                <span>Public</span>
-                            </label>
-                        </div>
-                        <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
-                            {game.visibility === 'private' 
-                                ? 'Only you can present this game.' 
-                                : 'Anyone with the link can present this game. They cannot edit it.'
-                            }
-                        </p>
-                        {game.visibility === 'public' && (
-                            <div className="mt-4">
-                                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Shareable Presenter Link</label>
-                                <div className="flex items-center gap-2">
-                                    <input
-                                        type="text"
-                                        readOnly
-                                        value={`${window.location.origin}/game/presenter/${game.id}`}
-                                        className="w-full text-sm px-3 py-1.5 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300"
-                                    />
-                                    <button onClick={handleCopyLink} className="px-3 py-1.5 bg-brand-600 text-white rounded-md text-sm hover:bg-brand-700 transition-colors w-24 text-center">
-                                        {copySuccess ? 'Copied!' : 'Copy'}
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                    {/* SOUNDTRACK SECTION */}
-                    <div>
-                        <h3 className="font-semibold text-slate-700 dark:text-slate-300 mb-2">Soundtrack</h3>
-                        <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-700 space-y-4">
-                            <div className="max-h-40 overflow-y-auto space-y-2 pr-2">
-                                {(game.soundtrack || []).length > 0 ? (
-                                    (game.soundtrack || []).map(track => (
-                                        <div key={track.id} className="flex items-center justify-between p-2 bg-white dark:bg-slate-800 rounded-md shadow-sm">
-                                            <div className="flex items-center gap-2 min-w-0">
-                                                <Icon as="audio" className="w-5 h-5 text-slate-500 flex-shrink-0" />
-                                                <p className="text-sm truncate text-slate-700 dark:text-slate-300">{track.name}</p>
-                                            </div>
-                                            <button onClick={() => handleRemoveSoundtrackTrack(track.id)} className="p-1 text-slate-400 hover:text-red-500 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700">
-                                                <Icon as="trash" className="w-4 h-4" />
-                                            </button>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <p className="text-sm text-slate-500 dark:text-slate-400 italic text-center py-4">No tracks added to the soundtrack.</p>
-                                )}
-                            </div>
-                            <button onClick={() => openAssetLibrary('soundtrack')} className="w-full text-sm flex items-center justify-center gap-2 px-3 py-2 bg-brand-500/10 text-brand-700 dark:text-brand-300 dark:bg-brand-500/20 rounded-md hover:bg-brand-500/20 transition-colors">
-                                <Icon as="plus" className="w-4 h-4"/>
-                                Add Track from Library
-                            </button>
-                            <div className="grid grid-cols-2 gap-4 pt-2">
-                                <div>
-                                    <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Playback Mode</label>
-                                    <div className="flex rounded-lg bg-slate-100 dark:bg-slate-800 p-1">
-                                        <button onClick={() => handleSoundtrackSettingsChange('soundtrackMode', 'sequential')} className={`flex-1 text-center text-xs px-2 py-1 rounded-md transition-colors ${game.soundtrackMode !== 'shuffle' ? 'bg-white dark:bg-slate-600 shadow-sm font-semibold' : 'hover:bg-white/50'}`}>Sequential</button>
-                                        <button onClick={() => handleSoundtrackSettingsChange('soundtrackMode', 'shuffle')} className={`flex-1 text-center text-xs px-2 py-1 rounded-md transition-colors ${game.soundtrackMode === 'shuffle' ? 'bg-white dark:bg-slate-600 shadow-sm font-semibold' : 'hover:bg-white/50'}`}>Shuffle</button>
-                                    </div>
-                                </div>
-                                <div>
-                                     <label htmlFor="soundtrackVolume" className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Default Volume</label>
-                                     <input
-                                        id="soundtrackVolume"
-                                        type="range"
-                                        min="0"
-                                        max="1"
-                                        step="0.05"
-                                        value={game.soundtrackVolume ?? 0.5}
-                                        onChange={e => handleSoundtrackSettingsChange('soundtrackVolume', parseFloat(e.target.value))}
-                                        className="w-full h-2 bg-slate-200 dark:bg-slate-600 rounded-lg appearance-none cursor-pointer"
-                                     />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div>
-                        <div className="flex justify-between items-center mb-2">
-                            <h3 className="font-semibold text-slate-700 dark:text-slate-300">Global Background Color</h3>
-                            {game.globalBackgroundColor && (
-                                <button 
-                                    onClick={() => handleGlobalColorChange(null)}
-                                    className="text-sm text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 underline"
-                                >
-                                    Use Per-Room Colors
-                                </button>
-                            )}
-                        </div>
-                        <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
-                            Set one background color for all rooms. Clear it to use individual colors for each room.
-                        </p>
-                        <div className="flex flex-wrap gap-2 p-3 bg-slate-100 dark:bg-slate-700/50 rounded-lg">
-                            {COLORS.map(color => (
-                                <button 
-                                    key={color} 
-                                    onClick={() => handleGlobalColorChange(color)} 
-                                    className={`w-10 h-10 rounded-full border-2 ${game.globalBackgroundColor === color ? 'border-brand-500 ring-2 ring-brand-500' : 'border-slate-300 dark:border-slate-600'}`} 
-                                    style={{backgroundColor: color}}
-                                />
-                            ))}
-                        </div>
-                    </div>
-                     <div>
-                        <h3 className="font-semibold text-slate-700 dark:text-slate-300 mb-2">Map Display Mode</h3>
-                        <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
-                            Choose how map images are shown to players.
-                        </p>
-                        <div className="flex rounded-lg bg-slate-100 dark:bg-slate-700/50 p-1">
-                            <button
-                                onClick={() => handleMapDisplayModeChange('room-specific')}
-                                className={`flex-1 text-center text-sm px-3 py-1.5 rounded-md transition-colors ${
-                                    game.mapDisplayMode === 'room-specific'
-                                    ? 'bg-white dark:bg-slate-600 shadow-sm text-slate-800 dark:text-slate-100 font-semibold'
-                                    : 'text-slate-600 dark:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-600/50'
-                                }`}
-                            >
-                                Room Specific
-                            </button>
-                            <button
-                                onClick={() => handleMapDisplayModeChange('layered')}
-                                className={`flex-1 text-center text-sm px-3 py-1.5 rounded-md transition-colors ${
-                                    (game.mapDisplayMode === 'layered' || !game.mapDisplayMode)
-                                    ? 'bg-white dark:bg-slate-600 shadow-sm text-slate-800 dark:text-slate-100 font-semibold'
-                                    : 'text-slate-600 dark:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-600/50'
-                                }`}
-                            >
-                                Layered
-                            </button>
-                        </div>
-                    </div>
-                    <div>
-                        <h3 className="font-semibold text-slate-700 dark:text-slate-300 mb-2">Presenter View Options</h3>
-                        <label className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-400 cursor-pointer p-3 bg-slate-100 dark:bg-slate-700/50 rounded-lg">
-                            <input
-                                type="checkbox"
-                                className="rounded border-slate-400 text-brand-600 focus:ring-brand-500 w-4 h-4"
-                                checked={game.hideAvailableObjects || false}
-                                onChange={e => handleHideAvailableObjectsChange(e.target.checked)}
-                            />
-                            <span>Hide Available Objects in presenter view because all objects are automatically picked up.</span>
-                        </label>
-                    </div>
-                </div>
-
-                <div className="mt-8 pt-6 border-t border-red-500/30">
-                    <h3 className="font-semibold text-red-500 dark:text-red-400 mb-2">Danger Zone</h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
-                        This action cannot be undone. This will permanently delete the game and all its assets.
-                    </p>
-                    <button
-                        onClick={handleDeleteGame}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-300 shadow"
-                    >
-                        <Icon as="trash" className="w-5 h-5" />
-                        Delete this Game
-                    </button>
-                </div>
-
-                <div className="flex-shrink-0 mt-8 flex justify-end">
-                    <button 
-                        type="button" 
-                        onClick={() => setIsSettingsModalOpen(false)} 
-                        className="px-6 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors"
-                    >
-                        Done
-                    </button>
-                </div>
-            </div>
-        </div>
-       )}
       {modalContent !== null && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60] backdrop-blur-sm">
             <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-2xl w-full max-w-3xl h-[80vh] flex flex-col">
@@ -1219,29 +953,21 @@ const Editor: React.FC = () => {
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-2xl w-full max-w-4xl h-[80vh] flex flex-col">
                     <div className="flex justify-between items-center mb-4">
                         <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">
-                            {assetModalTarget === 'soundtrack' ? 'Audio Library' : 'Image Library'}
+                           Image Library
                         </h2>
                         <button onClick={() => setIsAssetModalOpen(false)} className="p-1.5 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700">
                             <Icon as="close" className="w-5 h-5" />
                         </button>
                     </div>
                     {(() => {
-                        const isAudio = assetModalTarget === 'soundtrack';
-                        const filteredAssets = assetLibrary.filter(asset => asset.mime_type.startsWith(isAudio ? 'audio/' : 'image/'));
+                        const filteredAssets = assetLibrary.filter(asset => asset.mime_type.startsWith('image/'));
 
                         if (filteredAssets.length > 0) {
                             return (
                                 <div className="flex-grow overflow-y-auto pr-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                                     {filteredAssets.map(asset => (
                                         <div key={asset.id} className="aspect-square group relative rounded-md overflow-hidden bg-slate-100 dark:bg-slate-700" onClick={() => handleSelectAsset(asset.id)}>
-                                            {isAudio ? (
-                                                <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 p-2 text-center">
-                                                    <Icon as="audio" className="w-12 h-12 mb-2"/>
-                                                    <p className="text-xs font-semibold">{asset.name}</p>
-                                                </div>
-                                            ) : (
-                                                <img src={`${API_BASE_URL}/assets/${asset.id}`} alt={asset.name} className="w-full h-full object-cover"/>
-                                            )}
+                                            <img src={`${API_BASE_URL}/assets/${asset.id}`} alt={asset.name} className="w-full h-full object-cover"/>
                                             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors flex items-center justify-center cursor-pointer">
                                                 <p className="text-white font-bold opacity-0 group-hover:opacity-100 transition-opacity">Select</p>
                                             </div>
@@ -1252,7 +978,7 @@ const Editor: React.FC = () => {
                         }
                         return (
                             <div className="flex-grow flex items-center justify-center text-slate-500 dark:text-slate-400">
-                                <p>No {isAudio ? 'audio' : 'image'} assets uploaded for this game yet.</p>
+                                <p>No image assets uploaded for this game yet.</p>
                             </div>
                         )
                     })()}
@@ -2072,13 +1798,13 @@ const Editor: React.FC = () => {
             <Icon as="gallery" className="w-5 h-5" />
             Assets
           </button>
-          <button
-            onClick={() => setIsSettingsModalOpen(true)}
+          <Link
+            to={`/game/settings/${id}`}
             className="flex items-center gap-2 px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
           >
             <Icon as="settings" className="w-5 h-5" />
             Settings
-          </button>
+          </Link>
           <button onClick={() => setIsResetModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors duration-300 shadow">
             <Icon as="present" className="w-5 h-5" />
             Present
