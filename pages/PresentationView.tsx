@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import * as gameService from '../services/presentationService';
 import type { Game, InventoryObject } from '../types';
@@ -12,100 +13,85 @@ interface BroadcastMessage {
   customItems?: InventoryObject[];
 }
 
-type Status = 'loading' | 'success' | 'error';
-
 const PresentationView: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
-  const [game, setGame] = useState<Game | null>(null);
-  const [status, setStatus] = useState<Status>('loading');
-  const [currentRoomIndex, setCurrentRoomIndex] = useState(0);
-  const [customItems, setCustomItems] = useState<InventoryObject[]>([]);
+    const { id } = useParams<{ id: string }>();
+    const [game, setGame] = useState<Game | null>(null);
+    const [customItems, setCustomItems] = useState<InventoryObject[]>([]);
+    const [currentRoomIndex, setCurrentRoomIndex] = useState(0);
+    const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
 
-  const channelName = `game-${id}`;
-
-  useBroadcastChannel<BroadcastMessage>(channelName, (message) => {
-    if (message.customItems) {
-      setCustomItems(message.customItems);
-    }
-    if (message.type === 'GOTO_ROOM' && message.roomIndex !== undefined) {
-      setCurrentRoomIndex(message.roomIndex);
-    }
-    if (message.type === 'STATE_SYNC' && message.game) {
-      setGame(message.game);
-      if (message.customItems) {
-        setCustomItems(message.customItems);
-      }
-    }
-  });
-
-  useEffect(() => {
-    if (id) {
-      const fetchInitialState = async () => {
-        // Use the new service function that can fetch public or private games
-        const data = await gameService.getGameForPresentation(id);
-        if (data) {
-          setGame(data);
-          setStatus('success');
-        } else {
-          setStatus('error');
+    const handleMessage = (message: BroadcastMessage) => {
+        if (message.type === 'GOTO_ROOM' && typeof message.roomIndex === 'number') {
+            setCurrentRoomIndex(message.roomIndex);
         }
-      };
-      fetchInitialState();
+        if (message.type === 'STATE_SYNC') {
+            if (message.game) {
+                setGame(message.game);
+            }
+            if (message.customItems) {
+                setCustomItems(message.customItems);
+            }
+        }
+    };
+
+    useBroadcastChannel<BroadcastMessage>(`game-${id}`, handleMessage);
+
+    useEffect(() => {
+        const fetchGame = async () => {
+            if (!id) return;
+            setStatus('loading');
+            const data = await gameService.getGameForPresentation(id);
+            if (data) {
+                setGame(data);
+                setStatus('success');
+            } else {
+                setStatus('error');
+            }
+        };
+        fetchGame();
+    }, [id]);
+
+    if (status === 'loading') {
+        return <div className="h-screen w-screen bg-black text-white flex items-center justify-center">Loading presentation...</div>;
     }
-  }, [id]);
 
-  const inventoryObjects = useMemo(() => {
-    const gameInventory = game?.rooms
-      .flatMap(r => r.objects)
-      .filter(t => t.showInInventory) || [];
-    
-    const customInventory = customItems
-      .filter(item => item.showInInventory);
-      
-    return [...customInventory, ...gameInventory];
-  }, [game, customItems]);
+    if (status === 'error' || !game) {
+        return <div className="h-screen w-screen bg-black text-white flex items-center justify-center">Error: Could not load game.</div>;
+    }
 
-  if (status === 'loading') {
-    return <div className="w-screen h-screen bg-black flex items-center justify-center text-white">Loading Game...</div>;
-  }
+    const currentRoom = game.rooms[currentRoomIndex];
+    if (!currentRoom) {
+         return <div className="h-screen w-screen bg-black text-white flex items-center justify-center">Error: Invalid room index.</div>;
+    }
 
-  if (status === 'error' || !game) {
-     return <div className="w-screen h-screen bg-black flex items-center justify-center text-white">Could not load game. It may be private or does not exist.</div>;
-  }
+    const customInventory = customItems.filter(item => item.showInInventory);
+    const regularInventory = game.rooms.flatMap(r => r.objects).filter(o => o.showInInventory);
+    const inventoryObjects = [...customInventory, ...regularInventory]
+        .sort((a, b) => (b.addedToInventoryTimestamp || 0) - (a.addedToInventoryTimestamp || 0));
 
-  const currentRoom = game.rooms[currentRoomIndex];
+    const visibleMapImages = game.mapDisplayMode === 'layered'
+        ? game.rooms
+            .filter(r => game.visitedRoomIds.includes(r.id))
+            .map(r => r.mapImage)
+            .filter((i): i is string => !!i)
+        : [currentRoom.mapImage].filter((i): i is string => !!i);
 
-  if (!currentRoom) {
-      return <div className="w-screen h-screen bg-black flex items-center justify-center text-white">End of Game</div>;
-  }
-  
-  const overlayImageUrl = 
-    currentRoom.puzzles.find(p => p.showImageOverlay)?.image ||
-    (currentRoom.actions || []).find(a => a.showImageOverlay)?.image ||
-    game.rooms.flatMap(r => r.objects).find(o => o.showImageOverlay)?.image ||
-    null;
-  
-  const visibleMapImages = (game.mapDisplayMode === 'room-specific')
-    ? [currentRoom.mapImage].filter(Boolean)
-    : game.rooms
-      .filter(r => game.visitedRoomIds.includes(r.id))
-      .map(r => r.mapImage)
-      .filter(Boolean);
+    const activeOverlay = currentRoom.objects.find(o => o.showImageOverlay) || currentRoom.puzzles.find(p => p.showImageOverlay) || (currentRoom.actions || []).find(a => a.showImageOverlay);
+    const overlayImageUrl = activeOverlay?.image;
 
-  return (
-    <div className="w-screen h-screen bg-black flex items-center justify-center">
-      <div className="w-full max-w-[calc(100vh*16/9)] max-h-[calc(100vw*9/16)] aspect-video">
-        <Room 
-          room={currentRoom} 
-          inventoryObjects={inventoryObjects}
-          visibleMapImages={visibleMapImages}
-          overlayImageUrl={overlayImageUrl}
-          className="w-full h-full shadow-none" 
-          globalBackgroundColor={game.globalBackgroundColor}
-        />
-      </div>
-    </div>
-  );
+    return (
+        <div className="h-screen w-screen bg-black flex items-center justify-center">
+            <div className="w-full max-w-7xl aspect-video">
+                <Room
+                    room={currentRoom}
+                    inventoryObjects={inventoryObjects}
+                    visibleMapImages={visibleMapImages}
+                    overlayImageUrl={overlayImageUrl}
+                    globalBackgroundColor={game.globalBackgroundColor}
+                />
+            </div>
+        </div>
+    );
 };
 
 export default PresentationView;
