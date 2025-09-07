@@ -1239,8 +1239,8 @@ const PresenterView: React.FC = () => {
                                     >
                                         <div className="flex items-center gap-2 min-w-0">
                                             <span className="font-semibold text-sm truncate">{room.name}</span>
+                                            {isLocked && <Icon as="lock" className="w-4 h-4 text-slate-400 flex-shrink-0" />}
                                         </div>
-                                        {isLocked && <Icon as="lock" className="w-4 h-4 text-slate-400 flex-shrink-0" />}
                                     </button>
                                 );
                             })}
@@ -1460,8 +1460,10 @@ const PresenterView: React.FC = () => {
                             <ActionItem 
                                 key={action.id} 
                                 action={action} 
-                                onToggleImage={() => {}}
-                                onToggleComplete={() => {}}
+                                onToggleImage={handleToggleActionImage}
+                                onToggleComplete={handleToggleActionComplete}
+                                isLocked={lockingPuzzlesByActionId.has(action.id)}
+                                lockingPuzzleName={lockingPuzzlesByActionId.get(action.id)}
                             />
                         )) : <p className="text-sm text-slate-400 italic">No completed actions in this room.</p>)}
                     </div>
