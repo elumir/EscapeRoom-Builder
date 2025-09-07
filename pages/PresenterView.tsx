@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import * as gameService from '../services/presentationService';
@@ -688,8 +687,7 @@ const PresenterView: React.FC = () => {
     const screenHeight = window.screen.availHeight;
     const aspectRatio = 16 / 9;
 
-    // FIX: Explicitly type width and height to avoid potential type inference issues.
-    let width: number, height: number;
+    let width, height;
 
     if ((screenWidth / screenHeight) > aspectRatio) {
       // Screen is wider than 16:9, so height is the limiting factor.
@@ -1292,4 +1290,5 @@ const PresenterView: React.FC = () => {
   );
 };
 
+// FIX: Added default export for the PresenterView component.
 export default PresenterView;
