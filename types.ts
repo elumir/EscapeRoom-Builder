@@ -1,4 +1,5 @@
 
+
 export interface InventoryObject {
     id: string;
     name: string;
@@ -60,6 +61,9 @@ export interface Room {
     actions: Action[];
     objectRemoveIds?: string[];
     objectRemoveText?: string;
+    // FIX: Add transition properties to support room transition effects.
+    transitionType?: 'none' | 'fade';
+    transitionDuration?: number;
 }
 
 export interface SoundtrackTrack {
