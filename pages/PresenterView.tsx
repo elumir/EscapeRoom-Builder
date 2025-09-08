@@ -511,10 +511,11 @@ const PresenterView: React.FC = () => {
             ...room,
             objects: room.objects.map(obj => {
                 if (obj.id === objectId) {
-                    const newObj = { ...obj, showInInventory: newState };
+                    const newObj: InventoryObject = { ...obj, showInInventory: newState };
                     if (newState) { // Item is being added to inventory
                         newObj.wasEverInInventory = true;
                         newObj.addedToInventoryTimestamp = Date.now();
+                        newObj.showInRoomImage = false; // Hide in-room image when picked up
                     } else { // Item is being removed from inventory (discarded)
                         if (game.discardMode === 'return_to_room') {
                             // By setting this to false, it will reappear in its original room
@@ -720,6 +721,24 @@ const PresenterView: React.FC = () => {
         }))
     };
     updateAndBroadcast(updatedGame);
+  };
+
+  const handleToggleInRoomImage = (objectId: string, newState: boolean) => {
+      if (!game) return;
+
+      const updatedGame = {
+          ...game,
+          rooms: game.rooms.map(room => ({
+              ...room,
+              objects: room.objects.map(obj => {
+                  if (obj.id === objectId) {
+                      return { ...obj, showInRoomImage: newState };
+                  }
+                  return obj;
+              })
+          }))
+      };
+      updateAndBroadcast(updatedGame);
   };
 
   const handleToggleActionComplete = (actionId: string, newState: boolean) => {
@@ -1546,6 +1565,7 @@ const PresenterView: React.FC = () => {
                                 obj={obj}
                                 onToggle={handleToggleObject}
                                 variant="mini"
+                                onToggleInRoomImage={handleToggleInRoomImage}
                             />
                         ))}
                     </div>

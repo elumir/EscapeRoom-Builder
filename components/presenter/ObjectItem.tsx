@@ -35,95 +35,83 @@ const ObjectItem: React.FC<{
     isDescriptionVisible?: boolean;
     onToggleDescription?: (id: string) => void;
     onToggleImage?: (id: string, state: boolean) => void;
+    onToggleInRoomImage?: (id: string, state: boolean) => void;
     variant?: 'full' | 'mini';
 }> = ({ 
     obj, 
     onToggle, 
     lockingPuzzleName, 
-    showVisibilityToggle = false, 
-    isDescriptionVisible = true, 
+    showVisibilityToggle = false,
+    isDescriptionVisible = false,
     onToggleDescription,
     onToggleImage,
-    variant = 'full'
+    onToggleInRoomImage,
+    variant = 'full',
 }) => {
+    const colorClass = migrateObjectColorClass(obj.nameColor);
+    const textColorClass = colorClass.includes('text-') ? '' : 'text-white';
     const isLocked = !!lockingPuzzleName;
 
     if (variant === 'mini') {
         return (
-            <div className={`mt-1 flex flex-col p-1 rounded-sm ${isLocked ? 'opacity-50' : ''} ${migrateObjectColorClass(obj.nameColor)}`}>
-                <div className="flex items-center gap-1">
-                    <h4 className={`font-bold text-[9px] truncate flex-grow ${!obj.nameColor ? 'text-brand-400/80' : ''}`}>{obj.name}</h4>
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                        {obj.showInInventory ? (
-                            <button
-                                onClick={() => onToggle(obj.id, false)}
-                                disabled={isLocked}
-                                className="p-1 text-slate-400 hover:text-red-500 disabled:text-slate-600 disabled:cursor-not-allowed"
-                                title="Discard Item"
-                            >
-                                <Icon as="trash" className="w-4 h-4" />
-                            </button>
-                        ) : (
-                            <label className={`flex items-center transform scale-75 origin-center ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
-                                <input
-                                    type="checkbox"
-                                    checked={obj.showInInventory}
-                                    onChange={(e) => onToggle(obj.id, e.target.checked)}
-                                    className="sr-only peer"
-                                    disabled={isLocked}
-                                />
-                                <div className="relative w-9 h-5 bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-600"></div>
-                            </label>
-                        )}
-                         {showVisibilityToggle && onToggleDescription && (
-                            <button onClick={() => onToggleDescription(obj.id)} className="text-slate-500 hover:text-white flex-shrink-0">
-                               <Icon as={isDescriptionVisible ? 'eye-slash' : 'eye'} className="w-3 h-3" />
-                            </button>
-                        )}
+            <div className={`p-2 rounded-md ${colorClass} ${textColorClass} ${isLocked ? 'opacity-50' : ''}`}>
+                <div className="flex items-center justify-between gap-1">
+                    <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-sm truncate flex items-center gap-1">
+                            {isLocked && <Icon as="lock" className="w-3 h-3 text-current flex-shrink-0"/>}
+                            {obj.name}
+                        </h4>
                     </div>
-                </div>
-                <div className="min-w-0">
-                    {isDescriptionVisible && (
-                        <p className={`text-[8px] leading-tight break-words line-clamp-2 mt-1 ${!obj.nameColor ? 'text-slate-400' : ''}`}>{obj.description}</p>
+                    {onToggleInRoomImage && obj.inRoomImage && (
+                        <label className={`flex items-center transform scale-75 origin-right ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                            <input
+                                type="checkbox"
+                                checked={obj.showInRoomImage}
+                                onChange={(e) => onToggleInRoomImage(obj.id, e.target.checked)}
+                                className="sr-only peer"
+                                disabled={isLocked}
+                            />
+                            <div className="relative w-9 h-5 bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-sky-600"></div>
+                        </label>
                     )}
-                    {lockingPuzzleName && (
-                        <p className="text-red-500/80 text-[8px] leading-tight truncate mt-0.5">Locked by: {lockingPuzzleName}</p>
-                    )}
+                    <button
+                        onClick={() => onToggle(obj.id, true)}
+                        disabled={isLocked}
+                        className="p-1 bg-white/20 text-white rounded-full hover:bg-white/40 disabled:bg-white/10 disabled:cursor-not-allowed flex-shrink-0"
+                        title={lockingPuzzleName ? `Locked by: ${lockingPuzzleName}` : "Add to inventory"}
+                    >
+                        <Icon as="plus" className="w-3 h-3"/>
+                    </button>
                 </div>
             </div>
-        )
+        );
     }
 
     return (
-        <div className={`flex flex-col gap-2 p-4 rounded-lg transition-opacity ${isLocked ? 'opacity-50' : ''} ${migrateObjectColorClass(obj.nameColor)}`}>
-             <div className="flex items-center gap-4">
-                <h3 className={`font-bold flex-grow ${!obj.nameColor ? 'text-brand-400' : ''}`}>{obj.name}</h3>
-                <div className="flex items-center gap-3 flex-shrink-0">
-                    {obj.image && onToggleImage && (
+        <div className={`p-3 rounded-lg ${colorClass} ${textColorClass} ${isLocked ? 'opacity-50' : ''}`}>
+            <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                    <h4 className="font-semibold text-lg">{obj.name}</h4>
+                     {isLocked && (
+                        <p className="text-red-400 text-xs mt-1 flex items-center gap-1">
+                            <Icon as="lock" className="w-3 h-3"/>
+                            Locked by: {lockingPuzzleName}
+                        </p>
+                    )}
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                    {onToggleDescription && (
                         <button
-                            onClick={() => onToggleImage(obj.id, !obj.showImageOverlay)}
-                            disabled={isLocked}
-                            className={`p-1.5 rounded-full transition-colors ${
-                                obj.showImageOverlay
-                                    ? 'bg-sky-600 text-white'
-                                    : 'text-slate-400 hover:text-sky-400 hover:bg-slate-700'
-                            } disabled:text-slate-600 disabled:cursor-not-allowed disabled:bg-transparent disabled:hover:text-slate-600`}
-                            title={obj.showImageOverlay ? "Hide Image" : "Show Image"}
+                            onClick={() => onToggleDescription(obj.id)}
+                            className="p-1.5 text-current hover:bg-white/20 rounded-full"
+                            title={isDescriptionVisible ? "Hide description" : "Show description"}
                         >
-                            <Icon as="gallery" className="w-5 h-5" />
+                            <Icon as={isDescriptionVisible ? "eye-slash" : "eye"} className="w-5 h-5" />
                         </button>
                     )}
-                    {obj.showInInventory ? (
-                        <button
-                            onClick={() => onToggle(obj.id, false)}
-                            disabled={isLocked}
-                            className="p-1.5 text-slate-400 hover:text-red-500 disabled:text-slate-600 disabled:cursor-not-allowed"
-                            title="Discard Item"
-                        >
-                            <Icon as="trash" className="w-5 h-5" />
-                        </button>
-                    ) : (
-                        <label className={`flex items-center ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                    {showVisibilityToggle && (
+                        <label className={`flex items-center gap-2 text-sm ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                            <span>In Inventory</span>
                             <input
                                 type="checkbox"
                                 checked={obj.showInInventory}
@@ -131,26 +119,33 @@ const ObjectItem: React.FC<{
                                 className="sr-only peer"
                                 disabled={isLocked}
                             />
-                            <div className="relative w-11 h-6 bg-slate-600 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-brand-600"></div>
+                            <div className="relative w-11 h-6 bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
                         </label>
-                    )}
-                    {showVisibilityToggle && onToggleDescription && (
-                        <button onClick={() => onToggleDescription(obj.id)} className="text-slate-400 hover:text-white">
-                            <Icon as={isDescriptionVisible ? 'eye-slash' : 'eye'} className="w-5 h-5" />
-                        </button>
                     )}
                 </div>
             </div>
-            <div className="flex-1">
-                {isDescriptionVisible && (
-                    <p className={!obj.nameColor ? 'text-slate-300' : ''}>{obj.description}</p>
-                )}
-                {lockingPuzzleName && (
-                    <p className="text-red-500 text-xs mt-1">Locked by: {lockingPuzzleName}</p>
-                )}
-            </div>
+            {isDescriptionVisible && obj.description && (
+                <div className="mt-2 pt-2 border-t border-white/20 text-sm whitespace-pre-wrap">
+                    {obj.description}
+                </div>
+            )}
+            {onToggleImage && obj.image && (
+                <div className="mt-2 pt-2 border-t border-white/20">
+                     <label className={`flex items-center gap-2 text-sm text-current ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                        <span>Show Image Overlay</span>
+                        <input
+                            type="checkbox"
+                            checked={obj.showImageOverlay}
+                            onChange={(e) => onToggleImage(obj.id, e.target.checked)}
+                            className="sr-only peer"
+                            disabled={isLocked}
+                        />
+                        <div className="relative w-11 h-6 bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-600"></div>
+                    </label>
+                </div>
+            )}
         </div>
     );
-}
+};
 
 export default ObjectItem;

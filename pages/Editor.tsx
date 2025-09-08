@@ -452,7 +452,7 @@ const Editor: React.FC = () => {
   };
 
   const addObject = () => {
-    const newObject: InventoryObject = { id: generateUUID(), name: '', description: '', showInInventory: false, image: null, inRoomImage: null, showImageOverlay: false, nameColor: null, inventorySlot: 1 };
+    const newObject: InventoryObject = { id: generateUUID(), name: '', description: '', showInInventory: false, image: null, inRoomImage: null, showInRoomImage: false, showImageOverlay: false, nameColor: null, inventorySlot: 1 };
     const newObjects = [...editingRoomObjects, newObject];
     setEditingRoomObjects(newObjects);
     
