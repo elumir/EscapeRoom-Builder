@@ -452,7 +452,7 @@ const Editor: React.FC = () => {
   };
 
   const addObject = () => {
-    const newObject: InventoryObject = { id: generateUUID(), name: '', description: '', showInInventory: false, image: null, inRoomImage: null, showInRoomImage: false, showImageOverlay: false, nameColor: null, inventorySlot: 1 };
+    const newObject: InventoryObject = { id: generateUUID(), name: '', description: '', showInInventory: false, image: null, inRoomImage: null, showInRoomImage: true, showImageOverlay: false, nameColor: null, inventorySlot: 1 };
     const newObjects = [...editingRoomObjects, newObject];
     setEditingRoomObjects(newObjects);
     
@@ -1251,6 +1251,19 @@ const Editor: React.FC = () => {
                               </div>
                             )}
                           </div>
+                          {modalObjectData.inRoomImage && (
+                              <div className="mt-2 w-32">
+                                  <label className="flex items-center justify-center gap-2 text-xs text-slate-600 dark:text-slate-400 cursor-pointer p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700">
+                                      <input
+                                          type="checkbox"
+                                          className="w-4 h-4 rounded border-slate-400 text-brand-600 shadow-sm focus:ring-brand-500"
+                                          checked={modalObjectData.showInRoomImage ?? true}
+                                          onChange={(e) => handleModalObjectChange('showInRoomImage', e.target.checked)}
+                                      />
+                                      Initially Visible
+                                  </label>
+                              </div>
+                          )}
                         </div>
                     </div>
                 </div>
