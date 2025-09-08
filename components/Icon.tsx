@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface IconProps {
-  as: 'plus' | 'trash' | 'present' | 'prev' | 'next' | 'close' | 'reorder' | 'expand' | 'collapse' | 'lock' | 'eye' | 'eye-slash' | 'chevron-down' | 'restart' | 'rewind' | 'settings' | 'gallery' | 'audio' | 'map' | 'edit' | 'shuffle' | 'swatch' | 'share' | 'stop' | 'play' | 'font' | 'hand-expand' | 'description';
+  as: 'plus' | 'trash' | 'present' | 'prev' | 'next' | 'close' | 'reorder' | 'expand' | 'collapse' | 'lock' | 'eye' | 'eye-slash' | 'chevron-down' | 'restart' | 'rewind' | 'settings' | 'gallery' | 'audio' | 'map' | 'edit' | 'shuffle' | 'swatch' | 'share' | 'stop' | 'play' | 'font' | 'hand-expand' | 'description' | 'description-slash';
   className?: string;
 }
 
@@ -162,6 +162,18 @@ const icons = {
       <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 11.977h7.5" />
       <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 16.477h13.5" />
       <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3.023a1.5 1.5 0 0 0-1.5 1.5v14.954a1.5 1.5 0 0 0 1.5 1.5h19.5a1.5 1.5 0 0 0 1.5-1.5v-12a1.5 1.5 0 0 0-.426-1.047l-2.883-2.955a1.5 1.5 0 0 0-1.074-.452z" />
+    </svg>
+  ),
+  'description-slash': (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.4,7.5h2.2"/>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M5.1,7.5h.5"/>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M5.1,12h3.1"/>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15.1,16.5h3.9"/>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M5.1,16.5h5.9"/>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M18.5,21h3.2c.8,0,1.5-.7,1.5-1.5V7.5c0-.4-.2-.8-.4-1l-2.9-3c-.3-.3-.7-.5-1.1-.5H6.8"/>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M2.8,3h-.6c-.8,0-1.5.7-1.5,1.5v15c0,.8.7,1.5,1.5,1.5h11.3"/>
+        <line strokeLinecap="round" strokeLinejoin="round" x1="4.5" y1="1.1" x2="19.1" y2="22.9"/>
     </svg>
   ),
 };
