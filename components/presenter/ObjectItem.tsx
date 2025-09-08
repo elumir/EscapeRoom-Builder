@@ -80,7 +80,7 @@ const ObjectItem: React.FC<{
                         className="p-1 bg-white/20 text-white rounded-full hover:bg-white/40 disabled:bg-white/10 disabled:cursor-not-allowed flex-shrink-0"
                         title={lockingPuzzleName ? `Locked by: ${lockingPuzzleName}` : "Add to inventory"}
                     >
-                        <Icon as="plus" className="w-3 h-3"/>
+                        <Icon as="hand-expand" className="w-3 h-3"/>
                     </button>
                 </div>
             </div>
