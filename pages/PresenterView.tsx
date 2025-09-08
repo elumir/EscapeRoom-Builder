@@ -800,14 +800,18 @@ const PresenterView: React.FC = () => {
 
     let width, height;
 
-    if ((screenWidth / screenHeight) > aspectRatio) {
-      // Screen is wider than 16:9, so height is the limiting factor.
-      height = screenHeight;
-      width = height * aspectRatio;
-    } else {
-      // Screen is taller or same as 16:9, so width is the limiting factor.
-      width = screenWidth;
-      height = width / aspectRatio;
+    // Start with a width that is half of the available screen width.
+    width = screenWidth / 2;
+    // Calculate the corresponding height for a 16:9 aspect ratio.
+    height = width / aspectRatio;
+
+    // If the calculated height is more than half the available screen height,
+    // it means the screen is relatively tall. In this case, we should base the
+    // calculation on half the screen height instead to maintain the aspect ratio
+    // while fitting within the "half screen" boundary.
+    if (height > screenHeight / 2) {
+        height = screenHeight / 2;
+        width = height * aspectRatio;
     }
 
     width = Math.floor(width);
