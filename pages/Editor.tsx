@@ -43,7 +43,6 @@ const Editor: React.FC = () => {
   const [objectRemoveSearch, setObjectRemoveSearch] = useState('');
   const [draggedRoomIndex, setDraggedRoomIndex] = useState<number | null>(null);
   const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
-  const [previewSolved, setPreviewSolved] = useState(false);
   const [modalContent, setModalContent] = useState<{type: 'notes' | 'solvedNotes', content: string} | null>(null);
   const [assetLibrary, setAssetLibrary] = useState<Asset[]>([]);
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
@@ -254,7 +253,6 @@ const Editor: React.FC = () => {
     setEditingRoomObjects(room.objects || []);
     setEditingRoomPuzzles(room.puzzles || []);
     setEditingRoomActions(room.actions || []);
-    setPreviewSolved(false);
   };
 
   const addRoom = () => {
@@ -926,21 +924,12 @@ const Editor: React.FC = () => {
   }
 
   const currentRoom = game.rooms[selectedRoomIndex];
-  const inventoryObjects = game.rooms
-    .flatMap(r => r.objects)
-    .filter(t => t.showInInventory);
   
-  const visibleMapImages = game.mapDisplayMode === 'room-specific'
-    ? [currentRoom.mapImage].filter(Boolean)
-    : game.rooms.map(r => r.mapImage).filter(Boolean);
-
   const filteredObjectsForRemoval = allGameObjects.filter(obj => 
     obj.name.toLowerCase().includes(objectRemoveSearch.toLowerCase()) || 
     obj.roomName.toLowerCase().includes(objectRemoveSearch.toLowerCase())
   );
   
-  const hasSolvedState = currentRoom.solvedImage || (currentRoom.solvedNotes && currentRoom.solvedNotes.trim() !== '');
-
   return (
     <div className="flex flex-col h-screen bg-slate-200 dark:bg-slate-900">
        <FontLoader gameId={id} />
@@ -2486,35 +2475,6 @@ const Editor: React.FC = () => {
                     {editingRoomPuzzles.length === 0 && <p className="text-sm text-slate-500 dark:text-slate-400 italic">No puzzles in this room.</p>}
                 </div>
               </div>
-          </div>
-          <div className="flex-shrink-0 pt-4 mt-4 border-t border-slate-200 dark:border-slate-700">
-            <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300">Player View Preview</h3>
-                {hasSolvedState && (
-                    <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer">
-                        <span>Show Solved State</span>
-                        <input
-                            type="checkbox"
-                            checked={previewSolved}
-                            onChange={e => setPreviewSolved(e.target.checked)}
-                            className="sr-only peer"
-                        />
-                        <div className="relative w-11 h-6 bg-slate-300 dark:bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-600"></div>
-                    </label>
-                )}
-            </div>
-            <div className="mt-2 aspect-video w-full rounded-lg overflow-hidden border border-slate-300 dark:border-slate-600">
-              <Room
-                room={{...currentRoom, isSolved: previewSolved}}
-                inventoryObjects={inventoryObjects}
-                visibleMapImages={visibleMapImages}
-                globalBackgroundColor={game.globalBackgroundColor}
-                inventoryLayout={game.inventoryLayout}
-                inventory1Title={game.inventory1Title}
-                inventory2Title={game.inventory2Title}
-                fontFamily={game.fontFamily}
-              />
-            </div>
           </div>
         </div>
       </main>
