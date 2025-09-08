@@ -239,7 +239,7 @@ const PresenterView: React.FC = () => {
   }, [game?.soundboard]);
 
 
-  const handleAddCustomItem = () => {
+  const handleAddCustomItem = (inventorySlot: 1 | 2) => {
     const name = window.prompt("Enter the name for the new custom item:");
     if (name && name.trim()) {
       const newItem: InventoryObject = {
@@ -251,6 +251,7 @@ const PresenterView: React.FC = () => {
         addedToInventoryTimestamp: Date.now(),
         image: null,
         showImageOverlay: false,
+        inventorySlot,
       };
       setCustomItems(prev => [newItem, ...prev]);
     }
@@ -1011,6 +1012,9 @@ const PresenterView: React.FC = () => {
   const roomSolveIsLocked = lockingPuzzlesByRoomSolveId.has(currentRoom.id);
   const roomSolveLockingPuzzleName = lockingPuzzlesByRoomSolveId.get(currentRoom.id);
 
+  const inventoryList1 = combinedInventoryObjects.filter(obj => (obj.inventorySlot || 1) === 1);
+  const inventoryList2 = combinedInventoryObjects.filter(obj => obj.inventorySlot === 2);
+
   return (
     <div className="h-screen bg-slate-800 text-white flex flex-col">
       {objectRemoveModalText && (
@@ -1248,42 +1252,107 @@ const PresenterView: React.FC = () => {
                     </div>
                 )}
                 {activeTab === 'inventory' && (
-                    <div className="space-y-4">
-                        <div className="flex justify-between items-center">
-                            <h3 className="text-lg font-semibold text-slate-300">Inventory</h3>
-                             <div className="flex items-center gap-2">
-                                <button
-                                    onClick={handleToggleAllInventoryDescriptions}
-                                    className="p-1.5 text-slate-400 hover:text-white"
-                                    title={areAllDescriptionsVisible ? "Hide all descriptions" : "Show all descriptions"}
-                                >
-                                    <Icon as={areAllDescriptionsVisible ? "collapse" : "expand"} className="w-5 h-5" />
-                                </button>
-                                <button
-                                    onClick={handleAddCustomItem}
-                                    className="px-3 py-1.5 text-xs font-semibold bg-slate-600 text-slate-200 rounded-lg hover:bg-slate-500 transition-colors"
-                                    title="Add a temporary item to the inventory for this session"
-                                >
-                                    + Custom Item
-                                </button>
+                    game.inventoryLayout === 'dual' ? (
+                        <div className="space-y-6">
+                            {/* Inventory 1 */}
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-center">
+                                    <h3 className="text-lg font-semibold text-slate-300">{game.inventory1Title || 'Inventory 1'}</h3>
+                                    <button
+                                        onClick={() => handleAddCustomItem(1)}
+                                        className="px-3 py-1.5 text-xs font-semibold bg-slate-600 text-slate-200 rounded-lg hover:bg-slate-500 transition-colors"
+                                        title="Add a temporary item to this inventory"
+                                    >
+                                        + Custom Item
+                                    </button>
+                                </div>
+                                {inventoryList1.length > 0 ? (
+                                    inventoryList1.map(obj => (
+                                        <ObjectItem 
+                                            key={obj.id} 
+                                            obj={obj} 
+                                            onToggle={obj.id.startsWith('custom-') ? handleToggleCustomItem : handleToggleObject}
+                                            showVisibilityToggle={true}
+                                            isDescriptionVisible={visibleDescriptionIds.has(obj.id)}
+                                            onToggleDescription={handleToggleDescriptionVisibility}
+                                            onToggleImage={handleToggleObjectImage}
+                                        />
+                                    ))
+                                ) : (
+                                    <p className="text-slate-400 italic text-sm px-2">This inventory is empty.</p>
+                                )}
+                            </div>
+
+                            <hr className="border-slate-700" />
+
+                            {/* Inventory 2 */}
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-center">
+                                    <h3 className="text-lg font-semibold text-slate-300">{game.inventory2Title || 'Inventory 2'}</h3>
+                                    <button
+                                        onClick={() => handleAddCustomItem(2)}
+                                        className="px-3 py-1.5 text-xs font-semibold bg-slate-600 text-slate-200 rounded-lg hover:bg-slate-500 transition-colors"
+                                        title="Add a temporary item to this inventory"
+                                    >
+                                        + Custom Item
+                                    </button>
+                                </div>
+                                {inventoryList2.length > 0 ? (
+                                    inventoryList2.map(obj => (
+                                        <ObjectItem 
+                                            key={obj.id} 
+                                            obj={obj} 
+                                            onToggle={obj.id.startsWith('custom-') ? handleToggleCustomItem : handleToggleObject}
+                                            showVisibilityToggle={true}
+                                            isDescriptionVisible={visibleDescriptionIds.has(obj.id)}
+                                            onToggleDescription={handleToggleDescriptionVisibility}
+                                            onToggleImage={handleToggleObjectImage}
+                                        />
+                                    ))
+                                ) : (
+                                    <p className="text-slate-400 italic text-sm px-2">This inventory is empty.</p>
+                                )}
                             </div>
                         </div>
-                        {combinedInventoryObjects.length > 0 ? (
-                            combinedInventoryObjects.map(obj => (
-                                <ObjectItem 
-                                    key={obj.id} 
-                                    obj={obj} 
-                                    onToggle={obj.id.startsWith('custom-') ? handleToggleCustomItem : handleToggleObject}
-                                    showVisibilityToggle={true}
-                                    isDescriptionVisible={visibleDescriptionIds.has(obj.id)}
-                                    onToggleDescription={handleToggleDescriptionVisibility}
-                                    onToggleImage={handleToggleObjectImage}
-                                />
-                            ))
-                        ) : (
-                            <p className="text-slate-400 italic">Inventory is empty.</p>
-                        )}
-                    </div>
+                    ) : (
+                        // Single Inventory Layout
+                        <div className="space-y-4">
+                            <div className="flex justify-between items-center">
+                                <h3 className="text-lg font-semibold text-slate-300">Inventory</h3>
+                                 <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={handleToggleAllInventoryDescriptions}
+                                        className="p-1.5 text-slate-400 hover:text-white"
+                                        title={areAllDescriptionsVisible ? "Hide all descriptions" : "Show all descriptions"}
+                                    >
+                                        <Icon as={areAllDescriptionsVisible ? "collapse" : "expand"} className="w-5 h-5" />
+                                    </button>
+                                    <button
+                                        onClick={() => handleAddCustomItem(1)}
+                                        className="px-3 py-1.5 text-xs font-semibold bg-slate-600 text-slate-200 rounded-lg hover:bg-slate-500 transition-colors"
+                                        title="Add a temporary item to the inventory for this session"
+                                    >
+                                        + Custom Item
+                                    </button>
+                                </div>
+                            </div>
+                            {combinedInventoryObjects.length > 0 ? (
+                                combinedInventoryObjects.map(obj => (
+                                    <ObjectItem 
+                                        key={obj.id} 
+                                        obj={obj} 
+                                        onToggle={obj.id.startsWith('custom-') ? handleToggleCustomItem : handleToggleObject}
+                                        showVisibilityToggle={true}
+                                        isDescriptionVisible={visibleDescriptionIds.has(obj.id)}
+                                        onToggleDescription={handleToggleDescriptionVisibility}
+                                        onToggleImage={handleToggleObjectImage}
+                                    />
+                                ))
+                            ) : (
+                                <p className="text-slate-400 italic">Inventory is empty.</p>
+                            )}
+                        </div>
+                    )
                 )}
                 {activeTab === 'discarded' && (
                     <div className="space-y-2">
