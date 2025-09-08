@@ -114,17 +114,14 @@ const ObjectItem: React.FC<{
                         </button>
                     )}
                     {showVisibilityToggle && (
-                        <label className={`flex items-center gap-2 text-sm ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
-                            <span>In Inventory</span>
-                            <input
-                                type="checkbox"
-                                checked={obj.showInInventory}
-                                onChange={(e) => onToggle(obj.id, e.target.checked)}
-                                className="sr-only peer"
-                                disabled={isLocked}
-                            />
-                            <div className="relative w-11 h-6 bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
-                        </label>
+                        <button
+                            onClick={() => onToggle(obj.id, false)}
+                            disabled={isLocked}
+                            className="p-1.5 text-current hover:bg-white/20 rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Remove from inventory"
+                        >
+                            <Icon as="move-right" className="w-5 h-5" />
+                        </button>
                     )}
                 </div>
             </div>

@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface IconProps {
-  as: 'plus' | 'trash' | 'present' | 'prev' | 'next' | 'close' | 'reorder' | 'expand' | 'collapse' | 'lock' | 'eye' | 'eye-slash' | 'chevron-down' | 'restart' | 'rewind' | 'settings' | 'gallery' | 'audio' | 'map' | 'edit' | 'shuffle' | 'swatch' | 'share' | 'stop' | 'play' | 'font' | 'hand-expand' | 'description' | 'description-slash';
+  as: 'plus' | 'trash' | 'present' | 'prev' | 'next' | 'close' | 'reorder' | 'expand' | 'collapse' | 'lock' | 'eye' | 'eye-slash' | 'chevron-down' | 'restart' | 'rewind' | 'settings' | 'gallery' | 'audio' | 'map' | 'edit' | 'shuffle' | 'swatch' | 'share' | 'stop' | 'play' | 'font' | 'hand-expand' | 'description' | 'description-slash' | 'move-right';
   className?: string;
 }
 
@@ -172,8 +172,15 @@ const icons = {
         <path strokeLinecap="round" strokeLinejoin="round" d="M15.1,16.5h3.9"/>
         <path strokeLinecap="round" strokeLinejoin="round" d="M5.1,16.5h5.9"/>
         <path strokeLinecap="round" strokeLinejoin="round" d="M18.5,21h3.2c.8,0,1.5-.7,1.5-1.5V7.5c0-.4-.2-.8-.4-1l-2.9-3c-.3-.3-.7-.5-1.1-.5H6.8"/>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M2.8,3h-.6c-.8,0-1.5.7-1.5,1.5v15c0,.8.7,1.5,1.5,1.5h11.3"/>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M2.8,3h-.6c-.8,0-1.5.7,1.5-1.5v15c0,.8.7,1.5,1.5,1.5h11.3"/>
         <line strokeLinecap="round" strokeLinejoin="round" x1="4.5" y1="1.1" x2="19.1" y2="22.9"/>
+    </svg>
+  ),
+  'move-right': (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M23.25 11.998h-10.5" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 15.748l3.75-3.75-3.75-3.75" />
+        <rect x=".75" y=".748" width="7.5" height="22.5" rx="1.5" ry="1.5" />
     </svg>
   ),
 };
