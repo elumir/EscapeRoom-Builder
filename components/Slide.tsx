@@ -13,6 +13,7 @@ interface RoomProps {
   inventoryLayout?: 'single' | 'dual';
   inventory1Title?: string;
   inventory2Title?: string;
+  inRoomObjectImages?: string[];
 }
 
 const getObjectColorClass = (nameColor?: string | null): string => {
@@ -52,7 +53,8 @@ const Room: React.FC<RoomProps> = ({
     globalBackgroundColor,
     inventoryLayout = 'single',
     inventory1Title = 'Inventory 1',
-    inventory2Title = 'Inventory 2'
+    inventory2Title = 'Inventory 2',
+    inRoomObjectImages
 }) => {
   const { backgroundColor: roomBackgroundColor, isFullScreenImage } = room;
 
@@ -106,7 +108,7 @@ const Room: React.FC<RoomProps> = ({
       className={`relative w-full h-full overflow-hidden shadow-lg flex transition-all duration-300 ${className}`}
       style={{ backgroundColor: isFullScreenImage ? '#000' : backgroundColor }}
     >
-      <div className={imageContainerClass}>
+      <div className={`${imageContainerClass} relative`}>
         {displayImage ? (
           <img src={`${API_BASE_URL}/assets/${displayImage}`} alt="" className="w-full h-full object-cover" />
         ) : (
@@ -116,6 +118,15 @@ const Room: React.FC<RoomProps> = ({
             </svg>
           </div>
         )}
+        {inRoomObjectImages?.map((imageId) => (
+            <div key={imageId} className="absolute inset-0 w-full h-full z-10">
+                <img 
+                    src={`${API_BASE_URL}/assets/${imageId}`} 
+                    alt="Object in room" 
+                    className="w-full h-full object-contain pointer-events-none" 
+                />
+            </div>
+        ))}
       </div>
       
       {!isFullScreenImage && (
