@@ -126,7 +126,14 @@ const icons = {
   ),
   share: (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.195.025.39.05.588.08m-5.858 2.106c.195-.025.39-.05.588-.08m5.858 0a2.25 2.25 0 0 1 2.25 2.25m0-2.25a2.25 2.25 0 0 0-2.25 2.25m0 0v3.126c0 .199-.02.395-.057.588m-6.161-4.41a2.25 2.25 0 0 1 2.25-2.25m0 0a2.25 2.25 0 0 0-2.25-2.25m0 0v3.126c0 .199.02.395.057.588m6.161 2.206a2.25 2.25 0 0 1-2.25 2.25m0 0a2.25 2.25 0 0 0 2.25 2.25m0 0v3.126c0 .199-.02.395-.057.588m-6.161-4.41a2.25 2.25 0 0 1 2.25-2.25m0 0a2.25 2.25 0 0 0-2.25-2.25m0 0v3.126c0 .199.02.395.057.588" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M20.29 14.34l-5.16.986" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M14.416 8.478l-3.468 1.146a1.151 1.151 0 0 1-1.405-.611 1.164 1.164 0 0 1 .529-1.53l3.359-1.689a2.343 2.343 0 0 1 1.861-.108l4.973 1.819" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3.685 14.348H6.13l3.512 3.936A1.342 1.342 0 0 0 12 17.408v-.615l.175.07a1.656 1.656 0 0 0 2.271-1.537h.489a1.468 1.468 0 0 0 1.174-2.348L12.97 8.956" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M10.583 7.225l-.358-.295a2.1 2.1 0 0 0-1.245-.409 2.081 2.081 0 0 0-.779.151L3.75 8.452" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M.75 6.75h2a.961.961 0 0 1 1 .916v6.417a.962.962 0 0 1-1 .917h-2" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M23.25 15h-2a.962.962 0 0 1-1-.917V7.666a.961.961 0 0 1 1-.916h2" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.793l-.978-.978" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M14.446 15.326l-1.468-1.468" />
     </svg>
   ),
   stop: (
