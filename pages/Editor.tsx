@@ -46,7 +46,7 @@ const Editor: React.FC = () => {
   const [modalContent, setModalContent] = useState<{type: 'notes' | 'solvedNotes', content: string} | null>(null);
   const [assetLibrary, setAssetLibrary] = useState<Asset[]>([]);
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
-  const [assetModalTarget, setAssetModalTarget] = useState<'image' | 'mapImage' | 'solvedImage' | 'modal-object-image' | 'modal-object-inRoomImage' | 'modal-puzzle-image' | 'modal-action-image' | null>(null);
+  const [assetModalTarget, setAssetModalTarget] = useState<'image' | 'mapImage' | 'solvedImage' | 'modal-object-image' | 'modal-object-inRoomImage' | null>(null);
   const [isAssetManagerOpen, setIsAssetManagerOpen] = useState(false);
   const [deletingAssetId, setDeletingAssetId] = useState<string | null>(null);
   const [editingAssetName, setEditingAssetName] = useState<{ id: string; name: string } | null>(null);
@@ -300,7 +300,7 @@ const Editor: React.FC = () => {
       }
   };
   
-  const openAssetLibrary = (target: 'image' | 'mapImage' | 'solvedImage' | 'modal-object-image' | 'modal-object-inRoomImage' | 'modal-puzzle-image' | 'modal-action-image') => {
+  const openAssetLibrary = (target: 'image' | 'mapImage' | 'solvedImage' | 'modal-object-image' | 'modal-object-inRoomImage') => {
       setAssetModalTarget(target);
       setIsAssetModalOpen(true);
   };
@@ -312,10 +312,6 @@ const Editor: React.FC = () => {
           handleModalObjectChange('image', assetId);
       } else if (assetModalTarget === 'modal-object-inRoomImage') {
           handleModalObjectChange('inRoomImage', assetId);
-      } else if (assetModalTarget === 'modal-puzzle-image') {
-          handleModalPuzzleChange('image', assetId);
-      } else if (assetModalTarget === 'modal-action-image') {
-          handleModalActionChange('image', assetId);
       } else if (['image', 'mapImage', 'solvedImage'].includes(assetModalTarget)) {
           changeRoomProperty(assetModalTarget as 'image' | 'mapImage' | 'solvedImage', assetId);
       }
@@ -515,7 +511,7 @@ const Editor: React.FC = () => {
       setModalActionData({ ...modalActionData, [field]: value });
   };
 
-  const handleModalActionFileUpload = async (field: 'image' | 'sound', file: File | null) => {
+  const handleModalActionFileChange = async (field: 'image' | 'sound', file: File | null) => {
       if (!game || !modalActionData) return;
       if (!file) {
           handleModalActionChange(field, null);
@@ -570,7 +566,7 @@ const Editor: React.FC = () => {
       setModalPuzzleData({ ...modalPuzzleData, [field]: processedValue });
   };
   
-  const handleModalPuzzleFileUpload = async (field: 'image' | 'sound', file: File | null) => {
+  const handleModalPuzzleFileChange = async (field: 'image' | 'sound', file: File | null) => {
     if (!game || !modalPuzzleData) return;
     if (!file) {
       handleModalPuzzleChange(field, null);
@@ -1316,42 +1312,24 @@ const Editor: React.FC = () => {
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Image</label>
-                            <div className="relative group w-32 h-32 bg-slate-100 dark:bg-slate-700/50 rounded-md border-2 border-dashed border-slate-300 dark:border-slate-600">
-                              {modalPuzzleData.image && (
-                                <img src={`${API_BASE_URL}/assets/${modalPuzzleData.image}`} alt={modalPuzzleData.name} className="w-full h-full object-cover rounded-md" />
-                              )}
-                              <label className="absolute inset-0 cursor-pointer hover:bg-black/40 transition-colors rounded-md flex items-center justify-center">
-                                <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleModalPuzzleFileUpload('image', e.target.files[0])} className="sr-only" />
-                                {!modalPuzzleData.image && (
-                                  <>
-                                    <div className="text-center text-slate-400 dark:text-slate-500 group-hover:opacity-0 transition-opacity">
-                                      <Icon as="gallery" className="w-10 h-10 mx-auto" />
-                                      <p className="text-xs mt-1">Add Image</p>
-                                    </div>
-                                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                      <div className="pointer-events-none text-white text-center"><p className="font-bold text-xs">Upload New</p></div>
-                                      <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('modal-puzzle-image'); }} className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors text-center"><Icon as="gallery" className="w-3.5 h-3.5" />From Library</button>
-                                    </div>
-                                  </>
-                                )}
-                              </label>
-                              {modalPuzzleData.image && (
-                                <div className="absolute inset-0 bg-black/60 p-1 flex flex-col justify-center items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-                                  <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('modal-puzzle-image'); }} className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors" title="Select from library"><Icon as="gallery" className="w-3.5 h-3.5" />Change</button>
-                                  <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleModalPuzzleChange('image', null); }} className="pointer-events-auto p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors" title="Clear Image"><Icon as="trash" className="w-4 h-4" /></button>
+                            {modalPuzzleData.image ? (
+                                <div className="flex items-center gap-2">
+                                    <img src={`${API_BASE_URL}/assets/${modalPuzzleData.image}`} alt="Puzzle preview" className="w-24 h-24 object-cover rounded-md border border-slate-300 dark:border-slate-600" />
+                                    <button onClick={() => handleModalPuzzleFileChange('image', null)} className="text-red-500 hover:text-red-700 text-xs self-end p-1">Clear</button>
                                 </div>
-                              )}
-                            </div>
+                            ) : (
+                                <input type="file" accept="image/*" onChange={(e) => handleModalPuzzleFileChange('image', e.target.files?.[0] || null)} className="text-sm w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100" />
+                            )}
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Sound</label>
                             {modalPuzzleData.sound ? (
                                 <div className="space-y-2">
                                     <AudioPreviewPlayer assetId={modalPuzzleData.sound} />
-                                    <button onClick={() => handleModalPuzzleFileUpload('sound', null)} className="text-red-500 hover:text-red-700 text-xs px-1">Clear Sound</button>
+                                    <button onClick={() => handleModalPuzzleFileChange('sound', null)} className="text-red-500 hover:text-red-700 text-xs px-1">Clear Sound</button>
                                 </div>
                             ) : (
-                                <input type="file" accept="audio/*" onChange={(e) => handleModalPuzzleFileUpload('sound', e.target.files?.[0] || null)} className="text-sm w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100"/>
+                                <input type="file" accept="audio/*" onChange={(e) => handleModalPuzzleFileChange('sound', e.target.files?.[0] || null)} className="text-sm w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100"/>
                             )}
                         </div>
                     </div>
@@ -1852,42 +1830,24 @@ const Editor: React.FC = () => {
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Image (Full Screen Overlay)</label>
-                            <div className="relative group w-32 h-32 bg-slate-100 dark:bg-slate-700/50 rounded-md border-2 border-dashed border-slate-300 dark:border-slate-600">
-                              {modalActionData.image && (
-                                <img src={`${API_BASE_URL}/assets/${modalActionData.image}`} alt={modalActionData.name} className="w-full h-full object-cover rounded-md" />
-                              )}
-                              <label className="absolute inset-0 cursor-pointer hover:bg-black/40 transition-colors rounded-md flex items-center justify-center">
-                                <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleModalActionFileUpload('image', e.target.files[0])} className="sr-only" />
-                                {!modalActionData.image && (
-                                  <>
-                                    <div className="text-center text-slate-400 dark:text-slate-500 group-hover:opacity-0 transition-opacity">
-                                      <Icon as="gallery" className="w-10 h-10 mx-auto" />
-                                      <p className="text-xs mt-1">Add Image</p>
-                                    </div>
-                                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                      <div className="pointer-events-none text-white text-center"><p className="font-bold text-xs">Upload New</p></div>
-                                      <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('modal-action-image'); }} className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors text-center"><Icon as="gallery" className="w-3.5 h-3.5" />From Library</button>
-                                    </div>
-                                  </>
-                                )}
-                              </label>
-                              {modalActionData.image && (
-                                <div className="absolute inset-0 bg-black/60 p-1 flex flex-col justify-center items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-                                  <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('modal-action-image'); }} className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors" title="Select from library"><Icon as="gallery" className="w-3.5 h-3.5" />Change</button>
-                                  <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleModalActionChange('image', null); }} className="pointer-events-auto p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors" title="Clear Image"><Icon as="trash" className="w-4 h-4" /></button>
+                            {modalActionData.image ? (
+                                <div className="flex items-center gap-2">
+                                    <img src={`${API_BASE_URL}/assets/${modalActionData.image}`} alt="Action preview" className="w-24 h-24 object-cover rounded-md border border-slate-300 dark:border-slate-600" />
+                                    <button onClick={() => handleModalActionFileChange('image', null)} className="text-red-500 hover:text-red-700 text-xs self-end p-1">Clear Image</button>
                                 </div>
-                              )}
-                            </div>
+                            ) : (
+                                <input type="file" accept="image/*" onChange={(e) => handleModalActionFileChange('image', e.target.files?.[0] || null)} className="text-sm w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100" />
+                            )}
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Sound</label>
                             {modalActionData.sound ? (
                                 <div className="space-y-2">
                                     <AudioPreviewPlayer assetId={modalActionData.sound} />
-                                    <button onClick={() => handleModalActionFileUpload('sound', null)} className="text-red-500 hover:text-red-700 text-xs px-1">Clear Sound</button>
+                                    <button onClick={() => handleModalActionFileChange('sound', null)} className="text-red-500 hover:text-red-700 text-xs px-1">Clear Sound</button>
                                 </div>
                             ) : (
-                                <input type="file" accept="audio/*" onChange={(e) => handleModalActionFileUpload('sound', e.target.files?.[0] || null)} className="text-sm w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100" />
+                                <input type="file" accept="audio/*" onChange={(e) => handleModalActionFileChange('sound', e.target.files?.[0] || null)} className="text-sm w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100" />
                             )}
                         </div>
                     </div>
