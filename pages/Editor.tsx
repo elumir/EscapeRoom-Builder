@@ -77,8 +77,9 @@ const Editor: React.FC = () => {
   const [dropTargetPuzzleIndex, setDropTargetPuzzleIndex] = useState<number | null>(null);
   const [draggedActionIndex, setDraggedActionIndex] = useState<number | null>(null);
   const [dropTargetActionIndex, setDropTargetActionIndex] = useState<number | null>(null);
-  const [isPositionPickerOpen, setIsPositionPickerOpen] = useState<boolean>(false);
-  const [initialObjectPosition, setInitialObjectPosition] = useState<{ x: number, y: number } | null>(null);
+  const [isPlacementModalOpen, setIsPlacementModalOpen] = useState<boolean>(false);
+  const [placementModalData, setPlacementModalData] = useState<{ initialX: number, initialY: number, initialSize: number } | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   const objectRemoveDropdownRef = useRef<HTMLDivElement>(null);
   const modalObjectsDropdownRef = useRef<HTMLDivElement>(null);
@@ -96,6 +97,8 @@ const Editor: React.FC = () => {
   const descriptionTextareaRef = useRef<HTMLTextAreaElement>(null);
   const solvedDescriptionTextareaRef = useRef<HTMLTextAreaElement>(null);
   const modalTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const placementAreaRef = useRef<HTMLDivElement>(null);
+  const dragOffsetRef = useRef({ x: 0, y: 0 });
 
   const { objectLockMap, puzzleLockMap, actionLockMap } = useMemo(() => {
     const objectLockMap = new Map<string, string[]>();
@@ -455,7 +458,7 @@ const Editor: React.FC = () => {
   };
 
   const addObject = () => {
-    const newObject: InventoryObject = { id: generateUUID(), name: '', description: '', showInInventory: false, image: null, inRoomImage: null, showInRoomImage: true, showImageOverlay: false, nameColor: null, inventorySlot: 1, x: 0.5, y: 0.5 };
+    const newObject: InventoryObject = { id: generateUUID(), name: '', description: '', showInInventory: false, image: null, inRoomImage: null, showInRoomImage: true, showImageOverlay: false, nameColor: null, inventorySlot: 1, x: 0.5, y: 0.5, size: 0.25 };
     const newObjects = [...editingRoomObjects, newObject];
     setEditingRoomObjects(newObjects);
     
@@ -641,24 +644,29 @@ const Editor: React.FC = () => {
       setObjectModalState(null);
   };
 
-  const handleOpenPositionPicker = () => {
+  const handleOpenPlacementModal = () => {
     if (!modalObjectData) return;
-    setInitialObjectPosition({ x: modalObjectData.x ?? 0.5, y: modalObjectData.y ?? 0.5 });
-    setIsPositionPickerOpen(true);
+    setPlacementModalData({ 
+        initialX: modalObjectData.x ?? 0.5, 
+        initialY: modalObjectData.y ?? 0.5,
+        initialSize: modalObjectData.size ?? 0.25,
+    });
+    setIsPlacementModalOpen(true);
   };
   
-  const handleSavePosition = () => {
-    setIsPositionPickerOpen(false);
-    setInitialObjectPosition(null);
+  const handleSavePlacement = () => {
+    setIsPlacementModalOpen(false);
+    setPlacementModalData(null);
   };
 
-  const handleCancelPosition = () => {
-    if (initialObjectPosition) {
-        handleModalObjectChange('x', initialObjectPosition.x);
-        handleModalObjectChange('y', initialObjectPosition.y);
+  const handleCancelPlacement = () => {
+    if (placementModalData) {
+        handleModalObjectChange('x', placementModalData.initialX);
+        handleModalObjectChange('y', placementModalData.initialY);
+        handleModalObjectChange('size', placementModalData.initialSize);
     }
-    setIsPositionPickerOpen(false);
-    setInitialObjectPosition(null);
+    setIsPlacementModalOpen(false);
+    setPlacementModalData(null);
   };
 
   const handleResetAndPresent = async () => {
@@ -902,6 +910,66 @@ const Editor: React.FC = () => {
           [actNumber]: !prev[actNumber]
       }));
   };
+
+  const handleDragMouseDown = (e: React.MouseEvent<HTMLImageElement>) => {
+    e.preventDefault();
+    const target = e.currentTarget;
+    const rect = target.getBoundingClientRect();
+    const parentRect = placementAreaRef.current?.getBoundingClientRect();
+
+    if (!parentRect) return;
+
+    // Calculate click offset relative to the image's top-left corner
+    dragOffsetRef.current = {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+    };
+    setIsDragging(true);
+  };
+
+  useEffect(() => {
+    const handleDragMouseMove = (e: MouseEvent) => {
+        if (!isDragging || !placementAreaRef.current) return;
+        
+        const parentRect = placementAreaRef.current.getBoundingClientRect();
+        
+        // New position of the top-left corner of the image, relative to the placement area
+        let newX = e.clientX - parentRect.left - dragOffsetRef.current.x;
+        let newY = e.clientY - parentRect.top - dragOffsetRef.current.y;
+
+        const imageWidth = placementAreaRef.current.offsetWidth * (modalObjectData?.size ?? 0.25);
+        const imageHeight = placementAreaRef.current.offsetHeight * (modalObjectData?.size ?? 0.25);
+
+        // Center of the image
+        let centerX = newX + imageWidth / 2;
+        let centerY = newY + imageHeight / 2;
+        
+        // Clamp center position to be within the parent bounds
+        centerX = Math.max(0, Math.min(parentRect.width, centerX));
+        centerY = Math.max(0, Math.min(parentRect.height, centerY));
+        
+        // Convert clamped center position back to percentage
+        const finalXPercent = centerX / parentRect.width;
+        const finalYPercent = centerY / parentRect.height;
+
+        handleModalObjectChange('x', finalXPercent);
+        handleModalObjectChange('y', finalYPercent);
+    };
+
+    const handleDragMouseUp = () => {
+        setIsDragging(false);
+    };
+
+    if (isDragging) {
+        window.addEventListener('mousemove', handleDragMouseMove);
+        window.addEventListener('mouseup', handleDragMouseUp);
+    }
+
+    return () => {
+        window.removeEventListener('mousemove', handleDragMouseMove);
+        window.removeEventListener('mouseup', handleDragMouseUp);
+    };
+  }, [isDragging, modalObjectData?.size]);
 
   const COLORS = ['#000000', '#ffffff', '#f87171', '#fbbf24', '#34d399', '#60a5fa', '#a78bfa'];
 
@@ -1341,19 +1409,15 @@ const Editor: React.FC = () => {
                         </div>
                         {modalObjectData.inRoomImage && (
                             <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">In Room Image Position</label>
-                                <div className="flex items-center gap-4 p-2 rounded-md bg-slate-100 dark:bg-slate-700/50">
-                                    <span className="text-sm font-mono text-slate-600 dark:text-slate-300">
-                                      X: {((modalObjectData.x ?? 0.5) * 100).toFixed(1)}%, Y: {((modalObjectData.y ?? 0.5) * 100).toFixed(1)}%
-                                    </span>
-                                    <button
-                                      type="button"
-                                      onClick={handleOpenPositionPicker}
-                                      className="ml-auto px-3 py-1.5 text-sm bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors"
-                                    >
-                                      Set Position
-                                    </button>
-                                </div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">In Room Image Placement</label>
+                                <button
+                                    type="button"
+                                    onClick={handleOpenPlacementModal}
+                                    className="w-full px-3 py-2 text-sm bg-slate-100 dark:bg-slate-700/50 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600/50 transition-colors flex items-center justify-center gap-2"
+                                >
+                                    <Icon as="hand-expand" className="w-4 h-4" />
+                                    Object Placement
+                                </button>
                             </div>
                         )}
                     </div>
@@ -1365,25 +1429,19 @@ const Editor: React.FC = () => {
             </div>
         </div>
       )}
-      {isPositionPickerOpen && modalObjectData && (
+      {isPlacementModalOpen && modalObjectData && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[70] backdrop-blur-sm">
             <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-2xl w-full max-w-4xl flex flex-col">
                 <div className="flex-shrink-0 flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">Set Object Position</h2>
-                     <p className="text-sm text-slate-500 dark:text-slate-400">Click on the image below to set the object's center position.</p>
+                    <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">Object Placement</h2>
+                     <p className="text-sm text-slate-500 dark:text-slate-400">Drag the object to position it. Use the slider to resize.</p>
                 </div>
                 <div
-                    className="relative w-full aspect-video bg-slate-100 dark:bg-slate-900 rounded-md border-2 border-slate-300 dark:border-slate-600 cursor-crosshair overflow-hidden"
-                    onClick={(e) => {
-                        const rect = e.currentTarget.getBoundingClientRect();
-                        const x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-                        const y = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
-                        handleModalObjectChange('x', x);
-                        handleModalObjectChange('y', y);
-                    }}
+                    ref={placementAreaRef}
+                    className="relative w-full aspect-video bg-slate-100 dark:bg-slate-900 rounded-md border-2 border-slate-300 dark:border-slate-600 overflow-hidden select-none"
                 >
                     {currentRoom.image ? (
-                       <img src={`${API_BASE_URL}/assets/${currentRoom.image}`} alt="Room background" className="w-full h-full object-cover" />
+                       <img src={`${API_BASE_URL}/assets/${currentRoom.image}`} alt="Room background" className="w-full h-full object-cover pointer-events-none" />
                     ) : (
                        <div className="w-full h-full flex items-center justify-center text-slate-400 dark:text-slate-500">
                            <span>No room image to display</span>
@@ -1393,26 +1451,37 @@ const Editor: React.FC = () => {
                         <img
                             src={`${API_BASE_URL}/assets/${modalObjectData.inRoomImage}`}
                             alt={modalObjectData.name}
-                            className="absolute pointer-events-none -translate-x-1/2 -translate-y-1/2"
+                            onMouseDown={handleDragMouseDown}
+                            className={`absolute transition-opacity ${isDragging ? 'opacity-75 cursor-grabbing' : 'cursor-grab'}`}
                             style={{
-                                top: `${(modalObjectData.y ?? 0.5) * 100}%`,
                                 left: `${(modalObjectData.x ?? 0.5) * 100}%`,
-                                maxWidth: '25%',
-                                maxHeight: '25%',
+                                top: `${(modalObjectData.y ?? 0.5) * 100}%`,
+                                transform: 'translate(-50%, -50%)',
+                                maxWidth: `${(modalObjectData.size ?? 0.25) * 100}%`,
+                                maxHeight: `${(modalObjectData.size ?? 0.25) * 100}%`,
                             }}
                         />
                     )}
-                     <div
-                        className="absolute w-4 h-4 rounded-full bg-red-500/80 border-2 border-white pointer-events-none -translate-x-1/2 -translate-y-1/2 ring-2 ring-red-500/50"
-                        style={{
-                            top: `${(modalObjectData.y ?? 0.5) * 100}%`,
-                            left: `${(modalObjectData.x ?? 0.5) * 100}%`,
-                        }}
-                    ></div>
                 </div>
+                 <div className="flex-shrink-0 mt-4 flex items-center gap-4">
+                    <label htmlFor="obj-size" className="text-sm font-medium text-slate-700 dark:text-slate-300">Size</label>
+                    <input
+                        id="obj-size"
+                        type="range"
+                        min="0.05"
+                        max="1"
+                        step="0.01"
+                        value={modalObjectData.size ?? 0.25}
+                        onChange={(e) => handleModalObjectChange('size', parseFloat(e.target.value))}
+                        className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer"
+                    />
+                    <span className="text-sm font-mono text-slate-500 dark:text-slate-400 w-12 text-center">
+                        {Math.round((modalObjectData.size ?? 0.25) * 100)}%
+                    </span>
+                 </div>
                  <div className="flex-shrink-0 mt-6 pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-4">
-                    <button onClick={handleCancelPosition} className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">Cancel</button>
-                    <button onClick={handleSavePosition} className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors">Save Position</button>
+                    <button onClick={handleCancelPlacement} className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">Cancel</button>
+                    <button onClick={handleSavePlacement} className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors">Done</button>
                 </div>
             </div>
         </div>
