@@ -703,9 +703,17 @@ const PresenterView: React.FC = () => {
         ...game,
         rooms: game.rooms.map(room => ({
             ...room,
-            actions: (room.actions || []).map(action =>
-                action.id === actionId ? { ...action, isComplete: newState } : action
-            )
+            actions: (room.actions || []).map(action => {
+                if (action.id === actionId) {
+                    const updatedAction = { ...action, isComplete: newState };
+                    // If the action is being marked as complete (hidden), also hide its image overlay.
+                    if (newState) {
+                        updatedAction.showImageOverlay = false;
+                    }
+                    return updatedAction;
+                }
+                return action;
+            })
         }))
     };
     updateAndBroadcast(updatedGame);
