@@ -75,10 +75,11 @@ const Room: React.FC<RoomProps> = ({
   const inventoryList2 = inventoryObjects.filter(item => item.inventorySlot === 2);
 
   const renderInventoryList = (items: InventoryObject[], bodyTextColorOverride: string) => {
-    if (items.length === 0 && inventoryLayout === 'dual') return null;
+    if (items.length === 0) return null;
 
     let inventoryListClass = 'w-full text-xs md:text-sm lg:text-base';
-    if (items.length > 4) {
+    // Only apply columns for single layout mode to avoid nested columns
+    if (inventoryLayout !== 'dual' && items.length > 4) {
       inventoryListClass += ' columns-2 gap-x-2 md:gap-x-3';
     }
 
@@ -134,23 +135,28 @@ const Room: React.FC<RoomProps> = ({
           </div>
           <div className="h-1/2 flex flex-col justify-start p-2 md:p-4 overflow-y-auto">
               {inventoryLayout === 'dual' ? (
-                <>
-                  {inventoryList1.length > 0 && (
-                    <div className="mb-3">
-                      <h2 className="text-sm md:text-md font-bold mb-2 sticky top-0 text-center" style={{color: textColor}}>{inventory1Title}</h2>
-                      {renderInventoryList(inventoryList1, bodyTextColor)}
+                inventoryObjects.length > 0 ? (
+                    <div className="flex gap-x-2 md:gap-x-4 w-full">
+                        <div className="w-1/2">
+                            {inventoryList1.length > 0 && (
+                                <>
+                                    <h2 className="text-sm md:text-md font-bold mb-2 sticky top-0 text-center" style={{color: textColor}}>{inventory1Title}</h2>
+                                    {renderInventoryList(inventoryList1, bodyTextColor)}
+                                </>
+                            )}
+                        </div>
+                        <div className="w-1/2">
+                            {inventoryList2.length > 0 && (
+                                <>
+                                    <h2 className="text-sm md:text-md font-bold mb-2 sticky top-0 text-center" style={{color: textColor}}>{inventory2Title}</h2>
+                                    {renderInventoryList(inventoryList2, bodyTextColor)}
+                                </>
+                            )}
+                        </div>
                     </div>
-                  )}
-                  {inventoryList2.length > 0 && (
-                    <div>
-                       <h2 className="text-sm md:text-md font-bold mb-2 sticky top-0 text-center" style={{color: textColor}}>{inventory2Title}</h2>
-                       {renderInventoryList(inventoryList2, bodyTextColor)}
-                    </div>
-                  )}
-                  {inventoryObjects.length === 0 && (
-                     <p className="text-xs text-slate-500 dark:text-slate-400 italic text-center pt-4">Inventory is empty.</p>
-                  )}
-                </>
+                ) : (
+                    <p className="text-xs text-slate-500 dark:text-slate-400 italic text-center pt-4">Inventory is empty.</p>
+                )
               ) : (
                 <>
                   <h2 className="text-sm md:text-md font-bold mb-2 sticky top-0 text-center" style={{color: textColor}}>Inventory</h2>
