@@ -34,6 +34,7 @@ export interface InventoryObject {
   inventorySlot?: 1 | 2;
   x?: number;
   y?: number;
+  size?: number;
 }
 
 export interface Puzzle {

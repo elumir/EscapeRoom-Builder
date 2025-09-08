@@ -77,8 +77,7 @@ const Editor: React.FC = () => {
   const [dropTargetPuzzleIndex, setDropTargetPuzzleIndex] = useState<number | null>(null);
   const [draggedActionIndex, setDraggedActionIndex] = useState<number | null>(null);
   const [dropTargetActionIndex, setDropTargetActionIndex] = useState<number | null>(null);
-  const [isPositionPickerOpen, setIsPositionPickerOpen] = useState<boolean>(false);
-  const [initialObjectPosition, setInitialObjectPosition] = useState<{ x: number, y: number } | null>(null);
+  const [draggingObject, setDraggingObject] = useState<{ id: string, offsetX: number, offsetY: number } | null>(null);
 
   const objectRemoveDropdownRef = useRef<HTMLDivElement>(null);
   const modalObjectsDropdownRef = useRef<HTMLDivElement>(null);
@@ -96,6 +95,7 @@ const Editor: React.FC = () => {
   const descriptionTextareaRef = useRef<HTMLTextAreaElement>(null);
   const solvedDescriptionTextareaRef = useRef<HTMLTextAreaElement>(null);
   const modalTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const previewContainerRef = useRef<HTMLDivElement>(null);
 
   const { objectLockMap, puzzleLockMap, actionLockMap } = useMemo(() => {
     const objectLockMap = new Map<string, string[]>();
@@ -455,7 +455,7 @@ const Editor: React.FC = () => {
   };
 
   const addObject = () => {
-    const newObject: InventoryObject = { id: generateUUID(), name: '', description: '', showInInventory: false, image: null, inRoomImage: null, showInRoomImage: true, showImageOverlay: false, nameColor: null, inventorySlot: 1, x: 0.5, y: 0.5 };
+    const newObject: InventoryObject = { id: generateUUID(), name: '', description: '', showInInventory: false, image: null, inRoomImage: null, showInRoomImage: true, showImageOverlay: false, nameColor: null, inventorySlot: 1, x: 0.5, y: 0.5, size: 0.25 };
     const newObjects = [...editingRoomObjects, newObject];
     setEditingRoomObjects(newObjects);
     
@@ -639,26 +639,6 @@ const Editor: React.FC = () => {
       updateGame({ ...game, rooms: newRooms });
       
       setObjectModalState(null);
-  };
-
-  const handleOpenPositionPicker = () => {
-    if (!modalObjectData) return;
-    setInitialObjectPosition({ x: modalObjectData.x ?? 0.5, y: modalObjectData.y ?? 0.5 });
-    setIsPositionPickerOpen(true);
-  };
-  
-  const handleSavePosition = () => {
-    setIsPositionPickerOpen(false);
-    setInitialObjectPosition(null);
-  };
-
-  const handleCancelPosition = () => {
-    if (initialObjectPosition) {
-        handleModalObjectChange('x', initialObjectPosition.x);
-        handleModalObjectChange('y', initialObjectPosition.y);
-    }
-    setIsPositionPickerOpen(false);
-    setInitialObjectPosition(null);
   };
 
   const handleResetAndPresent = async () => {
@@ -901,6 +881,44 @@ const Editor: React.FC = () => {
           ...prev,
           [actNumber]: !prev[actNumber]
       }));
+  };
+
+  const handleObjectDragStart = (e: React.MouseEvent<HTMLImageElement>, obj: InventoryObject) => {
+      e.preventDefault();
+      const imgElement = e.currentTarget;
+      const rect = imgElement.getBoundingClientRect();
+
+      const offsetX = e.clientX - rect.left - rect.width / 2;
+      const offsetY = e.clientY - rect.top - rect.height / 2;
+      
+      setDraggingObject({ id: obj.id, offsetX, offsetY });
+  };
+
+  const handlePreviewMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+      if (!draggingObject || !previewContainerRef.current) return;
+      
+      const containerRect = previewContainerRef.current.getBoundingClientRect();
+      
+      let x = (e.clientX - containerRect.left - draggingObject.offsetX) / containerRect.width;
+      let y = (e.clientY - containerRect.top - draggingObject.offsetY) / containerRect.height;
+
+      x = Math.max(0, Math.min(1, x));
+      y = Math.max(0, Math.min(1, y));
+
+      setEditingRoomObjects(prev =>
+          prev.map(obj =>
+              obj.id === draggingObject.id ? { ...obj, x, y } : obj
+          )
+      );
+  };
+  
+  const handlePreviewMouseUp = () => {
+      if (draggingObject && game) {
+          const newRooms = [...game.rooms];
+          newRooms[selectedRoomIndex] = { ...newRooms[selectedRoomIndex], objects: editingRoomObjects };
+          updateGame({ ...game, rooms: newRooms });
+      }
+      setDraggingObject(null);
   };
 
   const COLORS = ['#000000', '#ffffff', '#f87171', '#fbbf24', '#34d399', '#60a5fa', '#a78bfa'];
@@ -1341,18 +1359,20 @@ const Editor: React.FC = () => {
                         </div>
                         {modalObjectData.inRoomImage && (
                             <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">In Room Image Position</label>
-                                <div className="flex items-center gap-4 p-2 rounded-md bg-slate-100 dark:bg-slate-700/50">
-                                    <span className="text-sm font-mono text-slate-600 dark:text-slate-300">
-                                      X: {((modalObjectData.x ?? 0.5) * 100).toFixed(1)}%, Y: {((modalObjectData.y ?? 0.5) * 100).toFixed(1)}%
-                                    </span>
-                                    <button
-                                      type="button"
-                                      onClick={handleOpenPositionPicker}
-                                      className="ml-auto px-3 py-1.5 text-sm bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors"
-                                    >
-                                      Set Position
-                                    </button>
+                                <div>
+                                    <label htmlFor="objectSize" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                        In Room Image Size ({Math.round((modalObjectData.size ?? 0.25) * 100)}%)
+                                    </label>
+                                    <input
+                                        id="objectSize"
+                                        type="range"
+                                        min="0.05"
+                                        max="1"
+                                        step="0.01"
+                                        value={modalObjectData.size ?? 0.25}
+                                        onChange={e => handleModalObjectChange('size', parseFloat(e.target.value))}
+                                        className="w-full h-2 bg-slate-200 dark:bg-slate-600 rounded-lg appearance-none cursor-pointer"
+                                    />
                                 </div>
                             </div>
                         )}
@@ -1361,58 +1381,6 @@ const Editor: React.FC = () => {
                 <div className="flex-shrink-0 mt-6 pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-4">
                     <button onClick={() => setObjectModalState(null)} className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">Cancel</button>
                     <button onClick={handleSaveObjectFromModal} className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors">Save & Close</button>
-                </div>
-            </div>
-        </div>
-      )}
-      {isPositionPickerOpen && modalObjectData && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[70] backdrop-blur-sm">
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-2xl w-full max-w-4xl flex flex-col">
-                <div className="flex-shrink-0 flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">Set Object Position</h2>
-                     <p className="text-sm text-slate-500 dark:text-slate-400">Click on the image below to set the object's center position.</p>
-                </div>
-                <div
-                    className="relative w-full aspect-video bg-slate-100 dark:bg-slate-900 rounded-md border-2 border-slate-300 dark:border-slate-600 cursor-crosshair overflow-hidden"
-                    onClick={(e) => {
-                        const rect = e.currentTarget.getBoundingClientRect();
-                        const x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-                        const y = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
-                        handleModalObjectChange('x', x);
-                        handleModalObjectChange('y', y);
-                    }}
-                >
-                    {currentRoom.image ? (
-                       <img src={`${API_BASE_URL}/assets/${currentRoom.image}`} alt="Room background" className="w-full h-full object-cover" />
-                    ) : (
-                       <div className="w-full h-full flex items-center justify-center text-slate-400 dark:text-slate-500">
-                           <span>No room image to display</span>
-                       </div>
-                    )}
-                    {modalObjectData.inRoomImage && (
-                        <img
-                            src={`${API_BASE_URL}/assets/${modalObjectData.inRoomImage}`}
-                            alt={modalObjectData.name}
-                            className="absolute pointer-events-none -translate-x-1/2 -translate-y-1/2"
-                            style={{
-                                top: `${(modalObjectData.y ?? 0.5) * 100}%`,
-                                left: `${(modalObjectData.x ?? 0.5) * 100}%`,
-                                maxWidth: '25%',
-                                maxHeight: '25%',
-                            }}
-                        />
-                    )}
-                     <div
-                        className="absolute w-4 h-4 rounded-full bg-red-500/80 border-2 border-white pointer-events-none -translate-x-1/2 -translate-y-1/2 ring-2 ring-red-500/50"
-                        style={{
-                            top: `${(modalObjectData.y ?? 0.5) * 100}%`,
-                            left: `${(modalObjectData.x ?? 0.5) * 100}%`,
-                        }}
-                    ></div>
-                </div>
-                 <div className="flex-shrink-0 mt-6 pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-4">
-                    <button onClick={handleCancelPosition} className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">Cancel</button>
-                    <button onClick={handleSavePosition} className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors">Save Position</button>
                 </div>
             </div>
         </div>
@@ -2194,9 +2162,81 @@ const Editor: React.FC = () => {
           
            {/* IMAGE UPLOADERS */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            {['image', 'mapImage', 'solvedImage'].map(prop => {
+            {['image', 'mapImage', 'solvedImage'].map((prop, index) => {
                 const title = { image: 'Room Image', mapImage: 'Map Image', solvedImage: 'Solved State Image' }[prop] || '';
                 const imageId = currentRoom[prop as keyof RoomType] as string | null;
+
+                if (prop === 'image') {
+                    return (
+                        <div key={prop}>
+                            <h3 className="font-semibold text-slate-700 dark:text-slate-300 mb-2">{title}</h3>
+                            <div
+                                ref={previewContainerRef}
+                                onMouseMove={handlePreviewMouseMove}
+                                onMouseUp={handlePreviewMouseUp}
+                                onMouseLeave={handlePreviewMouseUp}
+                                className="relative group w-full aspect-video bg-slate-100 dark:bg-slate-700/50 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600 overflow-hidden"
+                            >
+                                {imageId && <img src={`${API_BASE_URL}/assets/${imageId}`} alt={title} className="w-full h-full object-cover rounded-lg pointer-events-none" />}
+                                
+                                {editingRoomObjects.map(obj => (
+                                    obj.inRoomImage && (
+                                        <img
+                                            key={obj.id}
+                                            src={`${API_BASE_URL}/assets/${obj.inRoomImage}`}
+                                            alt={obj.name}
+                                            onMouseDown={e => handleObjectDragStart(e, obj)}
+                                            className={`absolute cursor-grab ${draggingObject?.id === obj.id ? 'cursor-grabbing shadow-2xl z-20' : 'z-10'} transition-shadow`}
+                                            style={{
+                                                left: `${(obj.x ?? 0.5) * 100}%`,
+                                                top: `${(obj.y ?? 0.5) * 100}%`,
+                                                transform: 'translate(-50%, -50%)',
+                                                maxWidth: `${(obj.size ?? 0.25) * 100}%`,
+                                                maxHeight: `${(obj.size ?? 0.25) * 100}%`,
+                                            }}
+                                        />
+                                    )
+                                ))}
+
+                                <label className="absolute inset-0 cursor-pointer hover:bg-black/40 transition-colors rounded-lg flex items-center justify-center">
+                                    <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'image')} className="sr-only" />
+                                    {!imageId && (
+                                        <div className="text-center text-slate-400 dark:text-slate-500 group-hover:opacity-0 transition-opacity">
+                                            <Icon as="gallery" className="w-10 h-10 mx-auto" />
+                                            <p className="text-xs mt-1">Upload Image</p>
+                                        </div>
+                                    )}
+                                </label>
+                                {(imageId || !imageId) && (
+                                  <div className="absolute inset-0 bg-black/60 p-2 flex flex-col justify-center items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                                    <label className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors cursor-pointer">
+                                      <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'image')} className="sr-only" />
+                                      <Icon as="edit" className="w-3.5 h-3.5" />
+                                      Upload New
+                                    </label>
+                                    <button
+                                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('image'); }}
+                                      className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors"
+                                    >
+                                      <Icon as="gallery" className="w-3.5 h-3.5" />
+                                      From Library
+                                    </button>
+                                    {imageId && (
+                                      <button
+                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); changeRoomProperty('image', null); }}
+                                        className="pointer-events-auto p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                                        title="Clear Image"
+                                      >
+                                        <Icon as="trash" className="w-4 h-4" />
+                                      </button>
+                                    )}
+                                  </div>
+                                )}
+                            </div>
+                        </div>
+                    );
+                }
+
                 return (
                     <div key={prop}>
                         <h3 className="font-semibold text-slate-700 dark:text-slate-300 mb-2">{title}</h3>
