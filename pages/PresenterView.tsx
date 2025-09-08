@@ -356,6 +356,20 @@ const PresenterView: React.FC = () => {
   }, [presentationWindow]);
 
   useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (presentationWindow && !presentationWindow.closed) {
+        presentationWindow.close();
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [presentationWindow]);
+
+  useEffect(() => {
     const fetchAndInitialize = async () => {
       if (!id) return;
       setStatus('loading');
