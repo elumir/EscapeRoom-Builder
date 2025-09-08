@@ -46,7 +46,7 @@ const Editor: React.FC = () => {
   const [modalContent, setModalContent] = useState<{type: 'notes' | 'solvedNotes', content: string} | null>(null);
   const [assetLibrary, setAssetLibrary] = useState<Asset[]>([]);
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
-  const [assetModalTarget, setAssetModalTarget] = useState<'image' | 'mapImage' | 'solvedImage' | 'modal-object' | null>(null);
+  const [assetModalTarget, setAssetModalTarget] = useState<'image' | 'mapImage' | 'solvedImage' | 'modal-object-image' | 'modal-object-inRoomImage' | null>(null);
   const [isAssetManagerOpen, setIsAssetManagerOpen] = useState(false);
   const [deletingAssetId, setDeletingAssetId] = useState<string | null>(null);
   const [editingAssetName, setEditingAssetName] = useState<{ id: string; name: string } | null>(null);
@@ -300,18 +300,20 @@ const Editor: React.FC = () => {
       }
   };
   
-  const openAssetLibrary = (target: 'image' | 'mapImage' | 'solvedImage' | 'modal-object') => {
+  const openAssetLibrary = (target: 'image' | 'mapImage' | 'solvedImage' | 'modal-object-image' | 'modal-object-inRoomImage') => {
       setAssetModalTarget(target);
       setIsAssetModalOpen(true);
   };
 
   const handleSelectAsset = (assetId: string) => {
       if (!assetModalTarget || !game) return;
-
-      if (assetModalTarget === 'modal-object') {
+  
+      if (assetModalTarget === 'modal-object-image') {
           handleModalObjectChange('image', assetId);
-      } else {
-          changeRoomProperty(assetModalTarget, assetId);
+      } else if (assetModalTarget === 'modal-object-inRoomImage') {
+          handleModalObjectChange('inRoomImage', assetId);
+      } else if (['image', 'mapImage', 'solvedImage'].includes(assetModalTarget)) {
+          changeRoomProperty(assetModalTarget as 'image' | 'mapImage' | 'solvedImage', assetId);
       }
       
       setIsAssetModalOpen(false);
@@ -350,11 +352,20 @@ const Editor: React.FC = () => {
                   if (newRoom.solvedImage === assetId) { newRoom.solvedImage = null; roomModified = true; }
 
                   const newObjects = (newRoom.objects || []).map(obj => {
-                      if (obj.image === assetId) {
-                          roomModified = true;
-                          return { ...obj, image: null };
+                      const newObj = { ...obj };
+                      let hasChanged = false;
+                      if (newObj.image === assetId) {
+                          newObj.image = null;
+                          hasChanged = true;
                       }
-                      return obj;
+                      if (newObj.inRoomImage === assetId) {
+                          newObj.inRoomImage = null;
+                          hasChanged = true;
+                      }
+                      if (hasChanged) {
+                          roomModified = true;
+                      }
+                      return newObj;
                   });
 
                   const newPuzzles = newRoom.puzzles.map(puzzle => {
@@ -436,7 +447,7 @@ const Editor: React.FC = () => {
   };
 
   const addObject = () => {
-    const newObject: InventoryObject = { id: generateUUID(), name: '', description: '', showInInventory: false, image: null, showImageOverlay: false, nameColor: null, inventorySlot: 1 };
+    const newObject: InventoryObject = { id: generateUUID(), name: '', description: '', showInInventory: false, image: null, inRoomImage: null, showImageOverlay: false, nameColor: null, inventorySlot: 1 };
     const newObjects = [...editingRoomObjects, newObject];
     setEditingRoomObjects(newObjects);
     
@@ -591,15 +602,15 @@ const Editor: React.FC = () => {
     setModalObjectData({ ...modalObjectData, [field]: value });
   };
 
-  const handleModalObjectFileUpload = async (file: File | null) => {
+  const handleModalObjectFileUpload = async (file: File | null, property: 'image' | 'inRoomImage') => {
       if (!game || !modalObjectData) return;
       if (!file) {
-          handleModalObjectChange('image', null);
+          handleModalObjectChange(property, null);
           return;
       }
       try {
           const { assetId } = await gameService.uploadAsset(game.id, file);
-          handleModalObjectChange('image', assetId);
+          handleModalObjectChange(property, assetId);
           const assets = await gameService.getAssetsForGame(game.id);
           setAssetLibrary(assets);
       } catch (error) {
@@ -1134,55 +1145,107 @@ const Editor: React.FC = () => {
                             </div>
                         </div>
                     )}
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Image (Optional)</label>
-                      <div className="relative group w-32 h-32 bg-slate-100 dark:bg-slate-700/50 rounded-md border-2 border-dashed border-slate-300 dark:border-slate-600">
-                        {modalObjectData.image && (
-                          <img src={`${API_BASE_URL}/assets/${modalObjectData.image}`} alt={modalObjectData.name} className="w-full h-full object-cover rounded-md" />
-                        )}
-                        <label className="absolute inset-0 cursor-pointer hover:bg-black/40 transition-colors rounded-md flex items-center justify-center">
-                          <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleModalObjectFileUpload(e.target.files[0])} className="sr-only" />
-                          {!modalObjectData.image && (
-                            <>
-                              <div className="text-center text-slate-400 dark:text-slate-500 group-hover:opacity-0 transition-opacity">
-                                <Icon as="gallery" className="w-10 h-10 mx-auto" />
-                                <p className="text-xs mt-1">Add Image</p>
-                              </div>
-                              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <div className="pointer-events-none text-white text-center">
-                                  <p className="font-bold text-xs">Upload New</p>
-                                </div>
+                    <div className="flex gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Close-up Image (Optional)</label>
+                          <div className="relative group w-32 h-32 bg-slate-100 dark:bg-slate-700/50 rounded-md border-2 border-dashed border-slate-300 dark:border-slate-600">
+                            {modalObjectData.image && (
+                              <img src={`${API_BASE_URL}/assets/${modalObjectData.image}`} alt={modalObjectData.name} className="w-full h-full object-cover rounded-md" />
+                            )}
+                            <label className="absolute inset-0 cursor-pointer hover:bg-black/40 transition-colors rounded-md flex items-center justify-center">
+                              <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleModalObjectFileUpload(e.target.files[0], 'image')} className="sr-only" />
+                              {!modalObjectData.image && (
+                                <>
+                                  <div className="text-center text-slate-400 dark:text-slate-500 group-hover:opacity-0 transition-opacity">
+                                    <Icon as="gallery" className="w-10 h-10 mx-auto" />
+                                    <p className="text-xs mt-1">Add Image</p>
+                                  </div>
+                                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <div className="pointer-events-none text-white text-center">
+                                      <p className="font-bold text-xs">Upload New</p>
+                                    </div>
+                                    <button
+                                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('modal-object-image'); }}
+                                      className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors text-center"
+                                    >
+                                      <Icon as="gallery" className="w-3.5 h-3.5" />
+                                      From Library
+                                    </button>
+                                  </div>
+                                </>
+                              )}
+                            </label>
+                            {modalObjectData.image && (
+                              <div className="absolute inset-0 bg-black/60 p-1 flex flex-col justify-center items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
                                 <button
-                                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('modal-object'); }}
-                                  className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors text-center"
+                                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('modal-object-image'); }}
+                                  className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors"
+                                  title="Select from library"
                                 >
                                   <Icon as="gallery" className="w-3.5 h-3.5" />
-                                  From Library
+                                  Change
+                                </button>
+                                <button
+                                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleModalObjectChange('image', null); }}
+                                  className="pointer-events-auto p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                                  title="Clear Image"
+                                >
+                                  <Icon as="trash" className="w-4 h-4" />
                                 </button>
                               </div>
-                            </>
-                          )}
-                        </label>
-                        {modalObjectData.image && (
-                          <div className="absolute inset-0 bg-black/60 p-1 flex flex-col justify-center items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-                            <button
-                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('modal-object'); }}
-                              className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors"
-                              title="Select from library"
-                            >
-                              <Icon as="gallery" className="w-3.5 h-3.5" />
-                              Change
-                            </button>
-                            <button
-                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleModalObjectChange('image', null); }}
-                              className="pointer-events-auto p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
-                              title="Clear Image"
-                            >
-                              <Icon as="trash" className="w-4 h-4" />
-                            </button>
+                            )}
                           </div>
-                        )}
-                      </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">In Room Image (Optional)</label>
+                          <div className="relative group w-32 h-32 bg-slate-100 dark:bg-slate-700/50 rounded-md border-2 border-dashed border-slate-300 dark:border-slate-600">
+                            {modalObjectData.inRoomImage && (
+                              <img src={`${API_BASE_URL}/assets/${modalObjectData.inRoomImage}`} alt={modalObjectData.name} className="w-full h-full object-cover rounded-md" />
+                            )}
+                            <label className="absolute inset-0 cursor-pointer hover:bg-black/40 transition-colors rounded-md flex items-center justify-center">
+                              <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleModalObjectFileUpload(e.target.files[0], 'inRoomImage')} className="sr-only" />
+                              {!modalObjectData.inRoomImage && (
+                                <>
+                                  <div className="text-center text-slate-400 dark:text-slate-500 group-hover:opacity-0 transition-opacity">
+                                    <Icon as="gallery" className="w-10 h-10 mx-auto" />
+                                    <p className="text-xs mt-1">Add Image</p>
+                                  </div>
+                                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <div className="pointer-events-none text-white text-center">
+                                      <p className="font-bold text-xs">Upload New</p>
+                                    </div>
+                                    <button
+                                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('modal-object-inRoomImage'); }}
+                                      className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors text-center"
+                                    >
+                                      <Icon as="gallery" className="w-3.5 h-3.5" />
+                                      From Library
+                                    </button>
+                                  </div>
+                                </>
+                              )}
+                            </label>
+                            {modalObjectData.inRoomImage && (
+                              <div className="absolute inset-0 bg-black/60 p-1 flex flex-col justify-center items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                                <button
+                                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('modal-object-inRoomImage'); }}
+                                  className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors"
+                                  title="Select from library"
+                                >
+                                  <Icon as="gallery" className="w-3.5 h-3.5" />
+                                  Change
+                                </button>
+                                <button
+                                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleModalObjectChange('inRoomImage', null); }}
+                                  className="pointer-events-auto p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                                  title="Clear Image"
+                                >
+                                  <Icon as="trash" className="w-4 h-4" />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
                     </div>
                 </div>
                 <div className="flex-shrink-0 mt-6 pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-4">

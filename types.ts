@@ -26,6 +26,7 @@ export interface InventoryObject {
   showInInventory: boolean;
   wasEverInInventory?: boolean;
   image: string | null;
+  inRoomImage: string | null;
   showImageOverlay: boolean;
   addedToInventoryTimestamp?: number;
   nameColor?: string;

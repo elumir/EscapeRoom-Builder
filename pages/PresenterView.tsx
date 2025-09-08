@@ -242,6 +242,7 @@ const PresenterView: React.FC = () => {
   const handleAddCustomItem = (inventorySlot: 1 | 2) => {
     const name = window.prompt("Enter the name for the new custom item:");
     if (name && name.trim()) {
+      // FIX: Add missing 'inRoomImage' property to conform to the InventoryObject type.
       const newItem: InventoryObject = {
         id: `custom-${generateUUID()}`,
         name: name.trim(),
@@ -250,6 +251,7 @@ const PresenterView: React.FC = () => {
         wasEverInInventory: true,
         addedToInventoryTimestamp: Date.now(),
         image: null,
+        inRoomImage: null,
         showImageOverlay: false,
         inventorySlot,
       };
