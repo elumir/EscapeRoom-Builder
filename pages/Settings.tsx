@@ -354,6 +354,34 @@ const Settings: React.FC = () => {
                                     )}
                                 </div>
                                 <div>
+                                    <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Discarded Object Behavior</label>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
+                                        Choose what happens when an object is removed from the presenter's inventory.
+                                    </p>
+                                    <div className="flex rounded-lg bg-slate-200 dark:bg-slate-700/50 p-1">
+                                        <button
+                                            onClick={() => handleGamePropertyChange('discardMode', 'discard_pile')}
+                                            className={`flex-1 text-center text-sm px-3 py-1.5 rounded-md transition-colors ${
+                                                (game.discardMode === 'discard_pile' || !game.discardMode)
+                                                ? 'bg-white dark:bg-slate-600 shadow-sm font-semibold'
+                                                : 'text-slate-600 dark:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-600/50'
+                                            }`}
+                                        >
+                                            Move to Discard Pile
+                                        </button>
+                                        <button
+                                            onClick={() => handleGamePropertyChange('discardMode', 'return_to_room')}
+                                            className={`flex-1 text-center text-sm px-3 py-1.5 rounded-md transition-colors ${
+                                                game.discardMode === 'return_to_room'
+                                                ? 'bg-white dark:bg-slate-600 shadow-sm font-semibold'
+                                                : 'text-slate-600 dark:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-600/50'
+                                            }`}
+                                        >
+                                            Return to Original Room
+                                        </button>
+                                    </div>
+                                </div>
+                                <div>
                                     <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer">
                                       <input type="checkbox" className="rounded border-slate-400 text-brand-600 focus:ring-brand-500" checked={game.hideAvailableObjects || false} onChange={e => handleGamePropertyChange('hideAvailableObjects', e.target.checked)} />
                                       Hide the "Available to Pick Up" section for the presenter.

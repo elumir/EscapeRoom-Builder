@@ -512,11 +512,16 @@ const PresenterView: React.FC = () => {
             objects: room.objects.map(obj => {
                 if (obj.id === objectId) {
                     const newObj = { ...obj, showInInventory: newState };
-                    if (newState && !obj.wasEverInInventory) {
+                    if (newState) { // Item is being added to inventory
                         newObj.wasEverInInventory = true;
-                    }
-                    if (newState) {
                         newObj.addedToInventoryTimestamp = Date.now();
+                    } else { // Item is being removed from inventory (discarded)
+                        if (game.discardMode === 'return_to_room') {
+                            // By setting this to false, it will reappear in its original room
+                            newObj.wasEverInInventory = false;
+                        }
+                        // If mode is 'discard_pile' or undefined, wasEverInInventory remains true,
+                        // so it will appear in the discard pile.
                     }
                     return newObj;
                 }

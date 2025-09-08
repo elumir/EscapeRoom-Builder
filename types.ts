@@ -103,4 +103,5 @@ export interface Game {
   inventory1Title?: string;
   inventory2Title?: string;
   fontFamily?: string | null;
+  discardMode?: 'discard_pile' | 'return_to_room';
 }

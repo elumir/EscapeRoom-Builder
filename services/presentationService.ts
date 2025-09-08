@@ -126,6 +126,7 @@ export const createGame = async (title: string): Promise<Game> => {
         inventory1Title: 'Inventory 1',
         inventory2Title: 'Inventory 2',
         fontFamily: null,
+        discardMode: 'discard_pile',
     };
 
     try {
