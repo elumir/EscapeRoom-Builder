@@ -132,7 +132,10 @@ const PresentationView: React.FC = () => {
       inventoryObjects,
       visibleMapImages,
       overlayImageUrl,
-      globalBackgroundColor: game.globalBackgroundColor
+      globalBackgroundColor: game.globalBackgroundColor,
+      inventoryLayout: game.inventoryLayout,
+      inventory1Title: game.inventory1Title,
+      inventory2Title: game.inventory2Title,
     };
   }
 

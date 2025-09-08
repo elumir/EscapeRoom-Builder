@@ -187,6 +187,9 @@ const Dashboard: React.FC = () => {
                                                 inventoryObjects={inventoryObjects}
                                                 visibleMapImages={visibleMapImages}
                                                 globalBackgroundColor={g.globalBackgroundColor}
+                                                inventoryLayout={g.inventoryLayout}
+                                                inventory1Title={g.inventory1Title}
+                                                inventory2Title={g.inventory2Title}
                                               />
                                             </div>
                                             <div className="flex justify-between items-start px-4 pt-2">

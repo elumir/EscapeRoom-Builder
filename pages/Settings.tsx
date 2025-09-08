@@ -378,7 +378,7 @@ const Settings: React.FC = () => {
                                         ))}
                                     </div>
                                 </div>
-                                <div>
+                                <div className="pt-6 border-t border-slate-200 dark:border-slate-700">
                                     <h3 className="font-semibold text-slate-700 dark:text-slate-300 mb-2">Map Display Mode</h3>
                                     <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
                                         Choose how map images are shown to players.
@@ -405,6 +405,58 @@ const Settings: React.FC = () => {
                                             Layered
                                         </button>
                                     </div>
+                                </div>
+                                <div className="pt-6 border-t border-slate-200 dark:border-slate-700">
+                                    <h3 className="font-semibold text-slate-700 dark:text-slate-300 mb-2">Inventory Layout</h3>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
+                                        Choose how player inventory is displayed on the presentation screen.
+                                    </p>
+                                    <div className="flex rounded-lg bg-slate-100 dark:bg-slate-700/50 p-1 max-w-sm">
+                                        <button
+                                            onClick={() => handleGamePropertyChange('inventoryLayout', 'single')}
+                                            className={`flex-1 text-center text-sm px-3 py-1.5 rounded-md transition-colors ${
+                                                (game.inventoryLayout === 'single' || !game.inventoryLayout)
+                                                ? 'bg-white dark:bg-slate-600 shadow-sm text-slate-800 dark:text-slate-100 font-semibold'
+                                                : 'text-slate-600 dark:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-600/50'
+                                            }`}
+                                        >
+                                            Single Inventory
+                                        </button>
+                                        <button
+                                            onClick={() => handleGamePropertyChange('inventoryLayout', 'dual')}
+                                            className={`flex-1 text-center text-sm px-3 py-1.5 rounded-md transition-colors ${
+                                                game.inventoryLayout === 'dual'
+                                                ? 'bg-white dark:bg-slate-600 shadow-sm text-slate-800 dark:text-slate-100 font-semibold'
+                                                : 'text-slate-600 dark:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-600/50'
+                                            }`}
+                                        >
+                                            Dual Inventories
+                                        </button>
+                                    </div>
+                                    {game.inventoryLayout === 'dual' && (
+                                        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 max-w-md">
+                                            <div>
+                                                <label htmlFor="inv1-title" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Inventory 1 Title</label>
+                                                <input
+                                                    id="inv1-title"
+                                                    type="text"
+                                                    value={game.inventory1Title || 'Inventory 1'}
+                                                    onChange={e => handleGamePropertyChange('inventory1Title', e.target.value)}
+                                                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label htmlFor="inv2-title" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Inventory 2 Title</label>
+                                                <input
+                                                    id="inv2-title"
+                                                    type="text"
+                                                    value={game.inventory2Title || 'Inventory 2'}
+                                                    onChange={e => handleGamePropertyChange('inventory2Title', e.target.value)}
+                                                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         )}

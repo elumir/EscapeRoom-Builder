@@ -29,6 +29,7 @@ export interface InventoryObject {
   showImageOverlay: boolean;
   addedToInventoryTimestamp?: number;
   nameColor?: string;
+  inventorySlot?: 1 | 2;
 }
 
 export interface Puzzle {
@@ -97,4 +98,7 @@ export interface Game {
   soundtrackMode?: 'sequential' | 'shuffle';
   soundtrackVolume?: number;
   soundboard?: SoundboardClip[];
+  inventoryLayout?: 'single' | 'dual';
+  inventory1Title?: string;
+  inventory2Title?: string;
 }

@@ -436,7 +436,7 @@ const Editor: React.FC = () => {
   };
 
   const addObject = () => {
-    const newObject: InventoryObject = { id: generateUUID(), name: '', description: '', showInInventory: false, image: null, showImageOverlay: false, nameColor: null };
+    const newObject: InventoryObject = { id: generateUUID(), name: '', description: '', showInInventory: false, image: null, showImageOverlay: false, nameColor: null, inventorySlot: 1 };
     const newObjects = [...editingRoomObjects, newObject];
     setEditingRoomObjects(newObjects);
     
@@ -586,7 +586,7 @@ const Editor: React.FC = () => {
     setPuzzleModalState(null);
   };
 
-  const handleModalObjectChange = (field: keyof InventoryObject, value: string | boolean | null) => {
+  const handleModalObjectChange = (field: keyof InventoryObject, value: string | boolean | null | number) => {
     if (!modalObjectData) return;
     setModalObjectData({ ...modalObjectData, [field]: value });
   };
@@ -1107,6 +1107,33 @@ const Editor: React.FC = () => {
                             className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm resize-y"
                         />
                     </div>
+                    {game.inventoryLayout === 'dual' && (
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Target Inventory</label>
+                            <div className="flex rounded-lg bg-slate-100 dark:bg-slate-700/50 p-1 max-w-xs">
+                                <button
+                                    onClick={() => handleModalObjectChange('inventorySlot', 1)}
+                                    className={`flex-1 text-center text-sm px-3 py-1.5 rounded-md transition-colors ${
+                                        (modalObjectData.inventorySlot === 1 || !modalObjectData.inventorySlot)
+                                        ? 'bg-white dark:bg-slate-600 shadow-sm text-slate-800 dark:text-slate-100 font-semibold'
+                                        : 'text-slate-600 dark:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-600/50'
+                                    }`}
+                                >
+                                    {game.inventory1Title || 'Inventory 1'}
+                                </button>
+                                <button
+                                    onClick={() => handleModalObjectChange('inventorySlot', 2)}
+                                    className={`flex-1 text-center text-sm px-3 py-1.5 rounded-md transition-colors ${
+                                        modalObjectData.inventorySlot === 2
+                                        ? 'bg-white dark:bg-slate-600 shadow-sm text-slate-800 dark:text-slate-100 font-semibold'
+                                        : 'text-slate-600 dark:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-600/50'
+                                    }`}
+                                >
+                                    {game.inventory2Title || 'Inventory 2'}
+                                </button>
+                            </div>
+                        </div>
+                    )}
                     <div>
                       <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Image (Optional)</label>
                       <div className="relative group w-32 h-32 bg-slate-100 dark:bg-slate-700/50 rounded-md border-2 border-dashed border-slate-300 dark:border-slate-600">
@@ -2268,6 +2295,9 @@ const Editor: React.FC = () => {
                 inventoryObjects={inventoryObjects}
                 visibleMapImages={visibleMapImages}
                 globalBackgroundColor={game.globalBackgroundColor}
+                inventoryLayout={game.inventoryLayout}
+                inventory1Title={game.inventory1Title}
+                inventory2Title={game.inventory2Title}
               />
             </div>
           </div>
