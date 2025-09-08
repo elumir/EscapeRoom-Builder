@@ -134,8 +134,8 @@ const Room: React.FC<RoomProps> = ({
                         left: `${(obj.x ?? 0.5) * 100}%`,
                         top: `${(obj.y ?? 0.5) * 100}%`,
                         transform: 'translate(-50%, -50%)',
-                        maxWidth: `${(obj.size ?? 0.25) * 100}%`,
-                        maxHeight: `${(obj.size ?? 0.25) * 100}%`,
+                        maxWidth: '25%',
+                        maxHeight: '25%',
                         zIndex: 10,
                     }}
                 />
