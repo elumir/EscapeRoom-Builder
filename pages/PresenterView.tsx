@@ -824,6 +824,12 @@ const PresenterView: React.FC = () => {
     setPresentationWindow(win);
   };
 
+  const handleCloseGameWindow = () => {
+    if (presentationWindow) {
+        presentationWindow.close();
+    }
+  };
+
   const roomsByAct = useMemo(() => {
     if (!game) return {};
     return game.rooms.reduce((acc, room, index) => {
@@ -1161,18 +1167,21 @@ const PresenterView: React.FC = () => {
                 <span className="hidden lg:inline">Restart Game</span>
             </button>
             {isPresentationWindowOpen ? (
-            <button className="flex items-center gap-2 px-4 py-2 bg-slate-600 text-white rounded-lg cursor-not-allowed">
-                <Icon as="present" className="w-5 h-5" />
-                <span className="hidden lg:inline">Window Open</span>
-            </button>
+                <button
+                    onClick={handleCloseGameWindow}
+                    className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-300 shadow"
+                >
+                    <Icon as="close" className="w-5 h-5" />
+                    <span className="hidden lg:inline">Close Window</span>
+                </button>
             ) : (
-            <button
-                onClick={handleOpenGameWindow}
-                className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors duration-300 shadow"
-            >
-                <Icon as="present" className="w-5 h-5" />
-                <span className="hidden lg:inline">Open Window</span>
-            </button>
+                <button
+                    onClick={handleOpenGameWindow}
+                    className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors duration-300 shadow"
+                >
+                    <Icon as="present" className="w-5 h-5" />
+                    <span className="hidden lg:inline">Open Window</span>
+                </button>
             )}
         </div>
       </header>
