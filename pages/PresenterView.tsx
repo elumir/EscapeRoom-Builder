@@ -279,7 +279,11 @@ const PresenterView: React.FC = () => {
       ...prevGame,
       rooms: prevGame.rooms.map(room => ({
         ...room,
-        actions: (room.actions || []).map(action => action.id === actionId ? { ...action, isComplete } : action)
+        actions: (room.actions || []).map(action => 
+            action.id === actionId 
+            ? { ...action, isComplete, showImageOverlay: false } 
+            : action
+        )
       }))
     }));
   };
