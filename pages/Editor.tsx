@@ -2379,61 +2379,6 @@ const Editor: React.FC = () => {
 
               <div>
                 <div className="flex justify-between items-center mb-2">
-                  <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300">Puzzles in this Room</h3>
-                  <button onClick={addPuzzle} className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full" title="Add Puzzle">
-                      <Icon as="plus" className="w-5 h-5" />
-                  </button>
-                </div>
-                <div ref={puzzlesContainerRef} className="space-y-2">
-                    {editingRoomPuzzles.map((puzzle, index) => {
-                      const locks = puzzleLockMap.get(puzzle.id);
-                      return (
-                        <div 
-                          key={puzzle.id} 
-                          draggable
-                          onDragStart={() => handlePuzzleDragStart(index)}
-                          onDragOver={(e) => handlePuzzleDragOver(e, index)}
-                          onDragLeave={handlePuzzleDragLeave}
-                          onDrop={() => handlePuzzleDrop(index)}
-                          onDragEnd={handlePuzzleDragEnd}
-                          className={`relative p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-700 ${draggedPuzzleIndex === index ? 'opacity-50' : ''}`}
-                        >
-                          {dropTargetPuzzleIndex === index && (
-                              <div className={`absolute left-0 right-0 ${draggedPuzzleIndex !== null && draggedPuzzleIndex > index ? 'top-0' : 'bottom-0'} h-0.5 bg-brand-500`}></div>
-                          )}
-                          <div className="flex items-center justify-between w-full">
-                            <div className="flex items-center gap-2 flex-grow min-w-0">
-                                <div className="cursor-move touch-none">
-                                    <Icon as="reorder" className="w-5 h-5 text-slate-400 dark:text-slate-500" />
-                                </div>
-                                <div className="flex-grow min-w-0">
-                                  <p className="font-semibold truncate">{puzzle.name || <span className="italic text-slate-500">Untitled Puzzle</span>}</p>
-                                  {locks && (
-                                    <div className="flex items-center gap-1 text-xs text-red-500 mt-1" title={`Locked by: ${locks.join(', ')}`}>
-                                      <Icon as="lock" className="w-3 h-3"/>
-                                      <span>Locked</span>
-                                    </div>
-                                  )}
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-1 flex-shrink-0">
-                              <button onClick={() => setPuzzleModalState({ puzzle: { ...puzzle }, index })} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title="Edit Puzzle">
-                                <Icon as="edit" className="w-4 h-4" />
-                              </button>
-                              <button onClick={(e) => handleDeletePuzzle(e, index)} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title="Delete Puzzle">
-                                <Icon as="trash" className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    })}
-                    {editingRoomPuzzles.length === 0 && <p className="text-sm text-slate-500 dark:text-slate-400 italic">No puzzles in this room.</p>}
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between items-center mb-2">
                   <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300">Player Actions & Host Responses</h3>
                   <button onClick={addAction} className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full" title="Add Action">
                       <Icon as="plus" className="w-5 h-5" />
@@ -2484,6 +2429,61 @@ const Editor: React.FC = () => {
                       )
                     })}
                     {editingRoomActions.length === 0 && <p className="text-sm text-slate-500 dark:text-slate-400 italic">No actions in this room.</p>}
+                </div>
+              </div>
+
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300">Puzzles in this Room</h3>
+                  <button onClick={addPuzzle} className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full" title="Add Puzzle">
+                      <Icon as="plus" className="w-5 h-5" />
+                  </button>
+                </div>
+                <div ref={puzzlesContainerRef} className="space-y-2">
+                    {editingRoomPuzzles.map((puzzle, index) => {
+                      const locks = puzzleLockMap.get(puzzle.id);
+                      return (
+                        <div 
+                          key={puzzle.id} 
+                          draggable
+                          onDragStart={() => handlePuzzleDragStart(index)}
+                          onDragOver={(e) => handlePuzzleDragOver(e, index)}
+                          onDragLeave={handlePuzzleDragLeave}
+                          onDrop={() => handlePuzzleDrop(index)}
+                          onDragEnd={handlePuzzleDragEnd}
+                          className={`relative p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-700 ${draggedPuzzleIndex === index ? 'opacity-50' : ''}`}
+                        >
+                          {dropTargetPuzzleIndex === index && (
+                              <div className={`absolute left-0 right-0 ${draggedPuzzleIndex !== null && draggedPuzzleIndex > index ? 'top-0' : 'bottom-0'} h-0.5 bg-brand-500`}></div>
+                          )}
+                          <div className="flex items-center justify-between w-full">
+                            <div className="flex items-center gap-2 flex-grow min-w-0">
+                                <div className="cursor-move touch-none">
+                                    <Icon as="reorder" className="w-5 h-5 text-slate-400 dark:text-slate-500" />
+                                </div>
+                                <div className="flex-grow min-w-0">
+                                  <p className="font-semibold truncate">{puzzle.name || <span className="italic text-slate-500">Untitled Puzzle</span>}</p>
+                                  {locks && (
+                                    <div className="flex items-center gap-1 text-xs text-red-500 mt-1" title={`Locked by: ${locks.join(', ')}`}>
+                                      <Icon as="lock" className="w-3 h-3"/>
+                                      <span>Locked</span>
+                                    </div>
+                                  )}
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                              <button onClick={() => setPuzzleModalState({ puzzle: { ...puzzle }, index })} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title="Edit Puzzle">
+                                <Icon as="edit" className="w-4 h-4" />
+                              </button>
+                              <button onClick={(e) => handleDeletePuzzle(e, index)} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title="Delete Puzzle">
+                                <Icon as="trash" className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                    {editingRoomPuzzles.length === 0 && <p className="text-sm text-slate-500 dark:text-slate-400 italic">No puzzles in this room.</p>}
                 </div>
               </div>
           </div>

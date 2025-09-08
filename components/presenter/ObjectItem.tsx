@@ -110,7 +110,7 @@ const ObjectItem: React.FC<{
                             className="p-1.5 text-current hover:bg-white/20 rounded-full"
                             title={isDescriptionVisible ? "Hide description" : "Show description"}
                         >
-                            <Icon as={isDescriptionVisible ? "eye-slash" : "eye"} className="w-5 h-5" />
+                            <Icon as={isDescriptionVisible ? "eye-slash" : "description"} className="w-5 h-5" />
                         </button>
                     )}
                     {showVisibilityToggle && (

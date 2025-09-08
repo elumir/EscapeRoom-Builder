@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface IconProps {
-  as: 'plus' | 'trash' | 'present' | 'prev' | 'next' | 'close' | 'reorder' | 'expand' | 'collapse' | 'lock' | 'eye' | 'eye-slash' | 'chevron-down' | 'restart' | 'rewind' | 'settings' | 'gallery' | 'audio' | 'map' | 'edit' | 'shuffle' | 'swatch' | 'share' | 'stop' | 'play' | 'font' | 'hand-expand';
+  as: 'plus' | 'trash' | 'present' | 'prev' | 'next' | 'close' | 'reorder' | 'expand' | 'collapse' | 'lock' | 'eye' | 'eye-slash' | 'chevron-down' | 'restart' | 'rewind' | 'settings' | 'gallery' | 'audio' | 'map' | 'edit' | 'shuffle' | 'swatch' | 'share' | 'stop' | 'play' | 'font' | 'hand-expand' | 'description';
   className?: string;
 }
 
@@ -154,6 +154,14 @@ const icons = {
   'hand-expand': (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" d="M7.863 20.258l-4.6-5.108a1.564 1.564 0 0 1-.139-1.913 1.564 1.564 0 0 1 2.105-.473L7.7 14.247 6.4 5.163A1.585 1.585 0 0 1 7.591 3.4a1.585 1.585 0 0 1 1.939 1.228L10.7 10.5V3.747a1.5 1.5 0 0 1 3 0V10.5l1.182-5.911a1.545 1.545 0 0 1 1.889-1.2 1.544 1.544 0 0 1 1.14 1.8L16.7 11.247l2.3-4.59a1.391 1.391 0 0 1 2.016-.536 1.392 1.392 0 0 1 .52 1.674l-2.259 5.648a4.491 4.491 0 0 0-.322 1.671v2.133a4.5 4.5 0 0 1-1.8 3.6 4.5 4.5 0 0 1-2.7.9h-3.247a4.5 4.5 0 0 1-3.345-1.489z" />
+    </svg>
+  ),
+  'description': (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 7.477h6" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 11.977h7.5" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 16.477h13.5" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3.023a1.5 1.5 0 0 0-1.5 1.5v14.954a1.5 1.5 0 0 0 1.5 1.5h19.5a1.5 1.5 0 0 0 1.5-1.5v-12a1.5 1.5 0 0 0-.426-1.047l-2.883-2.955a1.5 1.5 0 0 0-1.074-.452z" />
     </svg>
   ),
 };
