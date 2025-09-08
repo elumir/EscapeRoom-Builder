@@ -602,8 +602,8 @@ const PresenterView: React.FC = () => {
         // Update the puzzle's solved state
         const newPuzzles = room.puzzles.map(p => {
             if (p.id === puzzleId) {
-                // If the puzzle is being solved, also set its showImageOverlay to false.
-                return { ...p, isSolved: newState, showImageOverlay: newState ? false : p.showImageOverlay };
+                // The overlay is now hidden when the success modal is dismissed.
+                return { ...p, isSolved: newState };
             }
             return p;
         });
@@ -646,6 +646,34 @@ const PresenterView: React.FC = () => {
         setSolveError('Incorrect answer. Please try again.');
         setSubmittedAnswer('');
     }
+  };
+
+  const handleCloseSolvedModal = () => {
+    if (!game || !solvedPuzzleInfo) return;
+
+    // Create a new game state with the puzzle image overlay turned off.
+    const updatedGame = {
+        ...game,
+        rooms: game.rooms.map(room => {
+            // Find the room containing the puzzle
+            const puzzleIndex = room.puzzles.findIndex(p => p.id === solvedPuzzleInfo.id);
+            if (puzzleIndex === -1) {
+                return room; // Not in this room
+            }
+
+            // Create a new puzzles array with the updated puzzle
+            const newPuzzles = [...room.puzzles];
+            newPuzzles[puzzleIndex] = { ...newPuzzles[puzzleIndex], showImageOverlay: false };
+
+            return { ...room, puzzles: newPuzzles };
+        })
+    };
+
+    // Update state and broadcast to the presentation view
+    updateAndBroadcast(updatedGame);
+
+    // Close the modal
+    setSolvedPuzzleInfo(null);
   };
 
   const handleTogglePuzzleImage = (puzzleId: string, newState: boolean) => {
@@ -1154,7 +1182,7 @@ const PresenterView: React.FC = () => {
                   )}
                   <button 
                       type="button" 
-                      onClick={() => setSolvedPuzzleInfo(null)} 
+                      onClick={handleCloseSolvedModal} 
                       className="px-6 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors"
                   >
                       Continue
