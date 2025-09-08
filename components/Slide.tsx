@@ -136,7 +136,7 @@ const Room: React.FC<RoomProps> = ({
       
       {!isFullScreenImage && (
         <div className={sidebarContainerClass}>
-          <div className="relative h-1/2 flex items-center justify-center text-center p-2 md:p-4 border-b border-slate-200/50 dark:border-slate-700/50">
+          <div className="relative aspect-[5/4] flex-shrink-0 flex items-center justify-center text-center p-2 md:p-4 border-b border-slate-200/50 dark:border-slate-700/50">
                {visibleMapImages && visibleMapImages.length > 0 ? (
                   <div className="absolute inset-0">
                       {visibleMapImages.map((mapImage, index) => (
@@ -149,7 +149,7 @@ const Room: React.FC<RoomProps> = ({
                   </div>
                )}
           </div>
-          <div className="h-1/2 flex flex-col justify-start p-2 md:p-4 overflow-y-auto">
+          <div className="flex-1 min-h-0 flex flex-col justify-start p-2 md:p-4 overflow-y-auto">
               {inventoryLayout === 'dual' ? (
                 inventoryObjects.length > 0 ? (
                     <div className="flex gap-x-2 md:gap-x-4 w-full">
