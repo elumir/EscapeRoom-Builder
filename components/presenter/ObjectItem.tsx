@@ -62,26 +62,30 @@ const ObjectItem: React.FC<{
                             {obj.name}
                         </h4>
                     </div>
-                    {onToggleInRoomImage && obj.inRoomImage && (
-                        <label className={`flex items-center transform scale-75 origin-right ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
-                            <input
-                                type="checkbox"
-                                checked={obj.showInRoomImage}
-                                onChange={(e) => onToggleInRoomImage(obj.id, e.target.checked)}
-                                className="sr-only peer"
+                    <div className="flex items-center gap-1">
+                        {onToggleInRoomImage && obj.inRoomImage && (
+                            <button
+                                onClick={() => onToggleInRoomImage(obj.id, !obj.showInRoomImage)}
                                 disabled={isLocked}
-                            />
-                            <div className="relative w-9 h-5 bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-sky-600"></div>
-                        </label>
-                    )}
-                    <button
-                        onClick={() => onToggle(obj.id, true)}
-                        disabled={isLocked}
-                        className="p-1 bg-white/20 text-white rounded-full hover:bg-white/40 disabled:bg-white/10 disabled:cursor-not-allowed flex-shrink-0"
-                        title={lockingPuzzleName ? `Locked by: ${lockingPuzzleName}` : "Add to inventory"}
-                    >
-                        <Icon as="hand-expand" className="w-3 h-3"/>
-                    </button>
+                                className={`p-1 rounded-full transition-colors ${
+                                    obj.showInRoomImage 
+                                        ? 'bg-sky-500 text-white hover:bg-sky-600' 
+                                        : 'bg-white/20 text-white hover:bg-white/40'
+                                } disabled:bg-white/10 disabled:cursor-not-allowed flex-shrink-0`}
+                                title={obj.showInRoomImage ? "Hide in-room image" : "Show in-room image"}
+                            >
+                                <Icon as={obj.showInRoomImage ? 'eye' : 'eye-slash'} className="w-3 h-3"/>
+                            </button>
+                        )}
+                        <button
+                            onClick={() => onToggle(obj.id, true)}
+                            disabled={isLocked}
+                            className="p-1 bg-white/20 text-white rounded-full hover:bg-white/40 disabled:bg-white/10 disabled:cursor-not-allowed flex-shrink-0"
+                            title={lockingPuzzleName ? `Locked by: ${lockingPuzzleName}` : "Add to inventory"}
+                        >
+                            <Icon as="hand-expand" className="w-3 h-3"/>
+                        </button>
+                    </div>
                 </div>
             </div>
         );
