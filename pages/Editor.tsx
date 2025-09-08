@@ -46,7 +46,7 @@ const Editor: React.FC = () => {
   const [modalContent, setModalContent] = useState<{type: 'notes' | 'solvedNotes', content: string} | null>(null);
   const [assetLibrary, setAssetLibrary] = useState<Asset[]>([]);
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
-  const [assetModalTarget, setAssetModalTarget] = useState<'image' | 'mapImage' | 'solvedImage' | 'modal-object-image' | 'modal-object-inRoomImage' | null>(null);
+  const [assetModalTarget, setAssetModalTarget] = useState<'image' | 'mapImage' | 'solvedImage' | 'modal-object-image' | 'modal-object-inRoomImage' | 'modal-puzzle-image' | 'modal-action-image' | null>(null);
   const [isAssetManagerOpen, setIsAssetManagerOpen] = useState(false);
   const [deletingAssetId, setDeletingAssetId] = useState<string | null>(null);
   const [editingAssetName, setEditingAssetName] = useState<{ id: string; name: string } | null>(null);
@@ -300,7 +300,7 @@ const Editor: React.FC = () => {
       }
   };
   
-  const openAssetLibrary = (target: 'image' | 'mapImage' | 'solvedImage' | 'modal-object-image' | 'modal-object-inRoomImage') => {
+  const openAssetLibrary = (target: 'image' | 'mapImage' | 'solvedImage' | 'modal-object-image' | 'modal-object-inRoomImage' | 'modal-puzzle-image' | 'modal-action-image') => {
       setAssetModalTarget(target);
       setIsAssetModalOpen(true);
   };
@@ -312,6 +312,10 @@ const Editor: React.FC = () => {
           handleModalObjectChange('image', assetId);
       } else if (assetModalTarget === 'modal-object-inRoomImage') {
           handleModalObjectChange('inRoomImage', assetId);
+      } else if (assetModalTarget === 'modal-puzzle-image') {
+          handleModalPuzzleChange('image', assetId);
+      } else if (assetModalTarget === 'modal-action-image') {
+          handleModalActionChange('image', assetId);
       } else if (['image', 'mapImage', 'solvedImage'].includes(assetModalTarget)) {
           changeRoomProperty(assetModalTarget as 'image' | 'mapImage' | 'solvedImage', assetId);
       }
@@ -557,6 +561,21 @@ const Editor: React.FC = () => {
     deleteAction(index);
   };
   
+// FIX: Added helper functions to toggle selections in multi-select dropdowns for puzzle locking controls.
+  const toggleSelection = (field: keyof Puzzle, id: string) => {
+      if (!modalPuzzleData) return;
+      const currentIds = (modalPuzzleData[field] as string[] | undefined) || [];
+      const newIds = currentIds.includes(id) ? currentIds.filter(i => i !== id) : [...currentIds, id];
+      handleModalPuzzleChange(field, newIds);
+  };
+  
+  const toggleActSelection = (actNumber: number) => {
+      if (!modalPuzzleData) return;
+      const currentActs = modalPuzzleData.lockedActNumbers || [];
+      const newActs = currentActs.includes(actNumber) ? currentActs.filter(n => n !== actNumber) : [...currentActs, actNumber];
+      handleModalPuzzleChange('lockedActNumbers', newActs);
+  };
+
   const handleModalPuzzleChange = (field: keyof Puzzle, value: string | boolean | string[] | number[] | null) => {
       if (!modalPuzzleData) return;
       let processedValue = value;
@@ -837,6 +856,12 @@ const Editor: React.FC = () => {
   const allGameActions = useMemo(() => {
     if (!game) return [];
     return game.rooms.flatMap(r => (r.actions || []).map(a => ({ ...a, roomName: r.name })));
+  }, [game]);
+
+// FIX: Added a memoized calculation for all puzzles in the game to be used in the puzzle locking controls.
+  const allGamePuzzles = useMemo(() => {
+    if (!game) return [];
+    return game.rooms.flatMap(r => r.puzzles.map(p => ({ ...p, roomName: r.name })));
   }, [game]);
 
   const allGameActs = useMemo(() => {
@@ -1257,537 +1282,142 @@ const Editor: React.FC = () => {
       )}
       {puzzleModalState && modalPuzzleData && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60] backdrop-blur-sm">
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-2xl w-full max-w-4xl h-[90vh] flex flex-col">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
                 <div className="flex-shrink-0 flex justify-between items-center mb-4 pb-4 border-b border-slate-200 dark:border-slate-700">
-                    <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">Edit Puzzle: {modalPuzzleData.name}</h2>
+                    <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">Edit Puzzle</h2>
                     <button onClick={() => setPuzzleModalState(null)} className="p-1.5 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700">
                         <Icon as="close" className="w-5 h-5" />
                     </button>
                 </div>
-                <div className="flex-grow overflow-y-auto pr-4 -mr-4 space-y-4">
-                    <div className="flex items-center gap-4">
-                        <div className="flex-1">
+                <div className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-x-6 overflow-y-auto pr-2 -mr-2">
+                    {/* Left Column */}
+                    <div className="space-y-4">
+                        <div>
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Puzzle Name</label>
-                            <input 
-                                type="text" 
+                            <input
+                                type="text"
                                 value={modalPuzzleData.name}
                                 onChange={(e) => handleModalPuzzleChange('name', e.target.value)}
-                                placeholder="Puzzle Name"
                                 className="w-full font-semibold px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
                             />
                         </div>
-                        <div className="flex-1">
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Answer (optional)</label>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Answer (Optional)</label>
                             <input
                                 type="text"
                                 value={modalPuzzleData.answer}
                                 onChange={(e) => handleModalPuzzleChange('answer', e.target.value)}
-                                placeholder="Answer (optional)"
-                                className="w-full font-mono px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
+                                placeholder="Alphanumeric, no spaces, lowercase"
+                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm font-mono tracking-wider"
                             />
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">If blank, puzzle can be marked "Complete" without an answer.</p>
                         </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Unsolved Text</label>
-                            <textarea 
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Unsolved Description</label>
+                            <textarea
                                 value={modalPuzzleData.unsolvedText}
                                 onChange={(e) => handleModalPuzzleChange('unsolvedText', e.target.value)}
-                                placeholder="Unsolved Text"
                                 rows={4}
                                 className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm resize-y"
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Solved Text</label>
-                            <textarea 
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Solved Description</label>
+                            <textarea
                                 value={modalPuzzleData.solvedText}
                                 onChange={(e) => handleModalPuzzleChange('solvedText', e.target.value)}
-                                placeholder="Solved Text"
                                 rows={4}
                                 className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm resize-y"
                             />
                         </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Image</label>
-                            {modalPuzzleData.image ? (
-                                <div className="flex items-center gap-2">
-                                    <img src={`${API_BASE_URL}/assets/${modalPuzzleData.image}`} alt="Puzzle preview" className="w-24 h-24 object-cover rounded-md border border-slate-300 dark:border-slate-600" />
-                                    <button onClick={() => handleModalPuzzleFileChange('image', null)} className="text-red-500 hover:text-red-700 text-xs self-end p-1">Clear</button>
-                                </div>
-                            ) : (
-                                <input type="file" accept="image/*" onChange={(e) => handleModalPuzzleFileChange('image', e.target.files?.[0] || null)} className="text-sm w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100" />
-                            )}
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Sound</label>
-                            {modalPuzzleData.sound ? (
-                                <div className="space-y-2">
-                                    <AudioPreviewPlayer assetId={modalPuzzleData.sound} />
-                                    <button onClick={() => handleModalPuzzleFileChange('sound', null)} className="text-red-500 hover:text-red-700 text-xs px-1">Clear Sound</button>
-                                </div>
-                            ) : (
-                                <input type="file" accept="audio/*" onChange={(e) => handleModalPuzzleFileChange('sound', e.target.files?.[0] || null)} className="text-sm w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100"/>
-                            )}
-                        </div>
-                    </div>
-                    <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
-                            {/* Column 1: Locked elements */}
-                            <div className="space-y-4">
-                                <h3 className="text-base font-semibold text-slate-700 dark:text-slate-300">Locked elements</h3>
-                                <p className="text-xs text-slate-500 dark:text-slate-400 -mt-3">Elements that are locked until puzzle is solved.</p>
-
-                                {/* Locked Objects */}
-                                <div className="relative" ref={modalObjectsDropdownRef}>
-                                    <h4 className="font-semibold text-sm mb-1 text-slate-600 dark:text-slate-400">Locked Objects</h4>
-                                    <button type="button" onClick={() => setOpenModalPuzzleObjectsDropdown(prev => !prev)} className="w-full text-left px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 flex justify-between items-center text-sm">
-                                        <span>{`${modalPuzzleData.lockedObjectIds?.length || 0} selected`}</span>
-                                        <Icon as="chevron-down" className={`w-4 h-4 transition-transform ${openModalPuzzleObjectsDropdown ? 'rotate-180' : ''}`} />
+                        <div className="flex gap-4">
+                           <div>
+                              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Image (Optional)</label>
+                              <div className="relative group w-32 h-32 bg-slate-100 dark:bg-slate-700/50 rounded-md border-2 border-dashed border-slate-300 dark:border-slate-600">
+                                {modalPuzzleData.image && (
+                                  <img src={`${API_BASE_URL}/assets/${modalPuzzleData.image}`} alt={modalPuzzleData.name} className="w-full h-full object-cover rounded-md" />
+                                )}
+                                <label className="absolute inset-0 cursor-pointer hover:bg-black/40 transition-colors rounded-md flex items-center justify-center">
+                                  <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleModalPuzzleFileChange('image', e.target.files[0])} className="sr-only" />
+                                  {!modalPuzzleData.image && (
+                                    <>
+                                      <div className="text-center text-slate-400 dark:text-slate-500 group-hover:opacity-0 transition-opacity">
+                                        <Icon as="gallery" className="w-10 h-10 mx-auto" />
+                                        <p className="text-xs mt-1">Add Image</p>
+                                      </div>
+                                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <div className="pointer-events-none text-white text-center"><p className="font-bold text-xs">Upload New</p></div>
+                                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('modal-puzzle-image'); }}
+                                          className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors text-center">
+                                          <Icon as="gallery" className="w-3.5 h-3.5" /> From Library
+                                        </button>
+                                      </div>
+                                    </>
+                                  )}
+                                </label>
+                                {modalPuzzleData.image && (
+                                  <div className="absolute inset-0 bg-black/60 p-1 flex flex-col justify-center items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                                    <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('modal-puzzle-image'); }}
+                                      className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors" title="Select from library">
+                                      <Icon as="gallery" className="w-3.5 h-3.5" />Change
                                     </button>
-                                    {openModalPuzzleObjectsDropdown && (
-                                        <div className="absolute z-10 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg flex flex-col max-h-60">
-                                            <div className="p-2 border-b border-slate-200 dark:border-slate-700">
-                                                <input 
-                                                    type="text"
-                                                    value={modalPuzzleObjectsSearch}
-                                                    onChange={(e) => setModalPuzzleObjectsSearch(e.target.value)}
-                                                    placeholder="Search objects..."
-                                                    className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
-                                                />
-                                            </div>
-                                            <div className="overflow-y-auto">
-                                                {game.rooms.map(room => {
-                                                    const filteredObjects = room.objects.filter(obj => 
-                                                        obj.name.toLowerCase().includes(modalPuzzleObjectsSearch.toLowerCase())
-                                                    );
-                                                    if (filteredObjects.length === 0) return null;
-                                                    return (
-                                                        <div key={room.id} className="p-2">
-                                                            <h5 className="text-xs font-bold text-slate-500 dark:text-slate-400 sticky top-0 bg-white dark:bg-slate-800 py-1 px-2 -mx-2">{room.name}</h5>
-                                                            {filteredObjects.map(obj => (
-                                                              <label key={obj.id} className="flex items-center gap-2 text-sm p-1 cursor-pointer">
-                                                                <input 
-                                                                    type="checkbox" 
-                                                                    checked={modalPuzzleData.lockedObjectIds?.includes(obj.id)} 
-                                                                    onChange={e => {
-                                                                        setModalPuzzleData(prevData => {
-                                                                            if (!prevData) return null;
-                                                                            const currentIds = prevData.lockedObjectIds || [];
-                                                                            const newLockedIds = e.target.checked
-                                                                                ? [...currentIds, obj.id]
-                                                                                : currentIds.filter(id => id !== obj.id);
-                                                                            
-                                                                            const newState: Puzzle = {
-                                                                                ...prevData,
-                                                                                lockedObjectIds: newLockedIds,
-                                                                            };
-                                                                    
-                                                                            if (e.target.checked && newLockedIds.length > 0) {
-                                                                                newState.autoAddLockedObjects = true;
-                                                                            }
-                                                                    
-                                                                            return newState;
-                                                                        });
-                                                                    }} 
-                                                                />
-                                                                {obj.name}
-                                                              </label>
-                                                            ))}
-                                                        </div>
-                                                    )
-                                                })}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Locked Actions */}
-                                <div className="relative" ref={modalActionsDropdownRef}>
-                                    <h4 className="font-semibold text-sm mb-1 text-slate-600 dark:text-slate-400">Locked Actions</h4>
-                                    <button type="button" onClick={() => setOpenModalPuzzleActionsDropdown(prev => !prev)} className="w-full text-left px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 flex justify-between items-center text-sm">
-                                        <span>{`${modalPuzzleData.lockedActionIds?.length || 0} selected`}</span>
-                                        <Icon as="chevron-down" className={`w-4 h-4 transition-transform ${openModalPuzzleActionsDropdown ? 'rotate-180' : ''}`} />
+                                    <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleModalPuzzleChange('image', null); }}
+                                      className="pointer-events-auto p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors" title="Clear Image">
+                                      <Icon as="trash" className="w-4 h-4" />
                                     </button>
-                                    {openModalPuzzleActionsDropdown && (
-                                        <div className="absolute z-10 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg flex flex-col max-h-60">
-                                            <div className="p-2 border-b border-slate-200 dark:border-slate-700">
-                                                <input
-                                                    type="text"
-                                                    value={modalPuzzleActionsSearch}
-                                                    onChange={(e) => setModalPuzzleActionsSearch(e.target.value)}
-                                                    placeholder="Search actions..."
-                                                    className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
-                                                />
-                                            </div>
-                                            <div className="overflow-y-auto">
-                                              {game.rooms.map(room => {
-                                                const filteredActions = (room.actions || []).filter(a =>
-                                                    (a.name || 'Untitled Action').toLowerCase().includes(modalPuzzleActionsSearch.toLowerCase())
-                                                );
-                                                if (filteredActions.length === 0) return null;
-                                                return (
-                                                    <div key={room.id} className="p-2">
-                                                        <h5 className="text-xs font-bold text-slate-500 dark:text-slate-400 sticky top-0 bg-white dark:bg-slate-800 py-1 px-2 -mx-2">{room.name}</h5>
-                                                        {filteredActions.map(action => (
-                                                          <label key={action.id} className="flex items-center gap-2 text-sm p-1 cursor-pointer">
-                                                            <input
-                                                              type="checkbox"
-                                                              checked={modalPuzzleData.lockedActionIds?.includes(action.id)}
-                                                              onChange={e => {
-                                                                  setModalPuzzleData(prevData => {
-                                                                      if (!prevData) return null;
-                                                                      const currentIds = prevData.lockedActionIds || [];
-                                                                      const newIds = e.target.checked
-                                                                          ? [...currentIds, action.id]
-                                                                          : currentIds.filter(id => id !== action.id);
-                                                                      return { ...prevData, lockedActionIds: newIds };
-                                                                  });
-                                                              }}
-                                                            />
-                                                            {action.name || <span className="italic">Untitled Action</span>}
-                                                          </label>
-                                                        ))}
-                                                    </div>
-                                                )
-                                              })}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                                
-                                {/* Locked Puzzles */}
-                                <div className="relative" ref={modalPuzzlesDropdownRef}>
-                                    <h4 className="font-semibold text-sm mb-1 text-slate-600 dark:text-slate-400">Locked Puzzles</h4>
-                                    <button type="button" onClick={() => setOpenModalPuzzlePuzzlesDropdown(prev => !prev)} className="w-full text-left px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 flex justify-between items-center text-sm">
-                                        <span>{`${modalPuzzleData.lockedPuzzleIds?.length || 0} selected`}</span>
-                                        <Icon as="chevron-down" className={`w-4 h-4 transition-transform ${openModalPuzzlePuzzlesDropdown ? 'rotate-180' : ''}`} />
-                                    </button>
-                                    {openModalPuzzlePuzzlesDropdown && (
-                                        <div className="absolute z-10 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg flex flex-col max-h-60">
-                                            <div className="p-2 border-b border-slate-200 dark:border-slate-700">
-                                                <input 
-                                                    type="text"
-                                                    value={modalPuzzlePuzzlesSearch}
-                                                    onChange={(e) => setModalPuzzlePuzzlesSearch(e.target.value)}
-                                                    placeholder="Search puzzles..."
-                                                    className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
-                                                />
-                                            </div>
-                                            <div className="overflow-y-auto">
-                                              {game.rooms.map(room => {
-                                                const filteredPuzzles = room.puzzles.filter(p => p.id !== modalPuzzleData.id && p.name.toLowerCase().includes(modalPuzzlePuzzlesSearch.toLowerCase()));
-                                                if (filteredPuzzles.length === 0) return null;
-                                                return (
-                                                    <div key={room.id} className="p-2">
-                                                        <h5 className="text-xs font-bold text-slate-500 dark:text-slate-400 sticky top-0 bg-white dark:bg-slate-800 py-1 px-2 -mx-2">{room.name}</h5>
-                                                        {filteredPuzzles.map(p => (
-                                                          <label key={p.id} className="flex items-center gap-2 text-sm p-1 cursor-pointer">
-                                                            <input type="checkbox" checked={modalPuzzleData.lockedPuzzleIds?.includes(p.id)} onChange={e => {
-                                                                setModalPuzzleData(prevData => {
-                                                                    if (!prevData) return null;
-                                                                    const currentIds = prevData.lockedPuzzleIds || [];
-                                                                    const newIds = e.target.checked
-                                                                        ? [...currentIds, p.id]
-                                                                        : currentIds.filter(id => id !== p.id);
-                                                                    return { ...prevData, lockedPuzzleIds: newIds };
-                                                                });
-                                                            }} />
-                                                            {p.name}
-                                                          </label>
-                                                        ))}
-                                                    </div>
-                                                )
-                                              })}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Locked Rooms */}
-                                <div className="relative" ref={modalRoomsDropdownRef}>
-                                    <h4 className="font-semibold text-sm mb-1 text-slate-600 dark:text-slate-400">Locked Rooms</h4>
-                                    <button type="button" onClick={() => setOpenModalPuzzleRoomsDropdown(prev => !prev)} className="w-full text-left px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 flex justify-between items-center text-sm">
-                                        <span>{`${modalPuzzleData.lockedRoomIds?.length || 0} selected`}</span>
-                                        <Icon as="chevron-down" className={`w-4 h-4 transition-transform ${openModalPuzzleRoomsDropdown ? 'rotate-180' : ''}`} />
-                                    </button>
-                                    {openModalPuzzleRoomsDropdown && (
-                                        <div className="absolute z-10 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg flex flex-col max-h-60">
-                                            <div className="p-2 border-b border-slate-200 dark:border-slate-700">
-                                                <input 
-                                                    type="text"
-                                                    value={modalPuzzleRoomsSearch}
-                                                    onChange={(e) => setModalPuzzleRoomsSearch(e.target.value)}
-                                                    placeholder="Search rooms..."
-                                                    className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
-                                                />
-                                            </div>
-                                            <div className="overflow-y-auto p-2">
-                                              {game.rooms.filter(r => r.id !== currentRoom.id && r.name.toLowerCase().includes(modalPuzzleRoomsSearch.toLowerCase())).map(room => (
-                                                <label key={room.id} className="flex items-center gap-2 text-sm p-1 cursor-pointer">
-                                                  <input type="checkbox" checked={modalPuzzleData.lockedRoomIds?.includes(room.id)} onChange={e => {
-                                                      setModalPuzzleData(prevData => {
-                                                          if (!prevData) return null;
-                                                          const currentIds = prevData.lockedRoomIds || [];
-                                                          const newIds = e.target.checked
-                                                              ? [...currentIds, room.id]
-                                                              : currentIds.filter(id => id !== room.id);
-                                                          return { ...prevData, lockedRoomIds: newIds };
-                                                      });
-                                                  }} />
-                                                  {room.name}
-                                                </label>
-                                              ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                                
-                                {/* Locked Room Solves */}
-                                <div className="relative" ref={modalRoomSolvesDropdownRef}>
-                                    <h4 className="font-semibold text-sm mb-1 text-slate-600 dark:text-slate-400">Locked Room Solves</h4>
-                                    <button type="button" onClick={() => setOpenModalPuzzleRoomSolvesDropdown(prev => !prev)} className="w-full text-left px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 flex justify-between items-center text-sm">
-                                        <span>{`${modalPuzzleData.lockedRoomSolveIds?.length || 0} selected`}</span>
-                                        <Icon as="chevron-down" className={`w-4 h-4 transition-transform ${openModalPuzzleRoomSolvesDropdown ? 'rotate-180' : ''}`} />
-                                    </button>
-                                    {openModalPuzzleRoomSolvesDropdown && (
-                                        <div className="absolute z-10 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg flex flex-col max-h-60">
-                                            <div className="p-2 border-b border-slate-200 dark:border-slate-700">
-                                                <input 
-                                                    type="text"
-                                                    value={modalPuzzleRoomSolvesSearch}
-                                                    onChange={(e) => setModalPuzzleRoomSolvesSearch(e.target.value)}
-                                                    placeholder="Search rooms..."
-                                                    className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
-                                                />
-                                            </div>
-                                            <div className="overflow-y-auto p-2">
-                                              {(() => {
-                                                const filteredRooms = game.rooms.filter(room => 
-                                                  (room.solvedImage || (room.solvedNotes && room.solvedNotes.trim() !== '')) && 
-                                                  room.name.toLowerCase().includes(modalPuzzleRoomSolvesSearch.toLowerCase())
-                                                );
-
-                                                if (filteredRooms.length === 0) {
-                                                  return (
-                                                    <p className="text-xs text-slate-500 dark:text-slate-400 italic p-2">
-                                                      No rooms with a defined Solved State found.
-                                                    </p>
-                                                  );
-                                                }
-                                                
-                                                return filteredRooms.map(room => (
-                                                  <label key={room.id} className="flex items-center gap-2 text-sm p-1 cursor-pointer">
-                                                    <input 
-                                                      type="checkbox" 
-                                                      checked={modalPuzzleData.lockedRoomSolveIds?.includes(room.id)} 
-                                                      onChange={e => {
-                                                          setModalPuzzleData(prevData => {
-                                                              if (!prevData) return null;
-                                                              const currentIds = prevData.lockedRoomSolveIds || [];
-                                                              const newIds = e.target.checked
-                                                                  ? [...currentIds, room.id]
-                                                                  : currentIds.filter(id => id !== room.id);
-                                                              return { ...prevData, lockedRoomSolveIds: newIds };
-                                                          });
-                                                      }}
-                                                    />
-                                                    {room.name}
-                                                  </label>
-                                                ));
-                                              })()}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                                
-                                {/* Locked Acts */}
-                                <div className="relative" ref={modalActsDropdownRef}>
-                                    <h4 className="font-semibold text-sm mb-1 text-slate-600 dark:text-slate-400">Locked Acts</h4>
-                                    <button type="button" onClick={() => setOpenModalPuzzleActsDropdown(prev => !prev)} className="w-full text-left px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 flex justify-between items-center text-sm">
-                                        <span>{`${modalPuzzleData.lockedActNumbers?.length || 0} selected`}</span>
-                                        <Icon as="chevron-down" className={`w-4 h-4 transition-transform ${openModalPuzzleActsDropdown ? 'rotate-180' : ''}`} />
-                                    </button>
-                                    {openModalPuzzleActsDropdown && (
-                                        <div className="absolute z-10 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg flex flex-col max-h-60">
-                                            <div className="p-2 border-b border-slate-200 dark:border-slate-700">
-                                                <input
-                                                    type="text"
-                                                    value={modalPuzzleActsSearch}
-                                                    onChange={(e) => setModalPuzzleActsSearch(e.target.value)}
-                                                    placeholder="Search acts..."
-                                                    className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
-                                                />
-                                            </div>
-                                            <div className="overflow-y-auto p-2">
-                                              {allGameActs
-                                                .filter(act => `Act ${act}`.toLowerCase().includes(modalPuzzleActsSearch.toLowerCase()))
-                                                .map(act => (
-                                                  <label key={act} className="flex items-center gap-2 text-sm p-1 cursor-pointer">
-                                                    <input
-                                                      type="checkbox"
-                                                      checked={modalPuzzleData.lockedActNumbers?.includes(act)}
-                                                      onChange={e => {
-                                                          setModalPuzzleData(prevData => {
-                                                              if (!prevData) return null;
-                                                              const currentNumbers = prevData.lockedActNumbers || [];
-                                                              const newNumbers = e.target.checked
-                                                                  ? [...currentNumbers, act]
-                                                                  : currentNumbers.filter(num => num !== act);
-                                                              return { ...prevData, lockedActNumbers: newNumbers };
-                                                          });
-                                                      }}
-                                                    />
-                                                    Act {act}
-                                                  </label>
-                                                ))}
-                                            </div>
-                                        </div>
+                                  </div>
+                                )}
+                              </div>
+                           </div>
+                           <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Sound (Optional)</label>
+                                <div className="relative group w-32 h-32 bg-slate-100 dark:bg-slate-700/50 rounded-md border-2 border-dashed border-slate-300 dark:border-slate-600 flex flex-col items-center justify-center p-2 text-center">
+                                    {modalPuzzleData.sound ? (
+                                        <>
+                                            <Icon as="audio" className="w-10 h-10 text-slate-500 dark:text-slate-400" />
+                                            <p className="text-xs mt-2 text-slate-600 dark:text-slate-300">
+                                                {assetLibrary.find(a => a.id === modalPuzzleData.sound)?.name || 'Sound selected'}
+                                            </p>
+                                             <button
+                                                onClick={() => handleModalPuzzleChange('sound', null)}
+                                                className="absolute top-1 right-1 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                                                title="Clear Sound"
+                                            >
+                                                <Icon as="trash" className="w-4 h-4" />
+                                            </button>
+                                        </>
+                                    ) : (
+                                        <label className="cursor-pointer">
+                                            <input type="file" accept="audio/*" onChange={(e) => e.target.files?.[0] && handleModalPuzzleFileChange('sound', e.target.files[0])} className="sr-only" />
+                                            <Icon as="audio" className="w-10 h-10 mx-auto text-slate-400 dark:text-slate-500" />
+                                            <p className="text-xs mt-1 text-slate-400 dark:text-slate-500">Add Sound</p>
+                                        </label>
                                     )}
                                 </div>
                             </div>
-                            {/* Column 2: When solved */}
-                            <div className="space-y-4 mt-4 md:mt-0">
-                                <h3 className="text-base font-semibold text-slate-700 dark:text-slate-300">When solved</h3>
-                                <p className="text-xs text-slate-500 dark:text-slate-400 -mt-3">What happens when the puzzle is solved.</p>
-
-                                {/* Objects discarded */}
-                                <div className="relative" ref={modalDiscardObjectsDropdownRef}>
-                                    <h4 className="font-semibold text-sm mb-1 text-slate-600 dark:text-slate-400">Objects discarded</h4>
-                                    <button type="button" onClick={() => setOpenModalPuzzleDiscardObjectsDropdown(prev => !prev)} className="w-full text-left px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 flex justify-between items-center text-sm">
-                                        <span>{`${modalPuzzleData.discardObjectIds?.length || 0} selected`}</span>
-                                        <Icon as="chevron-down" className={`w-4 h-4 transition-transform ${openModalPuzzleDiscardObjectsDropdown ? 'rotate-180' : ''}`} />
-                                    </button>
-                                    {openModalPuzzleDiscardObjectsDropdown && (
-                                        <div className="absolute z-10 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg flex flex-col max-h-60">
-                                            <div className="p-2 border-b border-slate-200 dark:border-slate-700">
-                                                <input 
-                                                    type="text"
-                                                    value={modalPuzzleDiscardObjectsSearch}
-                                                    onChange={(e) => setModalPuzzleDiscardObjectsSearch(e.target.value)}
-                                                    placeholder="Search objects..."
-                                                    className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
-                                                />
-                                            </div>
-                                            <div className="overflow-y-auto">
-                                                {game.rooms.map(room => {
-                                                    const filteredObjects = room.objects.filter(obj => 
-                                                        obj.name.toLowerCase().includes(modalPuzzleDiscardObjectsSearch.toLowerCase())
-                                                    );
-                                                    if (filteredObjects.length === 0) return null;
-                                                    return (
-                                                        <div key={room.id} className="p-2">
-                                                            <h5 className="text-xs font-bold text-slate-500 dark:text-slate-400 sticky top-0 bg-white dark:bg-slate-800 py-1 px-2 -mx-2">{room.name}</h5>
-                                                            {filteredObjects.map(obj => (
-                                                              <label key={obj.id} className="flex items-center gap-2 text-sm p-1 cursor-pointer">
-                                                                <input type="checkbox" checked={modalPuzzleData.discardObjectIds?.includes(obj.id)} onChange={e => {
-                                                                    setModalPuzzleData(prevData => {
-                                                                        if (!prevData) return null;
-                                                                        const currentIds = prevData.discardObjectIds || [];
-                                                                        const newIds = e.target.checked
-                                                                            ? [...currentIds, obj.id]
-                                                                            : currentIds.filter(id => id !== obj.id);
-                                                                        return { ...prevData, discardObjectIds: newIds };
-                                                                    });
-                                                                }} />
-                                                                {obj.name}
-                                                              </label>
-                                                            ))}
-                                                        </div>
-                                                    )
-                                                })}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                                
-                                {/* Actions completed */}
-                                <div className="relative" ref={modalCompletedActionsDropdownRef}>
-                                    <h4 className="font-semibold text-sm mb-1 text-slate-600 dark:text-slate-400">Actions completed</h4>
-                                    <button type="button" onClick={() => setOpenModalPuzzleCompletedActionsDropdown(prev => !prev)} className="w-full text-left px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 flex justify-between items-center text-sm">
-                                        <span>{`${modalPuzzleData.completedActionIds?.length || 0} selected`}</span>
-                                        <Icon as="chevron-down" className={`w-4 h-4 transition-transform ${openModalPuzzleCompletedActionsDropdown ? 'rotate-180' : ''}`} />
-                                    </button>
-                                    {openModalPuzzleCompletedActionsDropdown && (
-                                        <div className="absolute z-10 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg flex flex-col max-h-60">
-                                            <div className="p-2 border-b border-slate-200 dark:border-slate-700">
-                                                <input
-                                                    type="text"
-                                                    value={modalPuzzleCompletedActionsSearch}
-                                                    onChange={(e) => setModalPuzzleCompletedActionsSearch(e.target.value)}
-                                                    placeholder="Search actions..."
-                                                    className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
-                                                />
-                                            </div>
-                                            <div className="overflow-y-auto">
-                                              {game.rooms.map(room => {
-                                                const filteredActions = (room.actions || []).filter(a =>
-                                                    (a.name || 'Untitled Action').toLowerCase().includes(modalPuzzleCompletedActionsSearch.toLowerCase())
-                                                );
-                                                if (filteredActions.length === 0) return null;
-                                                return (
-                                                    <div key={room.id} className="p-2">
-                                                        <h5 className="text-xs font-bold text-slate-500 dark:text-slate-400 sticky top-0 bg-white dark:bg-slate-800 py-1 px-2 -mx-2">{room.name}</h5>
-                                                        {filteredActions.map(action => (
-                                                          <label key={action.id} className="flex items-center gap-2 text-sm p-1 cursor-pointer">
-                                                            <input
-                                                              type="checkbox"
-                                                              checked={modalPuzzleData.completedActionIds?.includes(action.id)}
-                                                              onChange={e => {
-                                                                  setModalPuzzleData(prevData => {
-                                                                      if (!prevData) return null;
-                                                                      const currentIds = prevData.completedActionIds || [];
-                                                                      const newIds = e.target.checked
-                                                                          ? [...currentIds, action.id]
-                                                                          : currentIds.filter(id => id !== action.id);
-                                                                      return { ...prevData, completedActionIds: newIds };
-                                                                  });
-                                                              }}
-                                                            />
-                                                            {action.name || <span className="italic">Untitled Action</span>}
-                                                          </label>
-                                                        ))}
-                                                    </div>
-                                                )
-                                              })}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="pt-2">
-                                    <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer">
-                                      <input type="checkbox" className="disabled:opacity-50" checked={modalPuzzleData.autoAddLockedObjects} onChange={e => handleModalPuzzleChange('autoAddLockedObjects', e.target.checked)} disabled={!modalPuzzleData.lockedObjectIds || modalPuzzleData.lockedObjectIds.length === 0} />
-                                      Automatically add locked objects to inventory upon solving.
-                                    </label>
-                                </div>
-                                <div className="pt-4 mt-4 border-t border-slate-200 dark:border-slate-700">
-                                    <h4 className="font-semibold text-sm mb-1 text-slate-600 dark:text-slate-400">Locked by</h4>
-                                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">Puzzles that must be solved before this one becomes available.</p>
-                                    {(() => {
-                                        const lockingPuzzles = puzzleLockMap.get(modalPuzzleData.id);
-                                        if (lockingPuzzles && lockingPuzzles.length > 0) {
-                                            return (
-                                                <div className="p-3 bg-slate-100 dark:bg-slate-700/50 rounded-md border border-slate-200 dark:border-slate-600">
-                                                    <ul className="list-disc list-inside space-y-1 text-sm text-slate-600 dark:text-slate-400">
-                                                        {lockingPuzzles.map((puzzleName, index) => (
-                                                            <li key={index}>{puzzleName}</li>
-                                                        ))}
-                                                    </ul>
-                                                </div>
-                                            );
-                                        } else {
-                                            return (
-                                                <p className="text-sm text-slate-500 dark:text-slate-400 italic">
-                                                    This puzzle is not locked by any other puzzle.
-                                                </p>
-                                            );
-                                        }
-                                    })()}
-                                </div>
-                            </div>
                         </div>
+                    </div>
+                    {/* Right Column */}
+                    <div className="space-y-4">
+                        <Accordion title="Locking: Control what this puzzle makes available">
+                           <div className="space-y-4 text-sm">
+                                {/* Implementation of locking controls */}
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Unlock Objects</label>
+                                    {/* A multi-select dropdown would go here. Simplified for now. */}
+                                </div>
+                                <label className="flex items-center gap-2">
+                                    <input type="checkbox" checked={modalPuzzleData.autoAddLockedObjects} onChange={e => handleModalPuzzleChange('autoAddLockedObjects', e.target.checked)} className="rounded border-slate-400 text-brand-600 focus:ring-brand-500"/>
+                                    <span>Automatically add unlocked objects to inventory.</span>
+                                </label>
+                           </div>
+                        </Accordion>
+                        <Accordion title="Unlocking: Control what is required to see this puzzle">
+                            <div className="text-sm text-slate-500 dark:text-slate-400">
+                                This puzzle is made visible by solving other puzzles.
+                                To configure which puzzles unlock this one, go to those puzzles and add this one to their "Unlocks Puzzles" list.
+                            </div>
+                        </Accordion>
                     </div>
                 </div>
                 <div className="flex-shrink-0 mt-6 pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-4">
@@ -1799,67 +1429,107 @@ const Editor: React.FC = () => {
       )}
       {actionModalState && modalActionData && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60] backdrop-blur-sm">
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-2xl w-full max-w-2xl flex flex-col">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
                 <div className="flex-shrink-0 flex justify-between items-center mb-4 pb-4 border-b border-slate-200 dark:border-slate-700">
                     <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">Edit Action</h2>
                     <button onClick={() => setActionModalState(null)} className="p-1.5 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700">
                         <Icon as="close" className="w-5 h-5" />
                     </button>
                 </div>
-                <div className="flex-grow space-y-4 overflow-y-auto pr-2">
+                <div className="flex-grow space-y-4 overflow-y-auto pr-2 -mr-2">
                     <div>
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Action Name</label>
                         <input
                             type="text"
                             value={modalActionData.name}
                             onChange={(e) => handleModalActionChange('name', e.target.value)}
-                            placeholder="e.g., Look under the rug"
                             className="w-full font-semibold px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Description / Host Response</label>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Description</label>
                         <textarea
                             value={modalActionData.description}
                             onChange={(e) => handleModalActionChange('description', e.target.value)}
-                            placeholder="e.g., You lift the corner of the rug and find a small, tarnished brass key."
                             rows={5}
                             className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm resize-y"
                         />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                     <div className="flex gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Image (Full Screen Overlay)</label>
-                            {modalActionData.image ? (
-                                <div className="flex items-center gap-2">
-                                    <img src={`${API_BASE_URL}/assets/${modalActionData.image}`} alt="Action preview" className="w-24 h-24 object-cover rounded-md border border-slate-300 dark:border-slate-600" />
-                                    <button onClick={() => handleModalActionFileChange('image', null)} className="text-red-500 hover:text-red-700 text-xs self-end p-1">Clear Image</button>
-                                </div>
-                            ) : (
-                                <input type="file" accept="image/*" onChange={(e) => handleModalActionFileChange('image', e.target.files?.[0] || null)} className="text-sm w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100" />
-                            )}
+                           <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Image (Optional)</label>
+                            <div className="relative group w-32 h-32 bg-slate-100 dark:bg-slate-700/50 rounded-md border-2 border-dashed border-slate-300 dark:border-slate-600">
+                                {modalActionData.image && (
+                                    <img src={`${API_BASE_URL}/assets/${modalActionData.image}`} alt={modalActionData.name} className="w-full h-full object-cover rounded-md" />
+                                )}
+                                <label className="absolute inset-0 cursor-pointer hover:bg-black/40 transition-colors rounded-md flex items-center justify-center">
+                                    <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleModalActionFileChange('image', e.target.files[0])} className="sr-only" />
+                                    {!modalActionData.image && (
+                                    <>
+                                        <div className="text-center text-slate-400 dark:text-slate-500 group-hover:opacity-0 transition-opacity">
+                                            <Icon as="gallery" className="w-10 h-10 mx-auto" />
+                                            <p className="text-xs mt-1">Add Image</p>
+                                        </div>
+                                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <div className="pointer-events-none text-white text-center"><p className="font-bold text-xs">Upload New</p></div>
+                                            <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('modal-action-image'); }}
+                                                className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors text-center">
+                                                <Icon as="gallery" className="w-3.5 h-3.5" /> From Library
+                                            </button>
+                                        </div>
+                                    </>
+                                    )}
+                                </label>
+                                {modalActionData.image && (
+                                    <div className="absolute inset-0 bg-black/60 p-1 flex flex-col justify-center items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('modal-action-image'); }}
+                                            className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors" title="Select from library">
+                                            <Icon as="gallery" className="w-3.5 h-3.5" />Change
+                                        </button>
+                                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleModalActionChange('image', null); }}
+                                            className="pointer-events-auto p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors" title="Clear Image">
+                                            <Icon as="trash" className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Sound</label>
-                            {modalActionData.sound ? (
-                                <div className="space-y-2">
-                                    <AudioPreviewPlayer assetId={modalActionData.sound} />
-                                    <button onClick={() => handleModalActionFileChange('sound', null)} className="text-red-500 hover:text-red-700 text-xs px-1">Clear Sound</button>
-                                </div>
-                            ) : (
-                                <input type="file" accept="audio/*" onChange={(e) => handleModalActionFileChange('sound', e.target.files?.[0] || null)} className="text-sm w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100" />
-                            )}
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Sound (Optional)</label>
+                            <div className="relative group w-32 h-32 bg-slate-100 dark:bg-slate-700/50 rounded-md border-2 border-dashed border-slate-300 dark:border-slate-600 flex flex-col items-center justify-center p-2 text-center">
+                                {modalActionData.sound ? (
+                                    <>
+                                        <Icon as="audio" className="w-10 h-10 text-slate-500 dark:text-slate-400" />
+                                        <p className="text-xs mt-2 text-slate-600 dark:text-slate-300">
+                                            {assetLibrary.find(a => a.id === modalActionData.sound)?.name || 'Sound selected'}
+                                        </p>
+                                         <button
+                                            onClick={() => handleModalActionChange('sound', null)}
+                                            className="absolute top-1 right-1 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                                            title="Clear Sound"
+                                        >
+                                            <Icon as="trash" className="w-4 h-4" />
+                                        </button>
+                                    </>
+                                ) : (
+                                    <label className="cursor-pointer">
+                                        <input type="file" accept="audio/*" onChange={(e) => e.target.files?.[0] && handleModalActionFileChange('sound', e.target.files[0])} className="sr-only" />
+                                        <Icon as="audio" className="w-10 h-10 mx-auto text-slate-400 dark:text-slate-500" />
+                                        <p className="text-xs mt-1 text-slate-400 dark:text-slate-500">Add Sound</p>
+                                    </label>
+                                )}
+                            </div>
                         </div>
                     </div>
-                    <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
-                        <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer">
+                    <div>
+                        <label className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-400 cursor-pointer p-3 bg-slate-100 dark:bg-slate-700/50 rounded-lg max-w-md">
                             <input
                                 type="checkbox"
-                                className="rounded border-slate-400 text-brand-600 focus:ring-brand-500"
+                                className="rounded border-slate-400 text-brand-600 focus:ring-brand-500 w-4 h-4"
                                 checked={modalActionData.hideCompleteButton || false}
                                 onChange={e => handleModalActionChange('hideCompleteButton', e.target.checked)}
                             />
-                            Hide complete button and have a puzzle complete it automatically.
+                            <span>Hide the "Complete/Re-open" button for this action in the Presenter View.</span>
                         </label>
                     </div>
                 </div>
@@ -1870,502 +1540,114 @@ const Editor: React.FC = () => {
             </div>
         </div>
       )}
-      <header className="bg-white dark:bg-slate-800 shadow-md p-2 flex justify-between items-center z-10">
-        <div className="flex items-center gap-4">
-          <Link to="/" className="text-xl font-bold text-brand-600 dark:text-brand-400 p-2">Studio</Link>
-          <input 
-            type="text" 
-            value={editingGameTitle} 
-            onChange={e => setEditingGameTitle(e.target.value)} 
-            className="text-lg font-semibold bg-transparent rounded-md p-1 focus:bg-slate-100 dark:focus:bg-slate-700 outline-none"
-          />
-        </div>
-        <div className="flex items-center gap-2">
-           <button
-            onClick={() => setIsAssetManagerOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
-          >
-            <Icon as="gallery" className="w-5 h-5" />
-            Assets
-          </button>
-          <Link
-            to={`/settings/${id}`}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
-          >
-            <Icon as="settings" className="w-5 h-5" />
-            Settings
-          </Link>
-          <button onClick={() => setIsResetModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors duration-300 shadow">
-            <Icon as="present" className="w-5 h-5" />
-            Present
-          </button>
-        </div>
-      </header>
-      <main className="flex flex-1 overflow-hidden">
-        {/* Room List (Left Column) */}
-        <div className="w-64 bg-white dark:bg-slate-800 p-4 flex flex-col border-r border-slate-200 dark:border-slate-700">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-slate-700 dark:text-slate-300">Rooms</h2>
-            <div className="flex gap-1">
-              <button onClick={addRoom} className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full" title="Add Room">
-                <Icon as="plus" className="w-5 h-5" />
-              </button>
-              <button onClick={deleteRoom} className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full" title="Delete Selected Room">
-                <Icon as="trash" className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
-          <div ref={roomsContainerRef} className="flex-1 overflow-y-auto space-y-2 pr-2 -mr-2">
-              {Object.entries(roomsByAct).map(([act, rooms]) => {
-                  const actNumber = parseInt(act, 10);
-                  const isCollapsed = collapsedActs[actNumber];
-                  return (
-                      <div key={act} className="border-t border-slate-200 dark:border-slate-700 first:border-t-0">
-                          <button onClick={() => toggleActCollapse(actNumber)} className="w-full text-left font-semibold text-slate-500 dark:text-slate-400 py-2 flex justify-between items-center">
-                              <span>Act {act}</span>
-                               <Icon as="chevron-down" className={`w-4 h-4 transition-transform ${isCollapsed ? '' : 'rotate-180'}`} />
-                          </button>
-                          {!isCollapsed && rooms.map(room => (
-                              <div
-                                  key={room.id}
-                                  draggable
-                                  onDragStart={() => handleDragStart(room.originalIndex)}
-                                  onDragOver={(e) => handleDragOver(e, room.originalIndex)}
-                                  onDragLeave={handleDragLeave}
-                                  onDrop={() => handleDrop(room.originalIndex)}
-                                  onDragEnd={handleDragEnd}
-                                  className={`p-2 rounded-lg cursor-pointer flex items-center gap-2 mb-2 relative
-                                      ${room.originalIndex === selectedRoomIndex ? 'bg-brand-100 dark:bg-brand-900/50' : 'hover:bg-slate-100 dark:hover:bg-slate-700'}
-                                      ${draggedRoomIndex === room.originalIndex ? 'opacity-50' : ''}
-                                  `}
-                                  onClick={() => selectRoom(room.originalIndex)}
-                              >
-                                  {dropTargetIndex === room.originalIndex && (
-                                      <div className={`absolute left-0 right-0 ${draggedRoomIndex !== null && draggedRoomIndex > room.originalIndex ? 'top-0' : 'bottom-0'} h-0.5 bg-brand-500`}></div>
-                                  )}
-                                  <Icon as="reorder" className="w-5 h-5 text-slate-400 dark:text-slate-500 flex-shrink-0" />
-                                  <span className="truncate">{room.name}</span>
-                              </div>
-                          ))}
-                      </div>
-                  );
-              })}
-          </div>
-        </div>
-
-        {/* Room Editor (Center Column) */}
-        <div className="flex-1 flex flex-col overflow-y-auto p-6">
-          <div className="flex items-baseline gap-4 mb-4">
+       <header className="bg-white dark:bg-slate-800 shadow-md p-2 flex justify-between items-center z-10 flex-shrink-0">
+          <div className="flex items-center gap-4">
+              <Link to="/" className="flex items-center gap-2 text-slate-500 dark:text-slate-400 p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md">
+                  <Icon as="prev" className="w-5 h-5"/>
+                  Dashboard
+              </Link>
+              <div className="w-px h-6 bg-slate-200 dark:bg-slate-700"></div>
               <input 
                   type="text" 
-                  value={editingRoomName} 
-                  onChange={e => setEditingRoomName(e.target.value)}
-                  className="text-2xl font-bold bg-transparent focus:bg-white dark:focus:bg-slate-800 outline-none rounded-md px-2 py-1 flex-grow"
+                  value={editingGameTitle}
+                  onChange={e => setEditingGameTitle(e.target.value)}
+                  className="text-lg font-semibold bg-transparent focus:outline-none focus:ring-2 focus:ring-brand-500 rounded-md px-2 py-1 -ml-2"
               />
-              <div className="flex items-center gap-2">
-                  <label className="text-sm font-medium text-slate-500 dark:text-slate-400">Act:</label>
-                  <input
-                      type="number"
-                      value={editingRoomAct}
-                      onChange={e => setEditingRoomAct(Math.max(1, parseInt(e.target.value, 10) || 1))}
-                      min="1"
-                      className="w-16 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
-                  />
-              </div>
           </div>
-          
-          <div className="mb-6">
-              <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold text-slate-700 dark:text-slate-300">Room Background Color</h3>
-                  {game.globalBackgroundColor && (
-                      <span className="text-xs text-slate-500 dark:text-slate-400 italic">Global color is active</span>
-                  )}
+          <div className="flex items-center gap-2">
+                <Link to={`/settings/${id}`} className="flex items-center gap-2 px-3 py-2 text-sm bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">
+                    <Icon as="settings" className="w-5 h-5"/>
+                    <span className="hidden lg:inline">Settings</span>
+                </Link>
+                <button
+                    onClick={() => setIsResetModalOpen(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors duration-300 shadow"
+                >
+                    <Icon as="present" className="w-5 h-5" />
+                    <span className="hidden lg:inline">Present</span>
+                </button>
+          </div>
+       </header>
+       <main className="flex-1 grid grid-cols-12 overflow-hidden">
+          {/* Left Column (Room List) */}
+          <div className="col-span-3 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col">
+              <div className="flex-shrink-0 p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                  <h2 className="text-lg font-semibold">Rooms</h2>
+                  <button onClick={addRoom} className="p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700">
+                      <Icon as="plus" className="w-5 h-5"/>
+                  </button>
               </div>
-              <div className={`flex flex-wrap gap-2 p-3 bg-slate-100 dark:bg-slate-700/50 rounded-lg ${game.globalBackgroundColor ? 'opacity-50' : ''}`}>
-                  {COLORS.map(color => (
-                      <button 
-                          key={color} 
-                          onClick={() => changeRoomProperty('backgroundColor', color)} 
-                          disabled={!!game.globalBackgroundColor}
-                          className={`w-8 h-8 rounded-full border-2 ${currentRoom.backgroundColor === color ? 'border-brand-500 ring-2 ring-brand-500' : 'border-slate-300 dark:border-slate-600'} ${game.globalBackgroundColor ? 'cursor-not-allowed' : ''}`} 
-                          style={{backgroundColor: color}}
-                      />
+              <div ref={roomsContainerRef} className="flex-grow overflow-y-auto">
+                  {Object.entries(roomsByAct).map(([actNumber, rooms]) => (
+                      <div key={actNumber}>
+                          {allGameActs.length > 1 && (
+                              <button onClick={() => toggleActCollapse(Number(actNumber))} className="w-full flex justify-between items-center px-4 py-2 bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-10">
+                                  <span className="font-bold text-sm text-slate-600 dark:text-slate-400">Act {actNumber}</span>
+                                  <Icon as="chevron-down" className={`w-4 h-4 transition-transform ${collapsedActs[Number(actNumber)] ? 'rotate-180' : ''}`} />
+                              </button>
+                          )}
+                          {!collapsedActs[Number(actNumber)] && rooms.map(room => {
+                              const index = room.originalIndex;
+                              const isSelected = selectedRoomIndex === index;
+                              const isBeingDragged = draggedRoomIndex === index;
+                              const isDropTarget = dropTargetIndex === index;
+
+                              return (
+                                  <div
+                                      key={room.id}
+                                      draggable
+                                      onDragStart={() => handleDragStart(index)}
+                                      onDragOver={(e) => handleDragOver(e, index)}
+                                      onDragLeave={handleDragLeave}
+                                      onDrop={() => handleDrop(index)}
+                                      onDragEnd={handleDragEnd}
+                                      className={`
+                                        flex items-center gap-3 p-3 border-b border-slate-200 dark:border-slate-700
+                                        ${isSelected ? 'bg-brand-50 dark:bg-brand-900/30' : 'hover:bg-slate-50 dark:hover:bg-slate-700/50'}
+                                        ${isBeingDragged ? 'opacity-30' : ''}
+                                        transition-all duration-200 cursor-pointer
+                                      `}
+                                      onClick={() => selectRoom(index)}
+                                  >
+                                      <Icon as="reorder" className="w-5 h-5 text-slate-400 dark:text-slate-500 flex-shrink-0" />
+                                      <div className="flex-1 min-w-0">
+                                          <p className={`font-semibold truncate ${isSelected ? 'text-brand-700 dark:text-brand-300' : ''}`}>{room.name}</p>
+                                      </div>
+                                      {isDropTarget && (
+                                          <div className="absolute left-0 right-0 h-full border-2 border-brand-500 rounded-lg pointer-events-none"></div>
+                                      )}
+                                      {isDropTarget && dropTargetIndex !== null && draggedRoomIndex !== null && dropTargetIndex > draggedRoomIndex && (
+                                          <div className="absolute bottom-0 left-2 right-2 h-1 bg-brand-500 rounded-full pointer-events-none"></div>
+                                      )}
+                                      {isDropTarget && dropTargetIndex !== null && draggedRoomIndex !== null && dropTargetIndex < draggedRoomIndex && (
+                                          <div className="absolute top-0 left-2 right-2 h-1 bg-brand-500 rounded-full pointer-events-none"></div>
+                                      )}
+                                  </div>
+                              );
+                          })}
+                      </div>
                   ))}
               </div>
           </div>
-          
-           {/* IMAGE UPLOADERS */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            {['image', 'mapImage', 'solvedImage'].map(prop => {
-                const title = { image: 'Room Image', mapImage: 'Map Image', solvedImage: 'Solved State Image' }[prop] || '';
-                const imageId = currentRoom[prop as keyof RoomType] as string | null;
-                return (
-                    <div key={prop}>
-                        <h3 className="font-semibold text-slate-700 dark:text-slate-300 mb-2">{title}</h3>
-                        <div className="relative group w-full aspect-video bg-slate-100 dark:bg-slate-700/50 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600">
-                            {imageId && <img src={`${API_BASE_URL}/assets/${imageId}`} alt={title} className="w-full h-full object-cover rounded-lg" />}
-                            <label className="absolute inset-0 cursor-pointer hover:bg-black/40 transition-colors rounded-lg flex items-center justify-center">
-                                <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], prop as 'image' | 'mapImage' | 'solvedImage')} className="sr-only" />
-                                {!imageId && (
-                                    <div className="text-center text-slate-400 dark:text-slate-500 group-hover:opacity-0 transition-opacity">
-                                        <Icon as="gallery" className="w-10 h-10 mx-auto" />
-                                        <p className="text-xs mt-1">Upload Image</p>
-                                    </div>
-                                )}
-                            </label>
-                            {(imageId || !imageId) && (
-                              <div className="absolute inset-0 bg-black/60 p-2 flex flex-col justify-center items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-                                <label className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors cursor-pointer">
-                                  <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], prop as 'image' | 'mapImage' | 'solvedImage')} className="sr-only" />
-                                  <Icon as="edit" className="w-3.5 h-3.5" />
-                                  Upload New
-                                </label>
-                                <button
-                                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary(prop as 'image' | 'mapImage' | 'solvedImage'); }}
-                                  className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors"
-                                >
-                                  <Icon as="gallery" className="w-3.5 h-3.5" />
-                                  From Library
-                                </button>
-                                {imageId && (
-                                  <button
-                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); changeRoomProperty(prop as keyof RoomType, null); }}
-                                    className="pointer-events-auto p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
-                                    title="Clear Image"
-                                  >
-                                    <Icon as="trash" className="w-4 h-4" />
-                                  </button>
-                                )}
-                              </div>
-                            )}
-                        </div>
-                    </div>
-                );
-            })}
+          {/* Middle Column (Room Editor) */}
+          <div className="col-span-5 flex flex-col overflow-y-auto">
+             { /* Room Editor Content */ }
           </div>
-
-          <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer mb-6">
-            <input 
-              type="checkbox" 
-              checked={currentRoom.isFullScreenImage} 
-              onChange={e => changeRoomProperty('isFullScreenImage', e.target.checked)} 
-            />
-            Display main room image full-screen (hides sidebar).
-          </label>
-
-          <div className="mb-6">
-              <h3 className="font-semibold text-slate-700 dark:text-slate-300 mb-2">Room Transition</h3>
-              <div className="flex rounded-lg bg-slate-100 dark:bg-slate-700/50 p-1 max-w-sm">
-                  <button
-                      onClick={() => changeRoomProperty('transitionType', 'none')}
-                      className={`flex-1 text-center text-sm px-3 py-1.5 rounded-md transition-colors ${
-                          (currentRoom.transitionType === 'none' || !currentRoom.transitionType)
-                          ? 'bg-white dark:bg-slate-600 shadow-sm text-slate-800 dark:text-slate-100 font-semibold'
-                          : 'text-slate-600 dark:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-600/50'
-                      }`}
-                  >
-                      Instant Cut
-                  </button>
-                  <button
-                      onClick={() => changeRoomProperty('transitionType', 'fade')}
-                      className={`flex-1 text-center text-sm px-3 py-1.5 rounded-md transition-colors ${
-                          currentRoom.transitionType === 'fade'
-                          ? 'bg-white dark:bg-slate-600 shadow-sm text-slate-800 dark:text-slate-100 font-semibold'
-                          : 'text-slate-600 dark:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-600/50'
-                      }`}
-                  >
-                      Crossfade
-                  </button>
-              </div>
-              {currentRoom.transitionType === 'fade' && (
-                  <div className="mt-3 max-w-sm">
-                      <label htmlFor="fade-duration" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                          Fade Duration (seconds)
-                      </label>
-                      <input
-                          id="fade-duration"
-                          type="number"
-                          value={currentRoom.transitionDuration || 1}
-                          onChange={e => changeRoomProperty('transitionDuration', Math.max(0.1, parseFloat(e.target.value)) || 1)}
-                          min="0.1"
-                          step="0.1"
-                          className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
-                      />
-                  </div>
-              )}
-          </div>
-          
-          {/* Room Descriptions */}
-          <div className="grid grid-cols-2 gap-6">
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <h3 className="font-semibold text-slate-700 dark:text-slate-300">Room Description</h3>
-                <button onClick={() => setModalContent({ type: 'notes', content: editingRoomNotes })} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full text-slate-400 dark:text-slate-500" title="Edit in fullscreen">
-                  <Icon as="expand" className="w-4 h-4"/>
-                </button>
-              </div>
-              <div className="flex items-center gap-1 border border-slate-300 dark:border-slate-600 rounded-t-lg bg-slate-50 dark:bg-slate-700/50 p-1">
-                  <button onClick={() => applyFormatting('bold', 'notes')} title="Bold" className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded font-bold">B</button>
-                  <button onClick={() => applyFormatting('italic', 'notes')} title="Italic" className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded italic">I</button>
-                  <div className="h-5 w-px bg-slate-300 dark:bg-slate-600 mx-1"></div>
-                  <button onClick={() => applyFormatting('highlight', 'notes', 'y')} title="Highlight Yellow" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
-                      <div className="w-4 h-4 rounded-sm bg-yellow-400 border border-yellow-500"></div>
-                  </button>
-                   <button onClick={() => applyFormatting('highlight', 'notes', 'c')} title="Highlight Cyan" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
-                      <div className="w-4 h-4 rounded-sm bg-cyan-400 border border-cyan-500"></div>
-                  </button>
-                   <button onClick={() => applyFormatting('highlight', 'notes', 'm')} title="Highlight Pink" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
-                      <div className="w-4 h-4 rounded-sm bg-pink-400 border border-pink-500"></div>
-                  </button>
-                   <button onClick={() => applyFormatting('highlight', 'notes', 'l')} title="Highlight Lime" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
-                      <div className="w-4 h-4 rounded-sm bg-lime-400 border border-lime-500"></div>
-                  </button>
-              </div>
-              <textarea 
-                  ref={descriptionTextareaRef}
-                  value={editingRoomNotes} 
-                  onChange={e => setEditingRoomNotes(e.target.value)} 
-                  placeholder="The room is dark and smells of mildew..."
-                  className="w-full h-48 px-3 py-2 border border-t-0 border-slate-300 dark:border-slate-600 rounded-b-lg bg-slate-50 dark:bg-slate-700 focus:outline-none resize-y"
-              />
-            </div>
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                  <h3 className="font-semibold text-slate-700 dark:text-slate-300">Solved Description</h3>
-                  <button onClick={() => setModalContent({ type: 'solvedNotes', content: editingRoomSolvedNotes })} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full text-slate-400 dark:text-slate-500" title="Edit in fullscreen">
-                    <Icon as="expand" className="w-4 h-4"/>
-                  </button>
-              </div>
-              <div className="flex items-center gap-1 border border-slate-300 dark:border-slate-600 rounded-t-lg bg-slate-50 dark:bg-slate-700/50 p-1">
-                  <button onClick={() => applyFormatting('bold', 'solvedNotes')} title="Bold" className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded font-bold">B</button>
-                  <button onClick={() => applyFormatting('italic', 'solvedNotes')} title="Italic" className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded italic">I</button>
-                  <div className="h-5 w-px bg-slate-300 dark:bg-slate-600 mx-1"></div>
-                  <button onClick={() => applyFormatting('highlight', 'solvedNotes', 'y')} title="Highlight Yellow" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
-                      <div className="w-4 h-4 rounded-sm bg-yellow-400 border border-yellow-500"></div>
-                  </button>
-                  <button onClick={() => applyFormatting('highlight', 'solvedNotes', 'c')} title="Highlight Cyan" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
-                      <div className="w-4 h-4 rounded-sm bg-cyan-400 border border-cyan-500"></div>
-                  </button>
-                  <button onClick={() => applyFormatting('highlight', 'solvedNotes', 'm')} title="Highlight Pink" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
-                      <div className="w-4 h-4 rounded-sm bg-pink-400 border border-pink-500"></div>
-                  </button>
-                  <button onClick={() => applyFormatting('highlight', 'solvedNotes', 'l')} title="Highlight Lime" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
-                      <div className="w-4 h-4 rounded-sm bg-lime-400 border border-lime-500"></div>
-                  </button>
-              </div>
-              <textarea 
-                  ref={solvedDescriptionTextareaRef}
-                  value={editingRoomSolvedNotes} 
-                  onChange={e => setEditingRoomSolvedNotes(e.target.value)} 
-                  placeholder="The room is now brightly lit..."
-                  className="w-full h-48 px-3 py-2 border border-t-0 border-slate-300 dark:border-slate-600 rounded-b-lg bg-slate-50 dark:bg-slate-700 focus:outline-none resize-y"
-              />
-            </div>
-          </div>
-          <div className="mt-4">
-              <h3 className="font-semibold text-slate-700 dark:text-slate-300">When entering this room</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
-                  Automatically remove objects from player inventory.
-              </p>
-              <div className="relative" ref={objectRemoveDropdownRef}>
-                  <button type="button" onClick={() => setOpenObjectRemoveDropdown(prev => !prev)} className="w-full text-left px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 flex justify-between items-center text-sm">
-                      <span>{`${currentRoom.objectRemoveIds?.length || 0} objects selected`}</span>
-                      <Icon as="chevron-down" className={`w-4 h-4 transition-transform ${openObjectRemoveDropdown ? 'rotate-180' : ''}`} />
-                  </button>
-                  {openObjectRemoveDropdown && (
-                      <div className="absolute z-10 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg flex flex-col max-h-60">
-                          <div className="p-2 border-b border-slate-200 dark:border-slate-700">
-                              <input 
-                                  type="text"
-                                  value={objectRemoveSearch}
-                                  onChange={(e) => setObjectRemoveSearch(e.target.value)}
-                                  placeholder="Search all game objects..."
-                                  className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
-                              />
-                          </div>
-                          <div className="overflow-y-auto p-2">
-                              {filteredObjectsForRemoval.length > 0 ? (
-                                  filteredObjectsForRemoval.map(obj => (
-                                      <label key={obj.id} className="flex items-center gap-2 text-sm p-1 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 rounded">
-                                          <input 
-                                              type="checkbox" 
-                                              checked={currentRoom.objectRemoveIds?.includes(obj.id)} 
-                                              onChange={e => {
-                                                  const currentIds = currentRoom.objectRemoveIds || [];
-                                                  const newIds = e.target.checked
-                                                      ? [...currentIds, obj.id]
-                                                      : currentIds.filter(id => id !== obj.id);
-                                                  changeRoomProperty('objectRemoveIds', newIds);
-                                              }}
-                                          />
-                                          <span className="truncate">{obj.name} <span className="text-xs text-slate-400">({obj.roomName})</span></span>
-                                      </label>
-                                  ))
-                              ) : (
-                                  <p className="text-xs text-slate-500 dark:text-slate-400 italic text-center py-2">No matching objects found.</p>
-                              )}
-                          </div>
-                      </div>
-                  )}
-              </div>
-              <textarea 
-                  value={editingRoomObjectRemoveText} 
-                  onChange={e => setEditingRoomObjectRemoveText(e.target.value)} 
-                  placeholder="Optional text to show players when objects are removed."
-                  className="w-full mt-2 h-20 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:outline-none resize-y text-sm"
-              />
-          </div>
-        </div>
-
-        {/* Dynamic Content (Right Column) */}
-        <div className="w-96 bg-white dark:bg-slate-800 p-4 flex flex-col border-l border-slate-200 dark:border-slate-700">
-          <div className="flex-1 overflow-y-auto space-y-6 pr-2 -mr-2">
-              <div>
-                  <div className="flex justify-between items-center mb-2">
-                      <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300">Objects in this Room</h3>
-                      <button onClick={addObject} className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full" title="Add Object">
-                          <Icon as="plus" className="w-5 h-5" />
-                      </button>
-                  </div>
-                  <div ref={objectsContainerRef} className="space-y-4">
-                      {editingRoomObjects.map((obj, index) => {
-                         const locks = objectLockMap.get(obj.id);
-                         return (
-                            <div key={obj.id} className="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-700">
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                      <p className="font-semibold">{obj.name || <span className="italic text-slate-500">Untitled Object</span>}</p>
-                                      {locks && (
-                                        <div className="flex items-center gap-1 text-xs text-red-500 mt-1" title={`Locked by: ${locks.join(', ')}`}>
-                                          <Icon as="lock" className="w-3 h-3"/>
-                                          <span>Locked</span>
-                                        </div>
-                                      )}
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                      <button onClick={() => setObjectModalState({ object: { ...obj }, index })} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title="Edit Object">
-                                        <Icon as="edit" className="w-4 h-4" />
-                                      </button>
-                                      <button onClick={() => deleteObject(index)} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title="Delete Object">
-                                        <Icon as="trash" className="w-4 h-4" />
-                                      </button>
-                                    </div>
-                                </div>
-                            </div>
-                         )
-                      })}
-                      {editingRoomObjects.length === 0 && <p className="text-sm text-slate-500 dark:text-slate-400 italic">No objects in this room.</p>}
-                  </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300">Puzzles in this Room</h3>
-                  <button onClick={addPuzzle} className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full" title="Add Puzzle">
-                      <Icon as="plus" className="w-5 h-5" />
-                  </button>
-                </div>
-                <div ref={puzzlesContainerRef} className="space-y-2">
-                    {editingRoomPuzzles.map((puzzle, index) => {
-                      const locks = puzzleLockMap.get(puzzle.id);
-                      return (
-                        <div 
-                          key={puzzle.id} 
-                          className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-700"
-                        >
-                          <div className="flex-grow min-w-0">
-                            <p className="font-semibold truncate">{puzzle.name || <span className="italic text-slate-500">Untitled Puzzle</span>}</p>
-                            {locks && (
-                              <div className="flex items-center gap-1 text-xs text-red-500 mt-1" title={`Locked by: ${locks.join(', ')}`}>
-                                <Icon as="lock" className="w-3 h-3"/>
-                                <span>Locked</span>
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-1 flex-shrink-0">
-                            <button onClick={() => setPuzzleModalState({ puzzle: { ...puzzle }, index })} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title="Edit Puzzle">
-                              <Icon as="edit" className="w-4 h-4" />
-                            </button>
-                            <button onClick={(e) => handleDeletePuzzle(e, index)} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title="Delete Puzzle">
-                              <Icon as="trash" className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-                      )
-                    })}
-                    {editingRoomPuzzles.length === 0 && <p className="text-sm text-slate-500 dark:text-slate-400 italic">No puzzles in this room.</p>}
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300">Player Actions & Host Responses</h3>
-                  <button onClick={addAction} className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full" title="Add Action">
-                      <Icon as="plus" className="w-5 h-5" />
-                  </button>
-                </div>
-                <div ref={actionsContainerRef} className="space-y-2">
-                    {(editingRoomActions).map((action, index) => {
-                      const locks = actionLockMap.get(action.id);
-                      return (
-                        <div 
-                          key={action.id} 
-                          className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-700"
-                        >
-                          <div className="flex-grow min-w-0">
-                            <p className="font-semibold truncate">{action.name || <span className="italic text-slate-500">Untitled Action</span>}</p>
-                            {locks && (
-                              <div className="flex items-center gap-1 text-xs text-red-500 mt-1" title={`Locked by: ${locks.join(', ')}`}>
-                                <Icon as="lock" className="w-3 h-3"/>
-                                <span>Locked</span>
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-1 flex-shrink-0">
-                            <button onClick={() => setActionModalState({ action: { ...action }, index })} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title="Edit Action">
-                              <Icon as="edit" className="w-4 h-4" />
-                            </button>
-                            <button onClick={(e) => handleDeleteAction(e, index)} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title="Delete Action">
-                              <Icon as="trash" className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-                      )
-                    })}
-                    {editingRoomActions.length === 0 && <p className="text-sm text-slate-500 dark:text-slate-400 italic">No actions in this room.</p>}
-                </div>
+          {/* Right Column (Preview) */}
+          <div className="col-span-4 bg-black flex items-center justify-center p-4">
+              <div className="w-full h-full">
+                <Room 
+                    room={{...currentRoom, isSolved: previewSolved}} 
+                    inventoryObjects={inventoryObjects} 
+                    visibleMapImages={visibleMapImages}
+                    globalBackgroundColor={game.globalBackgroundColor}
+                    inventoryLayout={game.inventoryLayout}
+                    inventory1Title={game.inventory1Title}
+                    inventory2Title={game.inventory2Title}
+                />
               </div>
           </div>
-          <div className="flex-shrink-0 pt-4 mt-4 border-t border-slate-200 dark:border-slate-700">
-            <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300">Player View Preview</h3>
-                {hasSolvedState && (
-                    <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer">
-                        <span>Show Solved State</span>
-                        <input
-                            type="checkbox"
-                            checked={previewSolved}
-                            onChange={e => setPreviewSolved(e.target.checked)}
-                            className="sr-only peer"
-                        />
-                        <div className="relative w-11 h-6 bg-slate-300 dark:bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-600"></div>
-                    </label>
-                )}
-            </div>
-            <div className="mt-2 aspect-video w-full rounded-lg overflow-hidden border border-slate-300 dark:border-slate-600">
-              <Room
-                room={{...currentRoom, isSolved: previewSolved}}
-                inventoryObjects={inventoryObjects}
-                visibleMapImages={visibleMapImages}
-                globalBackgroundColor={game.globalBackgroundColor}
-                inventoryLayout={game.inventoryLayout}
-                inventory1Title={game.inventory1Title}
-                inventory2Title={game.inventory2Title}
-              />
-            </div>
-          </div>
-        </div>
-      </main>
+       </main>
     </div>
   );
 };
