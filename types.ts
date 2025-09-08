@@ -96,7 +96,7 @@ export interface Game {
   visitedRoomIds: string[];
   hideAvailableObjects?: boolean;
   soundtrack?: SoundtrackTrack[];
-  soundtrackMode?: 'sequential' | 'shuffle';
+  soundtrackMode?: 'sequential' | 'shuffle' | 'loop';
   soundtrackVolume?: number;
   soundboard?: SoundboardClip[];
   inventoryLayout?: 'single' | 'dual';

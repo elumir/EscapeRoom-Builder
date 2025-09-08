@@ -76,7 +76,7 @@ const PresenterView: React.FC = () => {
     currentTrackIndex: number;
     isPlaying: boolean;
     volume: number;
-    mode: 'sequential' | 'shuffle';
+    mode: 'sequential' | 'shuffle' | 'loop';
   } | null>(null);
   const soundtrackRef = useRef(soundtrack);
   useEffect(() => { soundtrackRef.current = soundtrack; }, [soundtrack]);
@@ -130,10 +130,16 @@ const PresenterView: React.FC = () => {
       const elements = game.soundtrack.map(track => {
         const audio = new Audio(`${API_BASE_URL}/assets/${track.id}`);
         audio.volume = volume;
+        if (mode === 'loop') {
+          audio.loop = true;
+        }
         return audio;
       });
       
-      elements.forEach(el => { el.onended = playNextTrack; });
+      // Only auto-play the next track for sequential/shuffle modes.
+      if (mode !== 'loop') {
+        elements.forEach(el => { el.onended = playNextTrack; });
+      }
       
       const indices = Array.from(Array(elements.length).keys());
       const trackOrder = mode === 'shuffle' ? shuffleArray(indices) : indices;
@@ -155,6 +161,7 @@ const PresenterView: React.FC = () => {
         el.pause();
         el.onended = null;
         el.src = ''; // Release resource
+        el.loop = false; // Reset loop property
       });
     };
   }, [soundtrackConfigKey, playNextTrack]);
@@ -1483,7 +1490,7 @@ const PresenterView: React.FC = () => {
                             </button>
                         </div>
                         <div className="flex items-center gap-2">
-                            <Icon as={soundtrack.mode === 'shuffle' ? 'shuffle' : 'audio'} className="w-4 h-4 text-slate-400 flex-shrink-0"/>
+                            <Icon as={soundtrack.mode === 'shuffle' ? 'shuffle' : soundtrack.mode === 'loop' ? 'restart' : 'audio'} className="w-4 h-4 text-slate-400 flex-shrink-0"/>
                             <input
                                 type="range"
                                 min="0"
