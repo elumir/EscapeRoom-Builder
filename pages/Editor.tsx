@@ -74,6 +74,10 @@ const Editor: React.FC = () => {
   const [collapsedActs, setCollapsedActs] = useState<Record<number, boolean>>({});
   const [objectModalState, setObjectModalState] = useState<{ object: InventoryObject; index: number } | null>(null);
   const [modalObjectData, setModalObjectData] = useState<InventoryObject | null>(null);
+  const [draggedPuzzleIndex, setDraggedPuzzleIndex] = useState<number | null>(null);
+  const [dropTargetPuzzleIndex, setDropTargetPuzzleIndex] = useState<number | null>(null);
+  const [draggedActionIndex, setDraggedActionIndex] = useState<number | null>(null);
+  const [dropTargetActionIndex, setDropTargetActionIndex] = useState<number | null>(null);
 
 
   const objectRemoveDropdownRef = useRef<HTMLDivElement>(null);
@@ -724,6 +728,66 @@ const Editor: React.FC = () => {
   const handleDragEnd = () => {
     setDraggedRoomIndex(null);
     setDropTargetIndex(null);
+  };
+
+  // Puzzle Drag Handlers
+  const handlePuzzleDragStart = (index: number) => setDraggedPuzzleIndex(index);
+  const handlePuzzleDragOver = (e: React.DragEvent, index: number) => {
+      e.preventDefault();
+      if (draggedPuzzleIndex !== null && draggedPuzzleIndex !== index) {
+          setDropTargetPuzzleIndex(index);
+      }
+  };
+  const handlePuzzleDragLeave = () => setDropTargetPuzzleIndex(null);
+  const handlePuzzleDrop = (index: number) => {
+      if (draggedPuzzleIndex === null || draggedPuzzleIndex === index || !game) return;
+
+      const newPuzzles = [...editingRoomPuzzles];
+      const [removed] = newPuzzles.splice(draggedPuzzleIndex, 1);
+      newPuzzles.splice(index, 0, removed);
+
+      setEditingRoomPuzzles(newPuzzles);
+
+      const newRooms = [...game.rooms];
+      newRooms[selectedRoomIndex] = { ...newRooms[selectedRoomIndex], puzzles: newPuzzles };
+      updateGame({ ...game, rooms: newRooms });
+
+      setDraggedPuzzleIndex(null);
+      setDropTargetPuzzleIndex(null);
+  };
+  const handlePuzzleDragEnd = () => {
+      setDraggedPuzzleIndex(null);
+      setDropTargetPuzzleIndex(null);
+  };
+
+  // Action Drag Handlers
+  const handleActionDragStart = (index: number) => setDraggedActionIndex(index);
+  const handleActionDragOver = (e: React.DragEvent, index: number) => {
+      e.preventDefault();
+      if (draggedActionIndex !== null && draggedActionIndex !== index) {
+          setDropTargetActionIndex(index);
+      }
+  };
+  const handleActionDragLeave = () => setDropTargetActionIndex(null);
+  const handleActionDrop = (index: number) => {
+      if (draggedActionIndex === null || draggedActionIndex === index || !game) return;
+
+      const newActions = [...editingRoomActions];
+      const [removed] = newActions.splice(draggedActionIndex, 1);
+      newActions.splice(index, 0, removed);
+
+      setEditingRoomActions(newActions);
+
+      const newRooms = [...game.rooms];
+      newRooms[selectedRoomIndex] = { ...newRooms[selectedRoomIndex], actions: newActions };
+      updateGame({ ...game, rooms: newRooms });
+
+      setDraggedActionIndex(null);
+      setDropTargetActionIndex(null);
+  };
+  const handleActionDragEnd = () => {
+      setDraggedActionIndex(null);
+      setDropTargetActionIndex(null);
   };
 
   const applyFormatting = (format: 'bold' | 'italic' | 'highlight', type: 'notes' | 'solvedNotes', colorCode?: 'y' | 'c' | 'm' | 'l') => {
@@ -2109,7 +2173,7 @@ const Editor: React.FC = () => {
           </label>
 
           <div className="mb-6">
-              <h3 className="font-semibold text-slate-700 dark:text-slate-300 mb-2">Room Transition</h3>
+              <h3 className="font-semibold text-slate-700 dark:text-slate-300">Room Transition</h3>
               <div className="flex rounded-lg bg-slate-100 dark:bg-slate-700/50 p-1 max-w-sm">
                   <button
                       onClick={() => changeRoomProperty('transitionType', 'none')}
@@ -2326,24 +2390,40 @@ const Editor: React.FC = () => {
                       return (
                         <div 
                           key={puzzle.id} 
-                          className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-700"
+                          draggable
+                          onDragStart={() => handlePuzzleDragStart(index)}
+                          onDragOver={(e) => handlePuzzleDragOver(e, index)}
+                          onDragLeave={handlePuzzleDragLeave}
+                          onDrop={() => handlePuzzleDrop(index)}
+                          onDragEnd={handlePuzzleDragEnd}
+                          className={`relative p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-700 ${draggedPuzzleIndex === index ? 'opacity-50' : ''}`}
                         >
-                          <div className="flex-grow min-w-0">
-                            <p className="font-semibold truncate">{puzzle.name || <span className="italic text-slate-500">Untitled Puzzle</span>}</p>
-                            {locks && (
-                              <div className="flex items-center gap-1 text-xs text-red-500 mt-1" title={`Locked by: ${locks.join(', ')}`}>
-                                <Icon as="lock" className="w-3 h-3"/>
-                                <span>Locked</span>
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-1 flex-shrink-0">
-                            <button onClick={() => setPuzzleModalState({ puzzle: { ...puzzle }, index })} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title="Edit Puzzle">
-                              <Icon as="edit" className="w-4 h-4" />
-                            </button>
-                            <button onClick={(e) => handleDeletePuzzle(e, index)} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title="Delete Puzzle">
-                              <Icon as="trash" className="w-4 h-4" />
-                            </button>
+                          {dropTargetPuzzleIndex === index && (
+                              <div className={`absolute left-0 right-0 ${draggedPuzzleIndex !== null && draggedPuzzleIndex > index ? 'top-0' : 'bottom-0'} h-0.5 bg-brand-500`}></div>
+                          )}
+                          <div className="flex items-center justify-between w-full">
+                            <div className="flex items-center gap-2 flex-grow min-w-0">
+                                <div className="cursor-move touch-none">
+                                    <Icon as="reorder" className="w-5 h-5 text-slate-400 dark:text-slate-500" />
+                                </div>
+                                <div className="flex-grow min-w-0">
+                                  <p className="font-semibold truncate">{puzzle.name || <span className="italic text-slate-500">Untitled Puzzle</span>}</p>
+                                  {locks && (
+                                    <div className="flex items-center gap-1 text-xs text-red-500 mt-1" title={`Locked by: ${locks.join(', ')}`}>
+                                      <Icon as="lock" className="w-3 h-3"/>
+                                      <span>Locked</span>
+                                    </div>
+                                  )}
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                              <button onClick={() => setPuzzleModalState({ puzzle: { ...puzzle }, index })} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title="Edit Puzzle">
+                                <Icon as="edit" className="w-4 h-4" />
+                              </button>
+                              <button onClick={(e) => handleDeletePuzzle(e, index)} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title="Delete Puzzle">
+                                <Icon as="trash" className="w-4 h-4" />
+                              </button>
+                            </div>
                           </div>
                         </div>
                       )
@@ -2365,25 +2445,41 @@ const Editor: React.FC = () => {
                       return (
                         <div 
                           key={action.id} 
-                          className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-700"
+                          draggable
+                          onDragStart={() => handleActionDragStart(index)}
+                          onDragOver={(e) => handleActionDragOver(e, index)}
+                          onDragLeave={handleActionDragLeave}
+                          onDrop={() => handleActionDrop(index)}
+                          onDragEnd={handleActionDragEnd}
+                          className={`relative p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-700 ${draggedActionIndex === index ? 'opacity-50' : ''}`}
                         >
-                          <div className="flex-grow min-w-0">
-                            <p className="font-semibold truncate">{action.name || <span className="italic text-slate-500">Untitled Action</span>}</p>
-                            {locks && (
-                              <div className="flex items-center gap-1 text-xs text-red-500 mt-1" title={`Locked by: ${locks.join(', ')}`}>
-                                <Icon as="lock" className="w-3 h-3"/>
-                                <span>Locked</span>
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-1 flex-shrink-0">
-                            <button onClick={() => setActionModalState({ action: { ...action }, index })} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title="Edit Action">
-                              <Icon as="edit" className="w-4 h-4" />
-                            </button>
-                            <button onClick={(e) => handleDeleteAction(e, index)} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title="Delete Action">
-                              <Icon as="trash" className="w-4 h-4" />
-                            </button>
-                          </div>
+                          {dropTargetActionIndex === index && (
+                              <div className={`absolute left-0 right-0 ${draggedActionIndex !== null && draggedActionIndex > index ? 'top-0' : 'bottom-0'} h-0.5 bg-brand-500`}></div>
+                          )}
+                           <div className="flex items-center justify-between w-full">
+                                <div className="flex items-center gap-2 flex-grow min-w-0">
+                                     <div className="cursor-move touch-none">
+                                        <Icon as="reorder" className="w-5 h-5 text-slate-400 dark:text-slate-500" />
+                                    </div>
+                                    <div className="flex-grow min-w-0">
+                                      <p className="font-semibold truncate">{action.name || <span className="italic text-slate-500">Untitled Action</span>}</p>
+                                      {locks && (
+                                        <div className="flex items-center gap-1 text-xs text-red-500 mt-1" title={`Locked by: ${locks.join(', ')}`}>
+                                          <Icon as="lock" className="w-3 h-3"/>
+                                          <span>Locked</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-1 flex-shrink-0">
+                                  <button onClick={() => setActionModalState({ action: { ...action }, index })} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title="Edit Action">
+                                    <Icon as="edit" className="w-4 h-4" />
+                                  </button>
+                                  <button onClick={(e) => handleDeleteAction(e, index)} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title="Delete Action">
+                                    <Icon as="trash" className="w-4 h-4" />
+                                  </button>
+                                </div>
+                           </div>
                         </div>
                       )
                     })}
