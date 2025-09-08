@@ -190,6 +190,7 @@ const Dashboard: React.FC = () => {
                                                 inventoryLayout={g.inventoryLayout}
                                                 inventory1Title={g.inventory1Title}
                                                 inventory2Title={g.inventory2Title}
+                                                fontFamily={g.fontFamily}
                                               />
                                             </div>
                                             <div className="flex justify-between items-start px-4 pt-2">

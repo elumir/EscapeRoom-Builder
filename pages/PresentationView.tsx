@@ -4,6 +4,7 @@ import * as gameService from '../services/presentationService';
 import type { Game, InventoryObject, Room as RoomType } from '../types';
 import Room from '../components/Slide';
 import { useBroadcastChannel } from '../hooks/useBroadcastChannel';
+import FontLoader from '../components/FontLoader';
 
 interface BroadcastMessage {
   type: 'GOTO_ROOM' | 'STATE_SYNC';
@@ -141,11 +142,13 @@ const PresentationView: React.FC = () => {
       inventory1Title: game.inventory1Title,
       inventory2Title: game.inventory2Title,
       inRoomObjectImages,
+      fontFamily: game.fontFamily,
     };
   }
 
   return (
     <div className="w-screen h-screen bg-black flex items-center justify-center">
+      <FontLoader gameId={id} />
       <div className="relative w-full max-w-[calc(100vh*16/9)] max-h-[calc(100vw*9/16)] aspect-video">
         {/* Current Room is always visible underneath */}
         <Room 

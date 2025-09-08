@@ -8,6 +8,7 @@ import Icon from '../components/Icon';
 import Accordion from '../components/Accordion';
 import { generateUUID } from '../utils/uuid';
 import AudioPreviewPlayer from '../components/AudioPreviewPlayer';
+import FontLoader from '../components/FontLoader';
 
 type Status = 'loading' | 'success' | 'error';
 
@@ -878,6 +879,7 @@ const Editor: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen bg-slate-200 dark:bg-slate-900">
+       <FontLoader gameId={id} />
        {isResetModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white dark:bg-slate-800 p-8 rounded-lg shadow-2xl w-full max-w-lg">
@@ -2401,6 +2403,7 @@ const Editor: React.FC = () => {
                 inventoryLayout={game.inventoryLayout}
                 inventory1Title={game.inventory1Title}
                 inventory2Title={game.inventory2Title}
+                fontFamily={game.fontFamily}
               />
             </div>
           </div>

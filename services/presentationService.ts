@@ -125,6 +125,7 @@ export const createGame = async (title: string): Promise<Game> => {
         inventoryLayout: 'single',
         inventory1Title: 'Inventory 1',
         inventory2Title: 'Inventory 2',
+        fontFamily: null,
     };
 
     try {

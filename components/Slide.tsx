@@ -14,6 +14,7 @@ interface RoomProps {
   inventory1Title?: string;
   inventory2Title?: string;
   inRoomObjectImages?: string[];
+  fontFamily?: string | null;
 }
 
 const getObjectColorClass = (nameColor?: string | null): string => {
@@ -54,7 +55,8 @@ const Room: React.FC<RoomProps> = ({
     inventoryLayout = 'single',
     inventory1Title = 'Inventory 1',
     inventory2Title = 'Inventory 2',
-    inRoomObjectImages
+    inRoomObjectImages,
+    fontFamily
 }) => {
   const { backgroundColor: roomBackgroundColor, isFullScreenImage } = room;
 
@@ -106,7 +108,10 @@ const Room: React.FC<RoomProps> = ({
   return (
     <div
       className={`relative w-full h-full overflow-hidden shadow-lg flex transition-all duration-300 ${className}`}
-      style={{ backgroundColor: isFullScreenImage ? '#000' : backgroundColor }}
+      style={{ 
+        backgroundColor: isFullScreenImage ? '#000' : backgroundColor,
+        fontFamily: fontFamily || undefined,
+      }}
     >
       <div className={`${imageContainerClass} relative`}>
         {displayImage ? (

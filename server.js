@@ -27,7 +27,7 @@ const authConfig = {
 
 // Middleware
 app.use(cors());
-app.use(express.raw({ limit: '50mb', type: ['image/*', 'audio/*'] }));
+app.use(express.raw({ limit: '50mb', type: ['image/*', 'audio/*', 'font/*'] }));
 app.use(express.json({ limit: '50mb' }));
 
 // Simple logger for all incoming requests

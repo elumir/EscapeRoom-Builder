@@ -102,4 +102,5 @@ export interface Game {
   inventoryLayout?: 'single' | 'dual';
   inventory1Title?: string;
   inventory2Title?: string;
+  fontFamily?: string | null;
 }
