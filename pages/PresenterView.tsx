@@ -572,6 +572,7 @@ const PresenterView: React.FC = () => {
                       showInInventory: true, 
                       wasEverInInventory: true,
                       addedToInventoryTimestamp: Date.now(),
+                      showInRoomImage: false, // Hide in-room image when picked up by puzzle
                     };
                 }
                 return obj;
