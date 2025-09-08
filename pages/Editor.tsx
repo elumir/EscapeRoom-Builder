@@ -454,7 +454,7 @@ const Editor: React.FC = () => {
   };
 
   const addObject = () => {
-    const newObject: InventoryObject = { id: generateUUID(), name: '', description: '', showInInventory: false, image: null, inRoomImage: null, showInRoomImage: true, showImageOverlay: false, nameColor: null, inventorySlot: 1 };
+    const newObject: InventoryObject = { id: generateUUID(), name: '', description: '', showInInventory: false, image: null, inRoomImage: null, showInRoomImage: true, showImageOverlay: false, nameColor: null, inventorySlot: 1, x: 0.5, y: 0.5 };
     const newObjects = [...editingRoomObjects, newObject];
     setEditingRoomObjects(newObjects);
     
@@ -1204,7 +1204,7 @@ const Editor: React.FC = () => {
                             </div>
                         </div>
                     )}
-                    <div className="flex gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Close-up Image (Optional)</label>
                           <div className="relative group w-32 h-32 bg-slate-100 dark:bg-slate-700/50 rounded-md border-2 border-dashed border-slate-300 dark:border-slate-600">
@@ -1318,6 +1318,39 @@ const Editor: React.FC = () => {
                               </div>
                           )}
                         </div>
+                        {modalObjectData.inRoomImage && (
+                            <div className="md:col-span-2">
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">In Room Image Position</label>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">Click on the image to set the object's center position.</p>
+                                <div
+                                    className="relative group w-full aspect-video bg-slate-100 dark:bg-slate-700/50 rounded-md border-2 border-dashed border-slate-300 dark:border-slate-600 cursor-crosshair overflow-hidden"
+                                    onClick={(e) => {
+                                        const rect = e.currentTarget.getBoundingClientRect();
+                                        const x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+                                        const y = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+                                        handleModalObjectChange('x', x);
+                                        handleModalObjectChange('y', y);
+                                    }}
+                                >
+                                    <img src={`${API_BASE_URL}/assets/${modalObjectData.inRoomImage}`} alt="In-room preview" className="w-full h-full object-contain" />
+                                    <div
+                                        className="absolute w-4 h-4 rounded-full bg-red-500 border-2 border-white -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+                                        style={{
+                                            top: `${(modalObjectData.y ?? 0.5) * 100}%`,
+                                            left: `${(modalObjectData.x ?? 0.5) * 100}%`,
+                                        }}
+                                    ></div>
+                                </div>
+                                <div className="flex gap-4 mt-2">
+                                    <div className="flex-1">
+                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400">X: {((modalObjectData.x ?? 0.5) * 100).toFixed(1)}%</label>
+                                    </div>
+                                    <div className="flex-1">
+                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400">Y: {((modalObjectData.y ?? 0.5) * 100).toFixed(1)}%</label>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
                 <div className="flex-shrink-0 mt-6 pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-4">

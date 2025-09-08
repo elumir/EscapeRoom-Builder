@@ -129,9 +129,8 @@ const PresentationView: React.FC = () => {
         .map(r => r.mapImage)
         .filter(Boolean);
 
-    const inRoomObjectImages = room.objects
-        .filter(obj => obj.showInRoomImage && obj.inRoomImage)
-        .map(obj => obj.inRoomImage!);
+    const inRoomObjects = room.objects
+        .filter(obj => obj.showInRoomImage && obj.inRoomImage);
 
     return {
       inventoryObjects,
@@ -141,7 +140,7 @@ const PresentationView: React.FC = () => {
       inventoryLayout: game.inventoryLayout,
       inventory1Title: game.inventory1Title,
       inventory2Title: game.inventory2Title,
-      inRoomObjectImages,
+      inRoomObjects,
       fontFamily: game.fontFamily,
     };
   }

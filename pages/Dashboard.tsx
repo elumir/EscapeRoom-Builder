@@ -176,6 +176,9 @@ const Dashboard: React.FC = () => {
                            const visibleMapImages = g.mapDisplayMode === 'room-specific'
                                 ? [firstRoom.mapImage].filter(Boolean)
                                 : g.rooms.map(r => r.mapImage).filter(Boolean);
+                           const inRoomObjects = firstRoom.objects.filter(
+                               (obj) => obj.showInRoomImage && obj.inRoomImage
+                           );
 
                             return (
                                 <div key={g.id} className="group relative bg-white dark:bg-slate-800 rounded-lg shadow-md overflow-hidden border border-slate-200 dark:border-slate-700 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col justify-between">
@@ -191,6 +194,7 @@ const Dashboard: React.FC = () => {
                                                 inventory1Title={g.inventory1Title}
                                                 inventory2Title={g.inventory2Title}
                                                 fontFamily={g.fontFamily}
+                                                inRoomObjects={inRoomObjects}
                                               />
                                             </div>
                                             <div className="flex justify-between items-start px-4 pt-2">

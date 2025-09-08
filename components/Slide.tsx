@@ -13,7 +13,7 @@ interface RoomProps {
   inventoryLayout?: 'single' | 'dual';
   inventory1Title?: string;
   inventory2Title?: string;
-  inRoomObjectImages?: string[];
+  inRoomObjects?: InventoryObject[];
   fontFamily?: string | null;
 }
 
@@ -55,7 +55,7 @@ const Room: React.FC<RoomProps> = ({
     inventoryLayout = 'single',
     inventory1Title = 'Inventory 1',
     inventory2Title = 'Inventory 2',
-    inRoomObjectImages,
+    inRoomObjects,
     fontFamily
 }) => {
   const { backgroundColor: roomBackgroundColor, isFullScreenImage } = room;
@@ -123,14 +123,23 @@ const Room: React.FC<RoomProps> = ({
             </svg>
           </div>
         )}
-        {inRoomObjectImages?.map((imageId) => (
-            <div key={imageId} className="absolute inset-0 w-full h-full z-10">
-                <img 
-                    src={`${API_BASE_URL}/assets/${imageId}`} 
-                    alt="Object in room" 
-                    className="w-full h-full object-contain pointer-events-none" 
+        {inRoomObjects?.map((obj) => (
+            obj.inRoomImage && (
+                <img
+                    key={obj.id}
+                    src={`${API_BASE_URL}/assets/${obj.inRoomImage}`}
+                    alt={obj.name}
+                    className="absolute pointer-events-none"
+                    style={{
+                        left: `${(obj.x ?? 0.5) * 100}%`,
+                        top: `${(obj.y ?? 0.5) * 100}%`,
+                        transform: 'translate(-50%, -50%)',
+                        maxWidth: '25%',
+                        maxHeight: '25%',
+                        zIndex: 10,
+                    }}
                 />
-            </div>
+            )
         ))}
       </div>
       

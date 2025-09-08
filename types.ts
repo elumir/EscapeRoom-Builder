@@ -32,6 +32,8 @@ export interface InventoryObject {
   addedToInventoryTimestamp?: number;
   nameColor?: string;
   inventorySlot?: 1 | 2;
+  x?: number;
+  y?: number;
 }
 
 export interface Puzzle {
