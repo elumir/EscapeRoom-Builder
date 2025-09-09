@@ -1490,7 +1490,7 @@ const Editor: React.FC = () => {
                         )}
                         {modalObjectData.inRoomImage && (() => {
                             const size = modalObjectData.size ?? 0.25;
-                            const maxWidthPercentage = currentRoom.isFullScreenImage ? size * 100 : (size / 0.7) * 100;
+                            const widthPercentage = currentRoom.isFullScreenImage ? size * 100 : (size / 0.7) * 100;
 
                             return (
                                 <img
@@ -1502,7 +1502,7 @@ const Editor: React.FC = () => {
                                         left: `${(modalObjectData.x ?? 0.5) * 100}%`,
                                         top: `${(modalObjectData.y ?? 0.5) * 100}%`,
                                         transform: 'translate(-50%, -50%)',
-                                        maxWidth: `${maxWidthPercentage}%`,
+                                        width: `${widthPercentage}%`,
                                     }}
                                 />
                             );
