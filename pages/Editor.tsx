@@ -1139,7 +1139,7 @@ const Editor: React.FC = () => {
 
                         if (filteredAssets.length > 0) {
                             return (
-                                <div className="flex-grow overflow-y-auto pr-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                                <div className="flex-grow overflow-y-auto pr-2 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
                                     {filteredAssets.map(asset => (
                                         <div key={asset.id} className="aspect-square group relative rounded-md overflow-hidden bg-slate-100 dark:bg-slate-700" onClick={() => handleSelectAsset(asset.id)}>
                                             <img src={`${API_BASE_URL}/assets/${asset.id}`} alt={asset.name} className="w-full h-full object-cover"/>
@@ -1170,7 +1170,7 @@ const Editor: React.FC = () => {
                     </button>
                 </div>
                 {assetLibrary.length > 0 ? (
-                    <div className="flex-grow overflow-y-auto pr-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    <div className="flex-grow overflow-y-auto pr-2 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
                         {assetLibrary.map(asset => (
                             <div key={asset.id} className="group relative rounded-md bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 flex flex-col">
                                 <div className="aspect-square w-full relative overflow-hidden">
