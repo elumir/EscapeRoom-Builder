@@ -1225,10 +1225,21 @@ const Editor: React.FC = () => {
                             return (
                                 <div className="flex-grow overflow-y-auto pr-2 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
                                     {filteredAssets.map(asset => (
-                                        <div key={asset.id} className="aspect-square group relative rounded-md overflow-hidden bg-slate-100 dark:bg-slate-700" onClick={() => handleSelectAsset(asset.id)}>
-                                            <img src={`${API_BASE_URL}/assets/${asset.id}`} alt={asset.name} className="w-full h-full object-cover"/>
-                                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors flex items-center justify-center cursor-pointer">
-                                                <p className="text-white font-bold opacity-0 group-hover:opacity-100 transition-opacity">Select</p>
+                                        <div 
+                                            key={asset.id} 
+                                            className="group rounded-md bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 flex flex-col cursor-pointer" 
+                                            onClick={() => handleSelectAsset(asset.id)}
+                                        >
+                                            <div className="aspect-square w-full relative overflow-hidden">
+                                                <img src={`${API_BASE_URL}/assets/${asset.id}`} alt={asset.name} className="w-full h-full object-cover"/>
+                                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors flex items-center justify-center">
+                                                    <p className="text-white font-bold opacity-0 group-hover:opacity-100 transition-opacity">Select</p>
+                                                </div>
+                                            </div>
+                                            <div className="p-2 text-center">
+                                                <p className="text-xs text-slate-600 dark:text-slate-400 break-all">
+                                                    {asset.name}
+                                                </p>
                                             </div>
                                         </div>
                                     ))}
