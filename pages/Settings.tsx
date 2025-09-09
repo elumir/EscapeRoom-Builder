@@ -20,6 +20,8 @@ const Settings: React.FC = () => {
     const [assetModalTarget, setAssetModalTarget] = useState<'soundtrack' | 'soundboard' | null>(null);
     const [editingTrackName, setEditingTrackName] = useState<{ id: string; name: string } | null>(null);
     const [editingClipName, setEditingClipName] = useState<{ id: string; name: string } | null>(null);
+    const [draggedClipIndex, setDraggedClipIndex] = useState<number | null>(null);
+    const [dropTargetClipIndex, setDropTargetClipIndex] = useState<number | null>(null);
 
 
     useEffect(() => {
@@ -186,6 +188,39 @@ const Settings: React.FC = () => {
         );
         updateGame({ ...game, soundboard: newSoundboard });
         setEditingClipName(null);
+    };
+
+    const handleClipDragStart = (index: number) => {
+        setDraggedClipIndex(index);
+    };
+
+    const handleClipDragOver = (e: React.DragEvent, index: number) => {
+        e.preventDefault();
+        if (draggedClipIndex !== null && draggedClipIndex !== index) {
+            setDropTargetClipIndex(index);
+        }
+    };
+
+    const handleClipDragLeave = () => {
+        setDropTargetClipIndex(null);
+    };
+
+    const handleClipDrop = (index: number) => {
+        if (draggedClipIndex === null || draggedClipIndex === index || !game) return;
+
+        const newSoundboard = [...(game.soundboard || [])];
+        const [removed] = newSoundboard.splice(draggedClipIndex, 1);
+        newSoundboard.splice(index, 0, removed);
+
+        handleGamePropertyChange('soundboard', newSoundboard);
+
+        setDraggedClipIndex(null);
+        setDropTargetClipIndex(null);
+    };
+
+    const handleClipDragEnd = () => {
+        setDraggedClipIndex(null);
+        setDropTargetClipIndex(null);
     };
 
     const handleDeleteGame = async () => {
@@ -510,8 +545,23 @@ const Settings: React.FC = () => {
                                 <div>
                                     <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Clips</label>
                                     <div className="space-y-2">
-                                        {(game.soundboard || []).map(clip => (
-                                            <div key={clip.id} className="flex items-center gap-2 p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md">
+                                        {(game.soundboard || []).map((clip, index) => (
+                                            <div
+                                                key={clip.id}
+                                                draggable
+                                                onDragStart={() => handleClipDragStart(index)}
+                                                onDragOver={(e) => handleClipDragOver(e, index)}
+                                                onDragLeave={handleClipDragLeave}
+                                                onDrop={() => handleClipDrop(index)}
+                                                onDragEnd={handleClipDragEnd}
+                                                className={`relative flex items-center gap-2 p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md transition-opacity ${draggedClipIndex === index ? 'opacity-50' : ''}`}
+                                            >
+                                                {dropTargetClipIndex === index && (
+                                                    <div className={`absolute left-0 right-0 ${draggedClipIndex !== null && draggedClipIndex > index ? 'top-0' : 'bottom-0'} h-0.5 bg-brand-500`}></div>
+                                                )}
+                                                <div className="cursor-move touch-none text-slate-400 dark:text-slate-500">
+                                                    <Icon as="reorder" className="w-5 h-5" />
+                                                </div>
                                                 {editingClipName?.id === clip.id ? (
                                                      <input type="text" value={editingClipName.name} onChange={(e) => setEditingClipName({...editingClipName, name: e.target.value})} onBlur={handleSaveClipName} onKeyDown={e => e.key === 'Enter' && handleSaveClipName()} autoFocus className="flex-grow bg-transparent text-sm font-semibold" />
                                                 ) : (
