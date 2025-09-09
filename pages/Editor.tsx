@@ -2655,7 +2655,8 @@ const Editor: React.FC = () => {
                   <div ref={objectsContainerRef} className="space-y-4">
                       {editingRoomObjects.map((obj, index) => {
                          const locks = objectLockMap.get(obj.id);
-                         const hasStatusIndicators = locks || (obj.isPickupable ?? true) || (obj.showInRoomImage && obj.inRoomImage) || game.inventoryLayout === 'dual';
+                         const isPickupable = obj.isPickupable ?? true;
+                         const hasStatusIndicators = locks || isPickupable || (obj.showInRoomImage && obj.inRoomImage);
                          
                          return (
                             <div key={obj.id} className="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-700">
@@ -2671,25 +2672,25 @@ const Editor: React.FC = () => {
                                     </div>
                                 </div>
                                 {hasStatusIndicators && (
-                                  <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400 mt-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+                                  <div className={`flex items-center gap-2.5 text-slate-500 dark:text-slate-400 mt-2 ${isPickupable ? 'pt-2 border-t border-slate-200 dark:border-slate-700' : ''}`}>
                                       {locks && (
                                           <div className="flex items-center text-red-500" title={`Locked by: ${locks.join(', ')}`}>
-                                              <Icon as="lock" className="w-4 h-4" />
+                                              <Icon as="lock" className="w-3.5 h-3.5" />
                                           </div>
                                       )}
-                                      {(obj.isPickupable ?? true) && (
+                                      {isPickupable && (
                                           <div title="Pickupable">
-                                              <Icon as="hand-expand" className="w-4 h-4" />
+                                              <Icon as="hand-expand" className="w-3.5 h-3.5" />
                                           </div>
                                       )}
                                       {obj.showInRoomImage && obj.inRoomImage && (
                                           <div title="Initially visible in room">
-                                              <Icon as="eye" className="w-4 h-4" />
+                                              <Icon as="eye" className="w-3.5 h-3.5" />
                                           </div>
                                       )}
-                                      {game.inventoryLayout === 'dual' && (
+                                      {game.inventoryLayout === 'dual' && isPickupable && (
                                           <div 
-                                            className="flex items-center justify-center w-4 h-4 bg-slate-200 dark:bg-slate-600 rounded-sm text-xs font-bold" 
+                                            className="flex items-center justify-center w-3.5 h-3.5 bg-slate-200 dark:bg-slate-600 rounded-sm text-[10px] font-bold" 
                                             title={`Goes to ${obj.inventorySlot === 2 ? (game.inventory2Title || 'Inventory 2') : (game.inventory1Title || 'Inventory 1')}`}
                                           >
                                               {obj.inventorySlot || 1}
