@@ -1352,49 +1352,53 @@ const PresenterView: React.FC = () => {
                     </div>
                 </div>
 
-                 <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
-                    <div className="flex justify-between items-center border-b border-slate-700 pb-3 mb-4">
-                         <h3 className="font-semibold text-slate-300 text-lg">Player Actions & Host Responses</h3>
-                         <div className="flex rounded-lg bg-slate-700/50 p-1 text-xs">
-                             <button onClick={() => setActiveActionTab('open')} className={`px-2 py-1 rounded-md ${activeActionTab === 'open' ? 'bg-slate-600' : 'hover:bg-slate-600/50'}`}>Open ({openActions.length})</button>
-                             <button onClick={() => setActiveActionTab('complete')} className={`px-2 py-1 rounded-md ${activeActionTab === 'complete' ? 'bg-slate-600' : 'hover:bg-slate-600/50'}`}>Complete ({completedActions.length})</button>
-                         </div>
-                    </div>
-                    <div className="space-y-2">
-                        {activeActionTab === 'open' && (
-                            openActions.length > 0 
-                                ? openActions.map(action => <ActionItem key={action.id} action={action} onToggleImage={handleToggleActionImage} onToggleComplete={handleToggleActionComplete} />)
-                                : <p className="text-sm text-slate-500 italic">No open actions.</p>
-                        )}
-                         {activeActionTab === 'complete' && (
-                            completedActions.length > 0 
-                                ? completedActions.map(action => <ActionItem key={action.id} action={action} onToggleImage={handleToggleActionImage} onToggleComplete={handleToggleActionComplete} />)
-                                : <p className="text-sm text-slate-500 italic">No completed actions.</p>
-                        )}
-                    </div>
-                </div>
-
-                <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
-                    <div className="flex justify-between items-center border-b border-slate-700 pb-3 mb-4">
-                        <h3 className="font-semibold text-slate-300 text-lg">Puzzles</h3>
-                        <div className="flex rounded-lg bg-slate-700/50 p-1 text-xs">
-                           <button onClick={() => setActivePuzzleTab('open')} className={`px-2 py-1 rounded-md ${activePuzzleTab === 'open' ? 'bg-slate-600' : 'hover:bg-slate-600/50'}`}>Open ({openPuzzles.length})</button>
-                           <button onClick={() => setActivePuzzleTab('complete')} className={`px-2 py-1 rounded-md ${activePuzzleTab === 'complete' ? 'bg-slate-600' : 'hover:bg-slate-600/50'}`}>Complete ({completedPuzzles.length})</button>
+                 {(currentRoom?.actions || []).length > 0 && (
+                    <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
+                        <div className="flex justify-between items-center border-b border-slate-700 pb-3 mb-4">
+                            <h3 className="font-semibold text-slate-300 text-lg">Player Actions & Host Responses</h3>
+                            <div className="flex rounded-lg bg-slate-700/50 p-1 text-xs">
+                                <button onClick={() => setActiveActionTab('open')} className={`px-2 py-1 rounded-md ${activeActionTab === 'open' ? 'bg-slate-600' : 'hover:bg-slate-600/50'}`}>Open ({openActions.length})</button>
+                                <button onClick={() => setActiveActionTab('complete')} className={`px-2 py-1 rounded-md ${activeActionTab === 'complete' ? 'bg-slate-600' : 'hover:bg-slate-600/50'}`}>Complete ({completedActions.length})</button>
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            {activeActionTab === 'open' && (
+                                openActions.length > 0 
+                                    ? openActions.map(action => <ActionItem key={action.id} action={action} onToggleImage={handleToggleActionImage} onToggleComplete={handleToggleActionComplete} />)
+                                    : <p className="text-sm text-slate-500 italic">No open actions.</p>
+                            )}
+                            {activeActionTab === 'complete' && (
+                                completedActions.length > 0 
+                                    ? completedActions.map(action => <ActionItem key={action.id} action={action} onToggleImage={handleToggleActionImage} onToggleComplete={handleToggleActionComplete} />)
+                                    : <p className="text-sm text-slate-500 italic">No completed actions.</p>
+                            )}
                         </div>
                     </div>
-                    <div className="space-y-4">
-                        {activePuzzleTab === 'open' && (
-                            openPuzzles.length > 0 
-                                ? openPuzzles.map(puzzle => <PuzzleItem key={puzzle.id} puzzle={puzzle} onToggle={handleTogglePuzzle} onToggleImage={handleTogglePuzzleImage} onAttemptSolve={handleAttemptSolve} />)
-                                : <p className="text-sm text-slate-500 italic">No open puzzles.</p>
-                        )}
-                         {activePuzzleTab === 'complete' && (
-                            completedPuzzles.length > 0 
-                                ? completedPuzzles.map(puzzle => <PuzzleItem key={puzzle.id} puzzle={puzzle} onToggle={()=>{}} onToggleImage={()=>{}} onAttemptSolve={()=>{}} />)
-                                : <p className="text-sm text-slate-500 italic">No completed puzzles.</p>
-                        )}
+                 )}
+
+                {(currentRoom?.puzzles || []).length > 0 && (
+                    <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
+                        <div className="flex justify-between items-center border-b border-slate-700 pb-3 mb-4">
+                            <h3 className="font-semibold text-slate-300 text-lg">Puzzles</h3>
+                            <div className="flex rounded-lg bg-slate-700/50 p-1 text-xs">
+                            <button onClick={() => setActivePuzzleTab('open')} className={`px-2 py-1 rounded-md ${activePuzzleTab === 'open' ? 'bg-slate-600' : 'hover:bg-slate-600/50'}`}>Open ({openPuzzles.length})</button>
+                            <button onClick={() => setActivePuzzleTab('complete')} className={`px-2 py-1 rounded-md ${activePuzzleTab === 'complete' ? 'bg-slate-600' : 'hover:bg-slate-600/50'}`}>Complete ({completedPuzzles.length})</button>
+                            </div>
+                        </div>
+                        <div className="space-y-4">
+                            {activePuzzleTab === 'open' && (
+                                openPuzzles.length > 0 
+                                    ? openPuzzles.map(puzzle => <PuzzleItem key={puzzle.id} puzzle={puzzle} onToggle={handleTogglePuzzle} onToggleImage={handleTogglePuzzleImage} onAttemptSolve={handleAttemptSolve} />)
+                                    : <p className="text-sm text-slate-500 italic">No open puzzles.</p>
+                            )}
+                            {activePuzzleTab === 'complete' && (
+                                completedPuzzles.length > 0 
+                                    ? completedPuzzles.map(puzzle => <PuzzleItem key={puzzle.id} puzzle={puzzle} onToggle={()=>{}} onToggleImage={()=>{}} onAttemptSolve={()=>{}} />)
+                                    : <p className="text-sm text-slate-500 italic">No completed puzzles.</p>
+                            )}
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
         </div>
 
