@@ -117,204 +117,6 @@ const PresenterView: React.FC = () => {
     setSoundtrack(prev => prev ? { ...prev, currentTrackIndex: nextTrackIndex } : null);
   }, []);
 
-  const combinedInventoryObjects = useMemo(() => {
-    const customInventory = customItems.filter(item => item.showInInventory);
-    return [...customInventory, ...inventoryObjects]
-      .sort((a, b) => (b.addedToInventoryTimestamp || 0) - (a.addedToInventoryTimestamp || 0));
-  }, [customItems, inventoryObjects]);
-
-  const combinedDiscardedObjects = useMemo(() => {
-    const customDiscarded = customItems.filter(item => !item.showInInventory && item.wasEverInInventory);
-    return [...customDiscarded, ...discardedObjects]
-      .sort((a, b) => (b.addedToInventoryTimestamp || 0) - (a.addedToInventoryTimestamp || 0));
-  }, [customItems, discardedObjects]);
-
-  const prevInventoryCountRef = useRef(combinedInventoryObjects.length);
-  
-  // This effect handles making new items' descriptions visible by default.
-  const inventoryObjectIds = useMemo(() => new Set(combinedInventoryObjects.map(o => o.id)), [combinedInventoryObjects]);
-  const prevInventoryObjectIdsRef = useRef<Set<string>>(new Set());
-
-  const handleToggleAllInventoryDescriptions = useCallback(() => {
-      const allIds = combinedInventoryObjects.map(obj => obj.id);
-      // Determine if the action should be to show all or hide all
-      const shouldShowAll = allIds.some(id => !visibleDescriptionIds.has(id));
-
-      if (shouldShowAll) {
-           // Show them all by adding all inventory IDs to the existing set
-          setVisibleDescriptionIds(currentVisible => new Set([...currentVisible, ...allIds]));
-      } else {
-          // Hide them all by removing inventory IDs from the existing set
-          setVisibleDescriptionIds(currentVisible => {
-              const newVisible = new Set(currentVisible);
-              allIds.forEach(id => newVisible.delete(id));
-              return newVisible;
-          });
-      }
-  }, [combinedInventoryObjects, visibleDescriptionIds]);
-
-  const areAllDescriptionsVisible = useMemo(() => {
-      if (combinedInventoryObjects.length === 0) return false;
-      const allIds = combinedInventoryObjects.map(obj => obj.id);
-      return allIds.every(id => visibleDescriptionIds.has(id));
-  }, [combinedInventoryObjects, visibleDescriptionIds]);
-
-
-  const isPresentationWindowOpen = presentationWindow && !presentationWindow.closed;
-
-  const channelName = `game-${id}`;
-  const postMessage = useBroadcastChannel<BroadcastMessage>(channelName, () => {});
-
-  const updateAndBroadcast = useCallback(async (updatedGame: Game) => {
-    setGame(updatedGame);
-    // Optimistically broadcast the new state immediately.
-    postMessage({ type: 'STATE_SYNC', game: updatedGame, customItems });
-
-    try {
-        await gameService.saveGame(updatedGame);
-    } catch (error) {
-        console.error("Failed to save game state:", error);
-        if (game?.visibility !== 'public') {
-           alert("A change could not be saved. Please check your connection.");
-        } else {
-            console.warn("Presenter is not the owner; state changes are local to this session.");
-        }
-    }
-  }, [postMessage, customItems, game?.visibility]);
-
-  const goToRoom = useCallback((index: number) => {
-    if (!game || index === currentRoomIndex) return;
-
-    if (index >= 0 && index < game.rooms.length) {
-      setCurrentRoomIndex(index);
-      setActiveActionTab('open');
-      setActivePuzzleTab('open');
-      postMessage({ type: 'GOTO_ROOM', roomIndex: index, customItems });
-
-      const destinationRoom = game.rooms[index];
-      const newRoomId = destinationRoom.id;
-      const objectsToRemove = destinationRoom.objectRemoveIds || [];
-
-      let needsUpdate = false;
-      let updatedGame = { ...game };
-
-      // Reset all image overlays when changing rooms.
-      let overlaysWereReset = false;
-      updatedGame.rooms = updatedGame.rooms.map(room => {
-          const hasActiveOverlay = 
-            room.objects.some(o => o.showImageOverlay) ||
-            room.puzzles.some(p => p.showImageOverlay) ||
-            (room.actions || []).some(a => a.showImageOverlay);
-
-          if (hasActiveOverlay) {
-              overlaysWereReset = true;
-              return {
-                  ...room,
-                  objects: room.objects.map(o => o.showImageOverlay ? { ...o, showImageOverlay: false } : o),
-                  puzzles: room.puzzles.map(p => p.showImageOverlay ? { ...p, showImageOverlay: false } : p),
-                  actions: (room.actions || []).map(a => a.showImageOverlay ? { ...a, showImageOverlay: false } : a),
-              };
-          }
-          return room;
-      });
-      
-      if(overlaysWereReset) {
-          needsUpdate = true;
-      }
-
-      // 1. Handle object removal if any are specified for the destination room
-      if (objectsToRemove.length > 0) {
-        let objectsWereRemoved = false;
-        const currentInventoryIds = new Set(
-            updatedGame.rooms.flatMap(r => r.objects).filter(o => o.showInInventory).map(o => o.id)
-        );
-
-        const idsToRemoveFromInventory = objectsToRemove.filter(id => currentInventoryIds.has(id));
-
-        if (idsToRemoveFromInventory.length > 0) {
-            updatedGame.rooms = updatedGame.rooms.map(room => ({
-                ...room,
-                objects: room.objects.map(obj => 
-                    idsToRemoveFromInventory.includes(obj.id) ? { ...obj, showInInventory: false } : obj
-                )
-            }));
-            objectsWereRemoved = true;
-            if (destinationRoom.objectRemoveText && destinationRoom.objectRemoveText.trim()) {
-                setObjectRemoveModalText(destinationRoom.objectRemoveText);
-            }
-        }
-        
-        if (objectsWereRemoved) {
-          needsUpdate = true;
-        }
-      }
-
-      // 2. Handle visiting the new room (adding to visited list)
-      if (!game.visitedRoomIds.includes(newRoomId)) {
-        updatedGame.visitedRoomIds = [...game.visitedRoomIds, newRoomId];
-        needsUpdate = true;
-      }
-
-      // 3. If any state changed, save and broadcast the update
-      if (needsUpdate) {
-        updateAndBroadcast(updatedGame);
-      }
-    }
-  }, [game, postMessage, updateAndBroadcast, customItems, currentRoomIndex]);
-
-  // All hooks must be defined before any conditional returns.
-  const currentRoom = useMemo(() => game?.rooms[currentRoomIndex], [game, currentRoomIndex]);
-
-  const { openPuzzles, completedPuzzles } = useMemo(() => {
-      if (!game || !currentRoom) return { openPuzzles: [], completedPuzzles: [] };
-
-      // Get all global puzzles from the entire game
-      const allGlobalPuzzles = game.rooms.flatMap(room => room.puzzles.filter(p => p.isGlobal));
-      // Filter for global puzzles that are unsolved and not locked
-      const unsolvedGlobalPuzzles = allGlobalPuzzles.filter(p => !p.isSolved && !lockingPuzzlesByPuzzleId.has(p.id));
-
-      // Get puzzles specific to the current room
-      const currentRoomOpenPuzzles = (currentRoom.puzzles || []).filter(puzzle =>
-          !puzzle.isSolved &&
-          !lockingPuzzlesByPuzzleId.has(puzzle.id)
-      );
-      
-      const currentRoomCompletedPuzzles = (currentRoom.puzzles || []).filter(puzzle => puzzle.isSolved);
-
-      // Combine and deduplicate open puzzles
-      const combinedOpenPuzzles = [...currentRoomOpenPuzzles];
-      const currentRoomOpenPuzzleIds = new Set(currentRoomOpenPuzzles.map(p => p.id));
-
-      for (const globalPuzzle of unsolvedGlobalPuzzles) {
-          if (!currentRoomOpenPuzzleIds.has(globalPuzzle.id)) {
-              combinedOpenPuzzles.push(globalPuzzle);
-          }
-      }
-      
-      return {
-          openPuzzles: combinedOpenPuzzles,
-          completedPuzzles: currentRoomCompletedPuzzles
-      };
-  }, [game, currentRoom, lockingPuzzlesByPuzzleId]);
-
-  const roomsByAct = useMemo(() => {
-    if (!game) return {};
-    return game.rooms.reduce((acc, room, index) => {
-        const act = room.act || 1;
-        if (!acc[act]) {
-            acc[act] = [];
-        }
-        acc[act].push({ ...room, originalIndex: index });
-        return acc;
-    }, {} as Record<number, (RoomType & { originalIndex: number })[]>);
-  }, [game]);
-
-  const availableActs = useMemo(() => {
-    if (!game) return [1];
-    const acts = new Set(game.rooms.map(r => r.act || 1));
-    return Array.from(acts).sort((a, b) => a - b);
-  }, [game]);
-
   useEffect(() => {
     // Clean up previous soundtrack elements and listeners if the game object changes
     const previousElements = soundtrackRef.current?.elements;
@@ -443,6 +245,7 @@ const PresenterView: React.FC = () => {
     };
   }, [game?.soundboard]);
 
+
   const handleAddCustomItem = (inventorySlot: 1 | 2) => {
     const name = window.prompt("Enter the name for the new custom item:");
     if (name && name.trim()) {
@@ -471,6 +274,20 @@ const PresenterView: React.FC = () => {
     ));
   };
 
+  const combinedInventoryObjects = useMemo(() => {
+    const customInventory = customItems.filter(item => item.showInInventory);
+    return [...customInventory, ...inventoryObjects]
+      .sort((a, b) => (b.addedToInventoryTimestamp || 0) - (a.addedToInventoryTimestamp || 0));
+  }, [customItems, inventoryObjects]);
+
+  const combinedDiscardedObjects = useMemo(() => {
+    const customDiscarded = customItems.filter(item => !item.showInInventory && item.wasEverInInventory);
+    return [...customDiscarded, ...discardedObjects]
+      .sort((a, b) => (b.addedToInventoryTimestamp || 0) - (a.addedToInventoryTimestamp || 0));
+  }, [customItems, discardedObjects]);
+
+  const prevInventoryCountRef = useRef(combinedInventoryObjects.length);
+  
   useEffect(() => {
     // If an item was added and the inventory tab is not active, show notification.
     if (combinedInventoryObjects.length > prevInventoryCountRef.current && activeTab !== 'inventory') {
@@ -478,6 +295,10 @@ const PresenterView: React.FC = () => {
     }
     prevInventoryCountRef.current = combinedInventoryObjects.length;
   }, [combinedInventoryObjects.length, activeTab]);
+
+  // This effect handles making new items' descriptions visible by default.
+  const inventoryObjectIds = useMemo(() => new Set(combinedInventoryObjects.map(o => o.id)), [combinedInventoryObjects]);
+  const prevInventoryObjectIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
       // Determine which IDs are new since the last render.
@@ -495,6 +316,36 @@ const PresenterView: React.FC = () => {
       // Update the ref for the next render.
       prevInventoryObjectIdsRef.current = inventoryObjectIds;
   }, [inventoryObjectIds]);
+
+  const handleToggleAllInventoryDescriptions = useCallback(() => {
+      const allIds = combinedInventoryObjects.map(obj => obj.id);
+      // Determine if the action should be to show all or hide all
+      const shouldShowAll = allIds.some(id => !visibleDescriptionIds.has(id));
+
+      if (shouldShowAll) {
+           // Show them all by adding all inventory IDs to the existing set
+          setVisibleDescriptionIds(currentVisible => new Set([...currentVisible, ...allIds]));
+      } else {
+          // Hide them all by removing inventory IDs from the existing set
+          setVisibleDescriptionIds(currentVisible => {
+              const newVisible = new Set(currentVisible);
+              allIds.forEach(id => newVisible.delete(id));
+              return newVisible;
+          });
+      }
+  }, [combinedInventoryObjects, visibleDescriptionIds]);
+
+  const areAllDescriptionsVisible = useMemo(() => {
+      if (combinedInventoryObjects.length === 0) return false;
+      const allIds = combinedInventoryObjects.map(obj => obj.id);
+      return allIds.every(id => visibleDescriptionIds.has(id));
+  }, [combinedInventoryObjects, visibleDescriptionIds]);
+
+
+  const isPresentationWindowOpen = presentationWindow && !presentationWindow.closed;
+
+  const channelName = `game-${id}`;
+  const postMessage = useBroadcastChannel<BroadcastMessage>(channelName, () => {});
 
   useEffect(() => {
     if (game) {
@@ -552,6 +403,104 @@ const PresenterView: React.FC = () => {
     };
     fetchAndInitialize();
   }, [id]);
+
+  const updateAndBroadcast = useCallback(async (updatedGame: Game) => {
+    setGame(updatedGame);
+    // Optimistically broadcast the new state immediately.
+    postMessage({ type: 'STATE_SYNC', game: updatedGame, customItems });
+
+    try {
+        await gameService.saveGame(updatedGame);
+    } catch (error) {
+        console.error("Failed to save game state:", error);
+        if (game?.visibility !== 'public') {
+           alert("A change could not be saved. Please check your connection.");
+        } else {
+            console.warn("Presenter is not the owner; state changes are local to this session.");
+        }
+    }
+  }, [postMessage, customItems, game?.visibility]);
+
+  const goToRoom = useCallback((index: number) => {
+    if (!game || index === currentRoomIndex) return;
+
+    if (index >= 0 && index < game.rooms.length) {
+      setCurrentRoomIndex(index);
+      setActiveActionTab('open');
+      setActivePuzzleTab('open');
+      postMessage({ type: 'GOTO_ROOM', roomIndex: index, customItems });
+
+      const destinationRoom = game.rooms[index];
+      const newRoomId = destinationRoom.id;
+      const objectsToRemove = destinationRoom.objectRemoveIds || [];
+
+      let needsUpdate = false;
+      let updatedGame = { ...game };
+
+      // Reset all image overlays when changing rooms.
+      let overlaysWereReset = false;
+      updatedGame.rooms = updatedGame.rooms.map(room => {
+          const hasActiveOverlay = 
+            room.objects.some(o => o.showImageOverlay) ||
+            room.puzzles.some(p => p.showImageOverlay) ||
+            (room.actions || []).some(a => a.showImageOverlay);
+
+          if (hasActiveOverlay) {
+              overlaysWereReset = true;
+              return {
+                  ...room,
+                  objects: room.objects.map(o => o.showImageOverlay ? { ...o, showImageOverlay: false } : o),
+                  puzzles: room.puzzles.map(p => p.showImageOverlay ? { ...p, showImageOverlay: false } : p),
+                  actions: (room.actions || []).map(a => a.showImageOverlay ? { ...a, showImageOverlay: false } : a),
+              };
+          }
+          return room;
+      });
+      
+      if(overlaysWereReset) {
+          needsUpdate = true;
+      }
+
+      // 1. Handle object removal if any are specified for the destination room
+      if (objectsToRemove.length > 0) {
+        let objectsWereRemoved = false;
+        const currentInventoryIds = new Set(
+            updatedGame.rooms.flatMap(r => r.objects).filter(o => o.showInInventory).map(o => o.id)
+        );
+
+        const idsToRemoveFromInventory = objectsToRemove.filter(id => currentInventoryIds.has(id));
+
+        if (idsToRemoveFromInventory.length > 0) {
+            updatedGame.rooms = updatedGame.rooms.map(room => ({
+                ...room,
+                objects: room.objects.map(obj => 
+                    idsToRemoveFromInventory.includes(obj.id) ? { ...obj, showInInventory: false } : obj
+                )
+            }));
+            objectsWereRemoved = true;
+            if (destinationRoom.objectRemoveText && destinationRoom.objectRemoveText.trim()) {
+                setObjectRemoveModalText(destinationRoom.objectRemoveText);
+            }
+        }
+        
+        if (objectsWereRemoved) {
+          needsUpdate = true;
+        }
+      }
+
+      // 2. Handle visiting the new room (adding to visited list)
+      if (!game.visitedRoomIds.includes(newRoomId)) {
+        updatedGame.visitedRoomIds = [...game.visitedRoomIds, newRoomId];
+        needsUpdate = true;
+      }
+
+      // 3. If any state changed, save and broadcast the update
+      if (needsUpdate) {
+        updateAndBroadcast(updatedGame);
+      }
+    }
+  }, [game, postMessage, updateAndBroadcast, customItems, currentRoomIndex]);
+
 
   const handleToggleObject = (objectId: string, newState: boolean) => {
     if (!game) return;
@@ -939,14 +888,32 @@ const PresenterView: React.FC = () => {
     }
   };
 
+  const roomsByAct = useMemo(() => {
+    if (!game) return {};
+    return game.rooms.reduce((acc, room, index) => {
+        const act = room.act || 1;
+        if (!acc[act]) {
+            acc[act] = [];
+        }
+        acc[act].push({ ...room, originalIndex: index });
+        return acc;
+    }, {} as Record<number, (RoomType & { originalIndex: number })[]>);
+  }, [game]);
+
+  const availableActs = useMemo(() => {
+    if (!game) return [1];
+    const acts = new Set(game.rooms.map(r => r.act || 1));
+    return Array.from(acts).sort((a, b) => a - b);
+  }, [game]);
+
   useEffect(() => {
-    if (currentRoom) {
-      const currentAct = currentRoom.act || 1;
+    if (game?.rooms[currentRoomIndex]) {
+      const currentAct = game.rooms[currentRoomIndex].act || 1;
       if (availableActs.includes(currentAct)) {
         setSelectedAct(currentAct);
       }
     }
-  }, [currentRoom, availableActs]);
+  }, [currentRoomIndex, game, availableActs]);
 
   const currentActIndex = availableActs.indexOf(selectedAct);
 
@@ -1103,10 +1070,11 @@ const PresenterView: React.FC = () => {
     return <div className="h-screen bg-slate-800 text-white flex items-center justify-center">Loading Presenter View...</div>;
   }
   
-  if (status === 'error' || !game || !currentRoom) {
+  if (status === 'error' || !game) {
     return <div className="h-screen bg-slate-800 text-white flex items-center justify-center">Error: Could not load game. It may be private or does not exist.</div>;
   }
   
+  const currentRoom = game.rooms[currentRoomIndex];
   const hasSolvedState = currentRoom?.solvedImage || (currentRoom?.solvedNotes && currentRoom.solvedNotes.trim() !== '');
   
   const roomObjects = (currentRoom?.objects || []).filter(o => 
@@ -1121,6 +1089,12 @@ const PresenterView: React.FC = () => {
   );
   const completedActions = (currentRoom?.actions || []).filter(action => action.isComplete);
   
+  const openPuzzles = (currentRoom?.puzzles || []).filter(puzzle => 
+    !puzzle.isSolved && 
+    !lockingPuzzlesByPuzzleId.has(puzzle.id)
+  );
+  const completedPuzzles = (currentRoom?.puzzles || []).filter(puzzle => puzzle.isSolved);
+
   const roomsForSelectedAct = roomsByAct[selectedAct] || [];
   const roomSolveIsLocked = lockingPuzzlesByRoomSolveId.has(currentRoom.id);
   const roomSolveLockingPuzzleName = lockingPuzzlesByRoomSolveId.get(currentRoom.id);
@@ -1402,24 +1376,24 @@ const PresenterView: React.FC = () => {
                     </div>
                  )}
 
-                {(openPuzzles.length > 0 || completedPuzzles.length > 0) && (
+                {(currentRoom?.puzzles || []).length > 0 && (
                     <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
                         <div className="flex justify-between items-center border-b border-slate-700 pb-3 mb-4">
                             <h3 className="font-semibold text-slate-300 text-lg">Puzzles</h3>
                             <div className="flex rounded-lg bg-slate-700/50 p-1 text-xs">
-                                <button onClick={() => setActivePuzzleTab('open')} className={`px-2 py-1 rounded-md ${activePuzzleTab === 'open' ? 'bg-slate-600' : 'hover:bg-slate-600/50'}`}>Open ({openPuzzles.length})</button>
-                                <button onClick={() => setActivePuzzleTab('complete')} className={`px-2 py-1 rounded-md ${activePuzzleTab === 'complete' ? 'bg-slate-600' : 'hover:bg-slate-600/50'}`}>Complete ({completedPuzzles.length})</button>
+                            <button onClick={() => setActivePuzzleTab('open')} className={`px-2 py-1 rounded-md ${activePuzzleTab === 'open' ? 'bg-slate-600' : 'hover:bg-slate-600/50'}`}>Open ({openPuzzles.length})</button>
+                            <button onClick={() => setActivePuzzleTab('complete')} className={`px-2 py-1 rounded-md ${activePuzzleTab === 'complete' ? 'bg-slate-600' : 'hover:bg-slate-600/50'}`}>Complete ({completedPuzzles.length})</button>
                             </div>
                         </div>
-                        <div className="space-y-2">
+                        <div className="space-y-4">
                             {activePuzzleTab === 'open' && (
-                                openPuzzles.length > 0
-                                    ? openPuzzles.map(puzzle => <PuzzleItem key={puzzle.id} puzzle={puzzle} onToggle={handleTogglePuzzle} onToggleImage={handleTogglePuzzleImage} onAttemptSolve={handleAttemptSolve} isLocked={lockingPuzzlesByPuzzleId.has(puzzle.id)} lockingPuzzleName={lockingPuzzlesByPuzzleId.get(puzzle.id)} />)
+                                openPuzzles.length > 0 
+                                    ? openPuzzles.map(puzzle => <PuzzleItem key={puzzle.id} puzzle={puzzle} onToggle={handleTogglePuzzle} onToggleImage={handleTogglePuzzleImage} onAttemptSolve={handleAttemptSolve} />)
                                     : <p className="text-sm text-slate-500 italic">No open puzzles.</p>
                             )}
                             {activePuzzleTab === 'complete' && (
-                                completedPuzzles.length > 0
-                                    ? completedPuzzles.map(puzzle => <PuzzleItem key={puzzle.id} puzzle={puzzle} onToggle={handleTogglePuzzle} onToggleImage={handleTogglePuzzleImage} onAttemptSolve={handleAttemptSolve} />)
+                                completedPuzzles.length > 0 
+                                    ? completedPuzzles.map(puzzle => <PuzzleItem key={puzzle.id} puzzle={puzzle} onToggle={()=>{}} onToggleImage={()=>{}} onAttemptSolve={()=>{}} />)
                                     : <p className="text-sm text-slate-500 italic">No completed puzzles.</p>
                             )}
                         </div>
@@ -1430,63 +1404,62 @@ const PresenterView: React.FC = () => {
 
         {/* Right Column */}
         {showRightColumn && (
-            <div className="w-80 bg-slate-900/50 p-4 flex flex-col border-l border-slate-700">
-                <div className="flex-1 overflow-y-auto pr-2 -mr-2 space-y-6">
-                    {hasAudio && (
-                        <div>
-                             <h3 className="text-lg font-semibold text-slate-300 mb-2">Audio Controls</h3>
-                             {soundtrack && (
-                                 <div className="p-4 bg-slate-800 rounded-lg border border-slate-700 mb-4">
-                                     <h4 className="font-semibold text-sm mb-2 text-slate-400">Soundtrack</h4>
-                                      <div className="flex items-center gap-2 mb-2">
-                                        <div className="w-12 h-12 bg-slate-700 rounded-md flex-shrink-0"></div>
-                                        <div className="flex-grow min-w-0">
-                                            <p className="font-semibold text-sm truncate">{game.soundtrack?.[soundtrack.currentTrackIndex]?.name || 'Unknown Track'}</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-xs font-mono text-slate-400">{formatTime(progress)}</span>
-                                        <input type="range" min="0" max={duration || 0} value={progress} onChange={handleSoundtrackSeek} className="w-full h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-brand-500 [&::-webkit-slider-thumb]:rounded-full" />
-                                        <span className="text-xs font-mono text-slate-400">{formatTime(duration)}</span>
-                                    </div>
-                                    <div className="flex justify-center items-center gap-2 mt-3">
-                                        <button onClick={handleSoundtrackPrev} title="Previous Track" className="p-2 text-slate-300 hover:text-white hover:bg-slate-700 rounded-full"><Icon as="prev" className="w-5 h-5"/></button>
-                                        <button onClick={handleSoundtrackRewind} title="Rewind to Start" className="p-2 text-slate-300 hover:text-white hover:bg-slate-700 rounded-full"><Icon as="rewind" className="w-5 h-5"/></button>
-                                        <button onClick={handleSoundtrackPlayPause} title={soundtrack.isPlaying ? "Pause" : "Play"} className="p-3 bg-brand-600 text-white rounded-full hover:bg-brand-500"><Icon as={soundtrack.isPlaying ? 'stop' : 'play'} className="w-6 h-6"/></button>
-                                        <button onClick={handleSoundtrackFadeOut} disabled={isFadingOut || !soundtrack.isPlaying} title="Fade Out" className="p-2 text-slate-300 hover:text-white hover:bg-slate-700 rounded-full disabled:opacity-50"><Icon as="share" className="w-5 h-5 transform -rotate-90"/></button>
-                                        <button onClick={handleSoundtrackNext} title="Next Track" className="p-2 text-slate-300 hover:text-white hover:bg-slate-700 rounded-full"><Icon as="next" className="w-5 h-5"/></button>
-                                    </div>
-                                    <div className="flex items-center gap-2 mt-3">
-                                        <input type="range" min="0" max="1" step="0.05" value={soundtrack.volume} onChange={e => handleSoundtrackVolumeChange(parseFloat(e.target.value))} className="w-full h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-brand-500 [&::-webkit-slider-thumb]:rounded-full" />
-                                    </div>
-                                 </div>
-                             )}
-                             {game.soundboard && game.soundboard.length > 0 && (
-                                <div className="p-4 bg-slate-800 rounded-lg border border-slate-700">
-                                    <h4 className="font-semibold text-sm mb-2 text-slate-400">Sound Board</h4>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        {game.soundboard.map(clip => {
-                                            const clipState = soundboardClips.get(clip.id);
-                                            return (
-                                                <button key={clip.id} onClick={() => handlePlaySoundboardClip(clip.id)} className={`p-2 rounded-md text-sm text-left ${clipState?.isPlaying ? 'bg-brand-500 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
-                                                    <p className="font-semibold truncate">{clip.name}</p>
-                                                </button>
-                                            )
-                                        })}
-                                    </div>
-                                </div>
-                             )}
+            <div className="w-80 bg-slate-900/50 p-4 flex flex-col border-l border-slate-700 space-y-6">
+                {showObjectsSection && (
+                    <div className="space-y-3">
+                        <h3 className="text-lg font-semibold text-slate-300">Objects in Room</h3>
+                        <div className="grid grid-cols-2 gap-2">
+                            {roomObjects.map(obj => (
+                                <ObjectItem key={obj.id} obj={obj} onToggle={handleToggleObject} lockingPuzzleName={lockingPuzzlesByObjectId.get(obj.id)} onToggleInRoomImage={handleToggleInRoomImage} variant="mini" />
+                            ))}
                         </div>
-                    )}
-                    {showObjectsSection && (
-                        <div>
-                            <h3 className="text-lg font-semibold text-slate-300 mb-2">Available to Pick Up</h3>
-                            <div className="space-y-2">
-                                {roomObjects.map(obj => <ObjectItem key={obj.id} obj={obj} onToggle={handleToggleObject} lockingPuzzleName={lockingPuzzlesByObjectId.get(obj.id)} onToggleInRoomImage={handleToggleInRoomImage} variant="mini" />)}
+                    </div>
+                )}
+                {(game?.soundboard || []).length > 0 && (
+                    <div className="space-y-3 flex-1 min-h-0 flex flex-col">
+                        <h3 className="text-lg font-semibold text-slate-300">Sound Board</h3>
+                        <div className="grid grid-cols-2 gap-2 overflow-y-auto pr-2 -mr-2">
+                            {game.soundboard?.map(clip => {
+                                const clipState = soundboardClips.get(clip.id);
+                                const isPlaying = clipState?.isPlaying || false;
+                                return (
+                                    <button
+                                        key={clip.id}
+                                        onClick={() => handlePlaySoundboardClip(clip.id)}
+                                        className={`w-full flex items-center gap-3 text-left p-2 rounded-lg transition-colors ${isPlaying ? 'bg-brand-600 text-white' : 'bg-slate-700/50 hover:bg-slate-700'}`}
+                                    >
+                                        <Icon as={isPlaying ? 'stop' : 'play'} className="w-5 h-5 flex-shrink-0" />
+                                        <span className="truncate text-sm font-semibold">{clip.name}</span>
+                                    </button>
+                                )
+                            })}
+                        </div>
+                    </div>
+                )}
+                {soundtrack && (
+                     <div className="space-y-3">
+                        <h3 className="text-lg font-semibold text-slate-300">Soundtrack</h3>
+                        <div className="p-3 bg-slate-800/70 rounded-lg">
+                            <p className="font-semibold text-center truncate">{game?.soundtrack?.[soundtrack.currentTrackIndex]?.name || 'Unknown Track'}</p>
+                            <div className="flex items-center gap-4 mt-3">
+                                <button onClick={handleSoundtrackPrev} disabled={soundtrack.elements.length < 2} title="Previous Track" className="p-2 disabled:opacity-30"><Icon as="prev" className="w-5 h-5"/></button>
+                                <button onClick={handleSoundtrackRewind} title="Rewind to Start" className="p-2 disabled:opacity-30"><Icon as="rewind" className="w-5 h-5"/></button>
+                                <button onClick={handleSoundtrackPlayPause} className="p-3 bg-brand-600 rounded-full text-white shadow-lg"><Icon as={soundtrack.isPlaying ? 'stop' : 'play'} className="w-6 h-6"/></button>
+                                <button onClick={handleSoundtrackFadeOut} disabled={isFadingOut || !soundtrack.isPlaying} title="Fade Out & Stop" className="p-2 disabled:opacity-30"><Icon as="close" className="w-5 h-5"/></button>
+                                <button onClick={handleSoundtrackNext} disabled={soundtrack.elements.length < 2} title="Next Track" className="p-2 disabled:opacity-30"><Icon as="next" className="w-5 h-5"/></button>
+                            </div>
+                             <div className="flex items-center gap-2 text-xs text-slate-400 mt-3">
+                                <span>{formatTime(progress)}</span>
+                                <input type="range" min="0" max={duration || 0} value={progress} onChange={handleSoundtrackSeek} className="w-full h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-brand-500 [&::-webkit-slider-thumb]:rounded-full" />
+                                <span>{formatTime(duration)}</span>
+                            </div>
+                             <div className="flex items-center gap-2 text-xs text-slate-400 mt-2">
+                                 <Icon as="audio" className="w-4 h-4" />
+                                 <input type="range" min="0" max="1" step="0.05" value={soundtrack.volume} onChange={(e) => handleSoundtrackVolumeChange(parseFloat(e.target.value))} className="w-full h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-brand-500 [&::-webkit-slider-thumb]:rounded-full" />
                             </div>
                         </div>
-                    )}
-                </div>
+                     </div>
+                )}
             </div>
         )}
       </main>
