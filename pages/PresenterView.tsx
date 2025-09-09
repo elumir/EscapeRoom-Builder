@@ -117,6 +117,204 @@ const PresenterView: React.FC = () => {
     setSoundtrack(prev => prev ? { ...prev, currentTrackIndex: nextTrackIndex } : null);
   }, []);
 
+  const combinedInventoryObjects = useMemo(() => {
+    const customInventory = customItems.filter(item => item.showInInventory);
+    return [...customInventory, ...inventoryObjects]
+      .sort((a, b) => (b.addedToInventoryTimestamp || 0) - (a.addedToInventoryTimestamp || 0));
+  }, [customItems, inventoryObjects]);
+
+  const combinedDiscardedObjects = useMemo(() => {
+    const customDiscarded = customItems.filter(item => !item.showInInventory && item.wasEverInInventory);
+    return [...customDiscarded, ...discardedObjects]
+      .sort((a, b) => (b.addedToInventoryTimestamp || 0) - (a.addedToInventoryTimestamp || 0));
+  }, [customItems, discardedObjects]);
+
+  const prevInventoryCountRef = useRef(combinedInventoryObjects.length);
+  
+  // This effect handles making new items' descriptions visible by default.
+  const inventoryObjectIds = useMemo(() => new Set(combinedInventoryObjects.map(o => o.id)), [combinedInventoryObjects]);
+  const prevInventoryObjectIdsRef = useRef<Set<string>>(new Set());
+
+  const handleToggleAllInventoryDescriptions = useCallback(() => {
+      const allIds = combinedInventoryObjects.map(obj => obj.id);
+      // Determine if the action should be to show all or hide all
+      const shouldShowAll = allIds.some(id => !visibleDescriptionIds.has(id));
+
+      if (shouldShowAll) {
+           // Show them all by adding all inventory IDs to the existing set
+          setVisibleDescriptionIds(currentVisible => new Set([...currentVisible, ...allIds]));
+      } else {
+          // Hide them all by removing inventory IDs from the existing set
+          setVisibleDescriptionIds(currentVisible => {
+              const newVisible = new Set(currentVisible);
+              allIds.forEach(id => newVisible.delete(id));
+              return newVisible;
+          });
+      }
+  }, [combinedInventoryObjects, visibleDescriptionIds]);
+
+  const areAllDescriptionsVisible = useMemo(() => {
+      if (combinedInventoryObjects.length === 0) return false;
+      const allIds = combinedInventoryObjects.map(obj => obj.id);
+      return allIds.every(id => visibleDescriptionIds.has(id));
+  }, [combinedInventoryObjects, visibleDescriptionIds]);
+
+
+  const isPresentationWindowOpen = presentationWindow && !presentationWindow.closed;
+
+  const channelName = `game-${id}`;
+  const postMessage = useBroadcastChannel<BroadcastMessage>(channelName, () => {});
+
+  const updateAndBroadcast = useCallback(async (updatedGame: Game) => {
+    setGame(updatedGame);
+    // Optimistically broadcast the new state immediately.
+    postMessage({ type: 'STATE_SYNC', game: updatedGame, customItems });
+
+    try {
+        await gameService.saveGame(updatedGame);
+    } catch (error) {
+        console.error("Failed to save game state:", error);
+        if (game?.visibility !== 'public') {
+           alert("A change could not be saved. Please check your connection.");
+        } else {
+            console.warn("Presenter is not the owner; state changes are local to this session.");
+        }
+    }
+  }, [postMessage, customItems, game?.visibility]);
+
+  const goToRoom = useCallback((index: number) => {
+    if (!game || index === currentRoomIndex) return;
+
+    if (index >= 0 && index < game.rooms.length) {
+      setCurrentRoomIndex(index);
+      setActiveActionTab('open');
+      setActivePuzzleTab('open');
+      postMessage({ type: 'GOTO_ROOM', roomIndex: index, customItems });
+
+      const destinationRoom = game.rooms[index];
+      const newRoomId = destinationRoom.id;
+      const objectsToRemove = destinationRoom.objectRemoveIds || [];
+
+      let needsUpdate = false;
+      let updatedGame = { ...game };
+
+      // Reset all image overlays when changing rooms.
+      let overlaysWereReset = false;
+      updatedGame.rooms = updatedGame.rooms.map(room => {
+          const hasActiveOverlay = 
+            room.objects.some(o => o.showImageOverlay) ||
+            room.puzzles.some(p => p.showImageOverlay) ||
+            (room.actions || []).some(a => a.showImageOverlay);
+
+          if (hasActiveOverlay) {
+              overlaysWereReset = true;
+              return {
+                  ...room,
+                  objects: room.objects.map(o => o.showImageOverlay ? { ...o, showImageOverlay: false } : o),
+                  puzzles: room.puzzles.map(p => p.showImageOverlay ? { ...p, showImageOverlay: false } : p),
+                  actions: (room.actions || []).map(a => a.showImageOverlay ? { ...a, showImageOverlay: false } : a),
+              };
+          }
+          return room;
+      });
+      
+      if(overlaysWereReset) {
+          needsUpdate = true;
+      }
+
+      // 1. Handle object removal if any are specified for the destination room
+      if (objectsToRemove.length > 0) {
+        let objectsWereRemoved = false;
+        const currentInventoryIds = new Set(
+            updatedGame.rooms.flatMap(r => r.objects).filter(o => o.showInInventory).map(o => o.id)
+        );
+
+        const idsToRemoveFromInventory = objectsToRemove.filter(id => currentInventoryIds.has(id));
+
+        if (idsToRemoveFromInventory.length > 0) {
+            updatedGame.rooms = updatedGame.rooms.map(room => ({
+                ...room,
+                objects: room.objects.map(obj => 
+                    idsToRemoveFromInventory.includes(obj.id) ? { ...obj, showInInventory: false } : obj
+                )
+            }));
+            objectsWereRemoved = true;
+            if (destinationRoom.objectRemoveText && destinationRoom.objectRemoveText.trim()) {
+                setObjectRemoveModalText(destinationRoom.objectRemoveText);
+            }
+        }
+        
+        if (objectsWereRemoved) {
+          needsUpdate = true;
+        }
+      }
+
+      // 2. Handle visiting the new room (adding to visited list)
+      if (!game.visitedRoomIds.includes(newRoomId)) {
+        updatedGame.visitedRoomIds = [...game.visitedRoomIds, newRoomId];
+        needsUpdate = true;
+      }
+
+      // 3. If any state changed, save and broadcast the update
+      if (needsUpdate) {
+        updateAndBroadcast(updatedGame);
+      }
+    }
+  }, [game, postMessage, updateAndBroadcast, customItems, currentRoomIndex]);
+
+  // All hooks must be defined before any conditional returns.
+  const currentRoom = useMemo(() => game?.rooms[currentRoomIndex], [game, currentRoomIndex]);
+
+  const { openPuzzles, completedPuzzles } = useMemo(() => {
+      if (!game || !currentRoom) return { openPuzzles: [], completedPuzzles: [] };
+
+      // Get all global puzzles from the entire game
+      const allGlobalPuzzles = game.rooms.flatMap(room => room.puzzles.filter(p => p.isGlobal));
+      // Filter for global puzzles that are unsolved and not locked
+      const unsolvedGlobalPuzzles = allGlobalPuzzles.filter(p => !p.isSolved && !lockingPuzzlesByPuzzleId.has(p.id));
+
+      // Get puzzles specific to the current room
+      const currentRoomOpenPuzzles = (currentRoom.puzzles || []).filter(puzzle =>
+          !puzzle.isSolved &&
+          !lockingPuzzlesByPuzzleId.has(puzzle.id)
+      );
+      
+      const currentRoomCompletedPuzzles = (currentRoom.puzzles || []).filter(puzzle => puzzle.isSolved);
+
+      // Combine and deduplicate open puzzles
+      const combinedOpenPuzzles = [...currentRoomOpenPuzzles];
+      const currentRoomOpenPuzzleIds = new Set(currentRoomOpenPuzzles.map(p => p.id));
+
+      for (const globalPuzzle of unsolvedGlobalPuzzles) {
+          if (!currentRoomOpenPuzzleIds.has(globalPuzzle.id)) {
+              combinedOpenPuzzles.push(globalPuzzle);
+          }
+      }
+      
+      return {
+          openPuzzles: combinedOpenPuzzles,
+          completedPuzzles: currentRoomCompletedPuzzles
+      };
+  }, [game, currentRoom, lockingPuzzlesByPuzzleId]);
+
+  const roomsByAct = useMemo(() => {
+    if (!game) return {};
+    return game.rooms.reduce((acc, room, index) => {
+        const act = room.act || 1;
+        if (!acc[act]) {
+            acc[act] = [];
+        }
+        acc[act].push({ ...room, originalIndex: index });
+        return acc;
+    }, {} as Record<number, (RoomType & { originalIndex: number })[]>);
+  }, [game]);
+
+  const availableActs = useMemo(() => {
+    if (!game) return [1];
+    const acts = new Set(game.rooms.map(r => r.act || 1));
+    return Array.from(acts).sort((a, b) => a - b);
+  }, [game]);
+
   useEffect(() => {
     // Clean up previous soundtrack elements and listeners if the game object changes
     const previousElements = soundtrackRef.current?.elements;
@@ -245,7 +443,6 @@ const PresenterView: React.FC = () => {
     };
   }, [game?.soundboard]);
 
-
   const handleAddCustomItem = (inventorySlot: 1 | 2) => {
     const name = window.prompt("Enter the name for the new custom item:");
     if (name && name.trim()) {
@@ -274,20 +471,6 @@ const PresenterView: React.FC = () => {
     ));
   };
 
-  const combinedInventoryObjects = useMemo(() => {
-    const customInventory = customItems.filter(item => item.showInInventory);
-    return [...customInventory, ...inventoryObjects]
-      .sort((a, b) => (b.addedToInventoryTimestamp || 0) - (a.addedToInventoryTimestamp || 0));
-  }, [customItems, inventoryObjects]);
-
-  const combinedDiscardedObjects = useMemo(() => {
-    const customDiscarded = customItems.filter(item => !item.showInInventory && item.wasEverInInventory);
-    return [...customDiscarded, ...discardedObjects]
-      .sort((a, b) => (b.addedToInventoryTimestamp || 0) - (a.addedToInventoryTimestamp || 0));
-  }, [customItems, discardedObjects]);
-
-  const prevInventoryCountRef = useRef(combinedInventoryObjects.length);
-  
   useEffect(() => {
     // If an item was added and the inventory tab is not active, show notification.
     if (combinedInventoryObjects.length > prevInventoryCountRef.current && activeTab !== 'inventory') {
@@ -295,10 +478,6 @@ const PresenterView: React.FC = () => {
     }
     prevInventoryCountRef.current = combinedInventoryObjects.length;
   }, [combinedInventoryObjects.length, activeTab]);
-
-  // This effect handles making new items' descriptions visible by default.
-  const inventoryObjectIds = useMemo(() => new Set(combinedInventoryObjects.map(o => o.id)), [combinedInventoryObjects]);
-  const prevInventoryObjectIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
       // Determine which IDs are new since the last render.
@@ -316,36 +495,6 @@ const PresenterView: React.FC = () => {
       // Update the ref for the next render.
       prevInventoryObjectIdsRef.current = inventoryObjectIds;
   }, [inventoryObjectIds]);
-
-  const handleToggleAllInventoryDescriptions = useCallback(() => {
-      const allIds = combinedInventoryObjects.map(obj => obj.id);
-      // Determine if the action should be to show all or hide all
-      const shouldShowAll = allIds.some(id => !visibleDescriptionIds.has(id));
-
-      if (shouldShowAll) {
-           // Show them all by adding all inventory IDs to the existing set
-          setVisibleDescriptionIds(currentVisible => new Set([...currentVisible, ...allIds]));
-      } else {
-          // Hide them all by removing inventory IDs from the existing set
-          setVisibleDescriptionIds(currentVisible => {
-              const newVisible = new Set(currentVisible);
-              allIds.forEach(id => newVisible.delete(id));
-              return newVisible;
-          });
-      }
-  }, [combinedInventoryObjects, visibleDescriptionIds]);
-
-  const areAllDescriptionsVisible = useMemo(() => {
-      if (combinedInventoryObjects.length === 0) return false;
-      const allIds = combinedInventoryObjects.map(obj => obj.id);
-      return allIds.every(id => visibleDescriptionIds.has(id));
-  }, [combinedInventoryObjects, visibleDescriptionIds]);
-
-
-  const isPresentationWindowOpen = presentationWindow && !presentationWindow.closed;
-
-  const channelName = `game-${id}`;
-  const postMessage = useBroadcastChannel<BroadcastMessage>(channelName, () => {});
 
   useEffect(() => {
     if (game) {
@@ -403,104 +552,6 @@ const PresenterView: React.FC = () => {
     };
     fetchAndInitialize();
   }, [id]);
-
-  const updateAndBroadcast = useCallback(async (updatedGame: Game) => {
-    setGame(updatedGame);
-    // Optimistically broadcast the new state immediately.
-    postMessage({ type: 'STATE_SYNC', game: updatedGame, customItems });
-
-    try {
-        await gameService.saveGame(updatedGame);
-    } catch (error) {
-        console.error("Failed to save game state:", error);
-        if (game?.visibility !== 'public') {
-           alert("A change could not be saved. Please check your connection.");
-        } else {
-            console.warn("Presenter is not the owner; state changes are local to this session.");
-        }
-    }
-  }, [postMessage, customItems, game?.visibility]);
-
-  const goToRoom = useCallback((index: number) => {
-    if (!game || index === currentRoomIndex) return;
-
-    if (index >= 0 && index < game.rooms.length) {
-      setCurrentRoomIndex(index);
-      setActiveActionTab('open');
-      setActivePuzzleTab('open');
-      postMessage({ type: 'GOTO_ROOM', roomIndex: index, customItems });
-
-      const destinationRoom = game.rooms[index];
-      const newRoomId = destinationRoom.id;
-      const objectsToRemove = destinationRoom.objectRemoveIds || [];
-
-      let needsUpdate = false;
-      let updatedGame = { ...game };
-
-      // Reset all image overlays when changing rooms.
-      let overlaysWereReset = false;
-      updatedGame.rooms = updatedGame.rooms.map(room => {
-          const hasActiveOverlay = 
-            room.objects.some(o => o.showImageOverlay) ||
-            room.puzzles.some(p => p.showImageOverlay) ||
-            (room.actions || []).some(a => a.showImageOverlay);
-
-          if (hasActiveOverlay) {
-              overlaysWereReset = true;
-              return {
-                  ...room,
-                  objects: room.objects.map(o => o.showImageOverlay ? { ...o, showImageOverlay: false } : o),
-                  puzzles: room.puzzles.map(p => p.showImageOverlay ? { ...p, showImageOverlay: false } : p),
-                  actions: (room.actions || []).map(a => a.showImageOverlay ? { ...a, showImageOverlay: false } : a),
-              };
-          }
-          return room;
-      });
-      
-      if(overlaysWereReset) {
-          needsUpdate = true;
-      }
-
-      // 1. Handle object removal if any are specified for the destination room
-      if (objectsToRemove.length > 0) {
-        let objectsWereRemoved = false;
-        const currentInventoryIds = new Set(
-            updatedGame.rooms.flatMap(r => r.objects).filter(o => o.showInInventory).map(o => o.id)
-        );
-
-        const idsToRemoveFromInventory = objectsToRemove.filter(id => currentInventoryIds.has(id));
-
-        if (idsToRemoveFromInventory.length > 0) {
-            updatedGame.rooms = updatedGame.rooms.map(room => ({
-                ...room,
-                objects: room.objects.map(obj => 
-                    idsToRemoveFromInventory.includes(obj.id) ? { ...obj, showInInventory: false } : obj
-                )
-            }));
-            objectsWereRemoved = true;
-            if (destinationRoom.objectRemoveText && destinationRoom.objectRemoveText.trim()) {
-                setObjectRemoveModalText(destinationRoom.objectRemoveText);
-            }
-        }
-        
-        if (objectsWereRemoved) {
-          needsUpdate = true;
-        }
-      }
-
-      // 2. Handle visiting the new room (adding to visited list)
-      if (!game.visitedRoomIds.includes(newRoomId)) {
-        updatedGame.visitedRoomIds = [...game.visitedRoomIds, newRoomId];
-        needsUpdate = true;
-      }
-
-      // 3. If any state changed, save and broadcast the update
-      if (needsUpdate) {
-        updateAndBroadcast(updatedGame);
-      }
-    }
-  }, [game, postMessage, updateAndBroadcast, customItems, currentRoomIndex]);
-
 
   const handleToggleObject = (objectId: string, newState: boolean) => {
     if (!game) return;
@@ -888,32 +939,14 @@ const PresenterView: React.FC = () => {
     }
   };
 
-  const roomsByAct = useMemo(() => {
-    if (!game) return {};
-    return game.rooms.reduce((acc, room, index) => {
-        const act = room.act || 1;
-        if (!acc[act]) {
-            acc[act] = [];
-        }
-        acc[act].push({ ...room, originalIndex: index });
-        return acc;
-    }, {} as Record<number, (RoomType & { originalIndex: number })[]>);
-  }, [game]);
-
-  const availableActs = useMemo(() => {
-    if (!game) return [1];
-    const acts = new Set(game.rooms.map(r => r.act || 1));
-    return Array.from(acts).sort((a, b) => a - b);
-  }, [game]);
-
   useEffect(() => {
-    if (game?.rooms[currentRoomIndex]) {
-      const currentAct = game.rooms[currentRoomIndex].act || 1;
+    if (currentRoom) {
+      const currentAct = currentRoom.act || 1;
       if (availableActs.includes(currentAct)) {
         setSelectedAct(currentAct);
       }
     }
-  }, [currentRoomIndex, game, availableActs]);
+  }, [currentRoom, availableActs]);
 
   const currentActIndex = availableActs.indexOf(selectedAct);
 
@@ -1070,11 +1103,10 @@ const PresenterView: React.FC = () => {
     return <div className="h-screen bg-slate-800 text-white flex items-center justify-center">Loading Presenter View...</div>;
   }
   
-  if (status === 'error' || !game) {
+  if (status === 'error' || !game || !currentRoom) {
     return <div className="h-screen bg-slate-800 text-white flex items-center justify-center">Error: Could not load game. It may be private or does not exist.</div>;
   }
   
-  const currentRoom = game.rooms[currentRoomIndex];
   const hasSolvedState = currentRoom?.solvedImage || (currentRoom?.solvedNotes && currentRoom.solvedNotes.trim() !== '');
   
   const roomObjects = (currentRoom?.objects || []).filter(o => 
@@ -1089,38 +1121,6 @@ const PresenterView: React.FC = () => {
   );
   const completedActions = (currentRoom?.actions || []).filter(action => action.isComplete);
   
-  const { openPuzzles, completedPuzzles } = useMemo(() => {
-      if (!game || !currentRoom) return { openPuzzles: [], completedPuzzles: [] };
-
-      // Get all global puzzles from the entire game
-      const allGlobalPuzzles = game.rooms.flatMap(room => room.puzzles.filter(p => p.isGlobal));
-      // Filter for global puzzles that are unsolved and not locked
-      const unsolvedGlobalPuzzles = allGlobalPuzzles.filter(p => !p.isSolved && !lockingPuzzlesByPuzzleId.has(p.id));
-
-      // Get puzzles specific to the current room
-      const currentRoomOpenPuzzles = (currentRoom.puzzles || []).filter(puzzle =>
-          !puzzle.isSolved &&
-          !lockingPuzzlesByPuzzleId.has(puzzle.id)
-      );
-      
-      const currentRoomCompletedPuzzles = (currentRoom.puzzles || []).filter(puzzle => puzzle.isSolved);
-
-      // Combine and deduplicate open puzzles
-      const combinedOpenPuzzles = [...currentRoomOpenPuzzles];
-      const currentRoomOpenPuzzleIds = new Set(currentRoomOpenPuzzles.map(p => p.id));
-
-      for (const globalPuzzle of unsolvedGlobalPuzzles) {
-          if (!currentRoomOpenPuzzleIds.has(globalPuzzle.id)) {
-              combinedOpenPuzzles.push(globalPuzzle);
-          }
-      }
-      
-      return {
-          openPuzzles: combinedOpenPuzzles,
-          completedPuzzles: currentRoomCompletedPuzzles
-      };
-  }, [game, currentRoom, lockingPuzzlesByPuzzleId]);
-
   const roomsForSelectedAct = roomsByAct[selectedAct] || [];
   const roomSolveIsLocked = lockingPuzzlesByRoomSolveId.has(currentRoom.id);
   const roomSolveLockingPuzzleName = lockingPuzzlesByRoomSolveId.get(currentRoom.id);
