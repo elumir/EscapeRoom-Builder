@@ -99,6 +99,7 @@ const Editor: React.FC = () => {
   const modalTextareaRef = useRef<HTMLTextAreaElement>(null);
   const placementAreaRef = useRef<HTMLDivElement>(null);
   const dragOffsetRef = useRef({ x: 0, y: 0 });
+  const dragImageSizeRef = useRef({ width: 0, height: 0 });
 
   const { objectLockMap, puzzleLockMap, actionLockMap } = useMemo(() => {
     const objectLockMap = new Map<string, string[]>();
@@ -921,6 +922,12 @@ const Editor: React.FC = () => {
 
     if (!parentRect) return;
 
+    // Store actual rendered size of the image
+    dragImageSizeRef.current = {
+        width: target.offsetWidth,
+        height: target.offsetHeight,
+    };
+
     // Calculate click offset relative to the image's top-left corner
     dragOffsetRef.current = {
         x: e.clientX - rect.left,
@@ -939,8 +946,9 @@ const Editor: React.FC = () => {
         let newX = e.clientX - parentRect.left - dragOffsetRef.current.x;
         let newY = e.clientY - parentRect.top - dragOffsetRef.current.y;
 
-        const imageWidth = placementAreaRef.current.offsetWidth * (modalObjectData?.size ?? 0.25);
-        const imageHeight = placementAreaRef.current.offsetHeight * (modalObjectData?.size ?? 0.25);
+        // Use the actual rendered image size from the ref
+        const imageWidth = dragImageSizeRef.current.width;
+        const imageHeight = dragImageSizeRef.current.height;
 
         // Center of the image
         let centerX = newX + imageWidth / 2;
@@ -977,7 +985,7 @@ const Editor: React.FC = () => {
         window.removeEventListener('mousemove', handleDragMouseMove);
         window.removeEventListener('mouseup', handleDragMouseUp);
     };
-  }, [isDragging, modalObjectData?.size]);
+  }, [isDragging]);
 
   const COLORS = ['#000000', '#ffffff', '#f87171', '#fbbf24', '#34d399', '#60a5fa', '#a78bfa'];
 

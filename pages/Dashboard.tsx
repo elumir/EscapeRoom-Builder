@@ -184,7 +184,7 @@ const Dashboard: React.FC = () => {
                                 <div key={g.id} className="group relative bg-white dark:bg-slate-800 rounded-lg shadow-md overflow-hidden border border-slate-200 dark:border-slate-700 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col justify-between">
                                     <div>
                                         <Link to={`/editor/${g.id}`} className="block hover:opacity-90 transition-opacity">
-                                            <div className="p-2">
+                                            <div className="aspect-video bg-slate-200 dark:bg-slate-700">
                                               <Room 
                                                 room={firstRoom}
                                                 inventoryObjects={inventoryObjects}
