@@ -1447,36 +1447,50 @@ const Editor: React.FC = () => {
       )}
       {isPlacementModalOpen && modalObjectData && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[70] backdrop-blur-sm">
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-2xl w-full max-w-4xl flex flex-col">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-2xl w-full max-w-5xl flex flex-col">
                 <div className="flex-shrink-0 flex justify-between items-center mb-4">
                     <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">Object Placement</h2>
                      <p className="text-sm text-slate-500 dark:text-slate-400">Drag the object to position it. Use the slider to resize.</p>
                 </div>
-                <div
-                    ref={placementAreaRef}
-                    className="relative w-full aspect-video bg-slate-100 dark:bg-slate-900 rounded-md border-2 border-slate-300 dark:border-slate-600 overflow-hidden select-none"
-                >
-                    {currentRoom.image ? (
-                       <img src={`${API_BASE_URL}/assets/${currentRoom.image}`} alt="Room background" className="w-full h-full object-cover pointer-events-none" />
-                    ) : (
-                       <div className="w-full h-full flex items-center justify-center text-slate-400 dark:text-slate-500">
-                           <span>No room image to display</span>
-                       </div>
-                    )}
-                    {modalObjectData.inRoomImage && (
-                        <img
-                            src={`${API_BASE_URL}/assets/${modalObjectData.inRoomImage}`}
-                            alt={modalObjectData.name}
-                            onMouseDown={handleDragMouseDown}
-                            className={`absolute transition-opacity ${isDragging ? 'opacity-75 cursor-grabbing' : 'cursor-grab'}`}
-                            style={{
-                                left: `${(modalObjectData.x ?? 0.5) * 100}%`,
-                                top: `${(modalObjectData.y ?? 0.5) * 100}%`,
-                                transform: 'translate(-50%, -50%)',
-                                maxWidth: `${(modalObjectData.size ?? 0.25) * 100}%`,
-                                maxHeight: `${(modalObjectData.size ?? 0.25) * 100}%`,
-                            }}
-                        />
+                <div className="w-full aspect-video flex overflow-hidden rounded-md border-2 border-slate-300 dark:border-slate-600">
+                    <div
+                        ref={placementAreaRef}
+                        className={`relative h-full bg-slate-100 dark:bg-slate-900 select-none ${currentRoom.isFullScreenImage ? 'w-full' : 'w-[70%]'}`}
+                    >
+                        {currentRoom.image ? (
+                           <img src={`${API_BASE_URL}/assets/${currentRoom.image}`} alt="Room background" className="w-full h-full object-cover pointer-events-none" />
+                        ) : (
+                           <div className="w-full h-full flex items-center justify-center text-slate-400 dark:text-slate-500">
+                               <span>No room image to display</span>
+                           </div>
+                        )}
+                        {modalObjectData.inRoomImage && (() => {
+                            const size = modalObjectData.size ?? 0.25;
+                            const maxWidthPercentage = currentRoom.isFullScreenImage ? size * 100 : (size / 0.7) * 100;
+
+                            return (
+                                <img
+                                    src={`${API_BASE_URL}/assets/${modalObjectData.inRoomImage}`}
+                                    alt={modalObjectData.name}
+                                    onMouseDown={handleDragMouseDown}
+                                    className={`absolute transition-opacity ${isDragging ? 'opacity-75 cursor-grabbing' : 'cursor-grab'}`}
+                                    style={{
+                                        left: `${(modalObjectData.x ?? 0.5) * 100}%`,
+                                        top: `${(modalObjectData.y ?? 0.5) * 100}%`,
+                                        transform: 'translate(-50%, -50%)',
+                                        maxWidth: `${maxWidthPercentage}%`,
+                                    }}
+                                />
+                            );
+                        })()}
+                    </div>
+                     {!currentRoom.isFullScreenImage && (
+                        <div className="w-[30%] h-full bg-slate-200 dark:bg-slate-800 p-4 flex flex-col items-center justify-center">
+                            <div className="text-center text-slate-500 dark:text-slate-400">
+                                <h4 className="font-semibold">Sidebar Preview</h4>
+                                <p className="text-xs mt-2">This area is reserved for the sidebar in the game view to ensure accurate object placement.</p>
+                            </div>
+                        </div>
                     )}
                 </div>
                  <div className="flex-shrink-0 mt-4 flex items-center gap-4">
