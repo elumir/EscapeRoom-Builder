@@ -97,7 +97,7 @@ const ObjectItem: React.FC<{
         <div className={`p-3 rounded-lg ${colorClass} ${textColorClass} ${isLocked ? 'opacity-50' : ''}`}>
             <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
-                    <h4 className="font-semibold text-lg">{obj.name}</h4>
+                    <h4 className="font-semibold text-base">{obj.name}</h4>
                      {isLocked && (
                         <p className="text-red-400 text-xs mt-1 flex items-center gap-1">
                             <Icon as="lock" className="w-3 h-3"/>
@@ -109,20 +109,20 @@ const ObjectItem: React.FC<{
                     {onToggleDescription && (
                         <button
                             onClick={() => onToggleDescription(obj.id)}
-                            className="p-1.5 text-current hover:bg-white/20 rounded-full"
+                            className="p-1 text-current hover:bg-white/20 rounded-full"
                             title={isDescriptionVisible ? "Hide description" : "Show description"}
                         >
-                            <Icon as={isDescriptionVisible ? "description-slash" : "description"} className="w-5 h-5" />
+                            <Icon as={isDescriptionVisible ? "description-slash" : "description"} className="w-4 h-4" />
                         </button>
                     )}
                     {showVisibilityToggle && (
                         <button
                             onClick={() => onToggle(obj.id, false)}
                             disabled={isLocked}
-                            className="p-1.5 text-current hover:bg-white/20 rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="p-1 text-current hover:bg-white/20 rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Remove from inventory"
                         >
-                            <Icon as="move-right" className="w-5 h-5" />
+                            <Icon as="move-right" className="w-4 h-4" />
                         </button>
                     )}
                 </div>

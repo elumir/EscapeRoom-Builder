@@ -2399,124 +2399,6 @@ const Editor: React.FC = () => {
               </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold text-slate-700 dark:text-slate-300">Room Background Color</h3>
-                  {game.globalBackgroundColor && (
-                      <span className="text-xs text-slate-500 dark:text-slate-400 italic">Global color is active</span>
-                  )}
-              </div>
-              <div className={`flex flex-wrap gap-2 p-3 bg-slate-100 dark:bg-slate-700/50 rounded-lg ${game.globalBackgroundColor ? 'opacity-50' : ''}`}>
-                  {COLORS.map(color => (
-                      <button 
-                          key={color} 
-                          onClick={() => changeRoomProperty('backgroundColor', color)} 
-                          disabled={!!game.globalBackgroundColor}
-                          className={`w-8 h-8 rounded-full border-2 ${currentRoom.backgroundColor === color ? 'border-brand-500 ring-2 ring-brand-500' : 'border-slate-300 dark:border-slate-600'} ${game.globalBackgroundColor ? 'cursor-not-allowed' : ''}`} 
-                          style={{backgroundColor: color}}
-                      />
-                  ))}
-              </div>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-slate-700 dark:text-slate-300 mb-2">Room Transition</h3>
-              <div className="flex rounded-lg bg-slate-100 dark:bg-slate-700/50 p-1 max-w-sm">
-                  <button
-                      onClick={() => changeRoomProperty('transitionType', 'none')}
-                      className={`flex-1 text-center text-sm px-3 py-1.5 rounded-md transition-colors ${
-                          (currentRoom.transitionType === 'none' || !currentRoom.transitionType)
-                          ? 'bg-white dark:bg-slate-600 shadow-sm text-slate-800 dark:text-slate-100 font-semibold'
-                          : 'text-slate-600 dark:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-600/50'
-                      }`}
-                  >
-                      Instant Cut
-                  </button>
-                  <button
-                      onClick={() => changeRoomProperty('transitionType', 'fade')}
-                      className={`flex-1 text-center text-sm px-3 py-1.5 rounded-md transition-colors ${
-                          currentRoom.transitionType === 'fade'
-                          ? 'bg-white dark:bg-slate-600 shadow-sm text-slate-800 dark:text-slate-100 font-semibold'
-                          : 'text-slate-600 dark:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-600/50'
-                      }`}
-                  >
-                      Crossfade
-                  </button>
-              </div>
-              {currentRoom.transitionType === 'fade' && (
-                  <div className="mt-3 max-w-sm">
-                      <label htmlFor="fade-duration" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                          Fade Duration (seconds)
-                      </label>
-                      <input
-                          id="fade-duration"
-                          type="number"
-                          value={currentRoom.transitionDuration || 1}
-                          onChange={e => changeRoomProperty('transitionDuration', Math.max(0.1, parseFloat(e.target.value)) || 1)}
-                          min="0.1"
-                          step="0.1"
-                          className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
-                      />
-                  </div>
-              )}
-            </div>
-            
-            <div>
-              <h3 className="font-semibold text-slate-700 dark:text-slate-300 mb-2">When entering this room</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
-                  Automatically remove objects from player inventory.
-              </p>
-              <div className="relative" ref={objectRemoveDropdownRef}>
-                  <button type="button" onClick={() => setOpenObjectRemoveDropdown(prev => !prev)} className="w-full text-left px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 flex justify-between items-center text-sm">
-                      <span>{`${currentRoom.objectRemoveIds?.length || 0} objects selected`}</span>
-                      <Icon as="chevron-down" className={`w-4 h-4 transition-transform ${openObjectRemoveDropdown ? 'rotate-180' : ''}`} />
-                  </button>
-                  {openObjectRemoveDropdown && (
-                      <div className="absolute z-10 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg flex flex-col max-h-60">
-                          <div className="p-2 border-b border-slate-200 dark:border-slate-700">
-                              <input 
-                                  type="text"
-                                  value={objectRemoveSearch}
-                                  onChange={(e) => setObjectRemoveSearch(e.target.value)}
-                                  placeholder="Search all game objects..."
-                                  className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
-                              />
-                          </div>
-                          <div className="overflow-y-auto p-2">
-                              {filteredObjectsForRemoval.length > 0 ? (
-                                  filteredObjectsForRemoval.map(obj => (
-                                      <label key={obj.id} className="flex items-center gap-2 text-sm p-1 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 rounded">
-                                          <input 
-                                              type="checkbox" 
-                                              checked={currentRoom.objectRemoveIds?.includes(obj.id)} 
-                                              onChange={e => {
-                                                  const currentIds = currentRoom.objectRemoveIds || [];
-                                                  const newIds = e.target.checked
-                                                      ? [...currentIds, obj.id]
-                                                      : currentIds.filter(id => id !== obj.id);
-                                                  changeRoomProperty('objectRemoveIds', newIds);
-                                              }}
-                                          />
-                                          <span className="truncate">{obj.name} <span className="text-xs text-slate-400">({obj.roomName})</span></span>
-                                      </label>
-                                  ))
-                              ) : (
-                                  <p className="text-xs text-slate-500 dark:text-slate-400 italic text-center py-2">No matching objects found.</p>
-                              )}
-                          </div>
-                      </div>
-                  )}
-              </div>
-              <textarea 
-                  value={editingRoomObjectRemoveText} 
-                  onChange={e => setEditingRoomObjectRemoveText(e.target.value)} 
-                  placeholder="Optional text to show players when objects are removed."
-                  className="w-full mt-2 h-20 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:outline-none resize-y text-sm"
-              />
-            </div>
-          </div>
-          
            {/* IMAGE UPLOADERS */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
             {['image', 'mapImage', 'solvedImage'].map(prop => {
@@ -2640,6 +2522,123 @@ const Editor: React.FC = () => {
                   onChange={e => setEditingRoomSolvedNotes(e.target.value)} 
                   placeholder="The room is now brightly lit..."
                   className="w-full h-48 px-3 py-2 border border-t-0 border-slate-300 dark:border-slate-600 rounded-b-lg bg-slate-50 dark:bg-slate-700 focus:outline-none resize-y"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-semibold text-slate-700 dark:text-slate-300">Room Background Color</h3>
+                  {game.globalBackgroundColor && (
+                      <span className="text-xs text-slate-500 dark:text-slate-400 italic">Global color is active</span>
+                  )}
+              </div>
+              <div className={`flex flex-wrap gap-2 p-3 bg-slate-100 dark:bg-slate-700/50 rounded-lg ${game.globalBackgroundColor ? 'opacity-50' : ''}`}>
+                  {COLORS.map(color => (
+                      <button 
+                          key={color} 
+                          onClick={() => changeRoomProperty('backgroundColor', color)} 
+                          disabled={!!game.globalBackgroundColor}
+                          className={`w-8 h-8 rounded-full border-2 ${currentRoom.backgroundColor === color ? 'border-brand-500 ring-2 ring-brand-500' : 'border-slate-300 dark:border-slate-600'} ${game.globalBackgroundColor ? 'cursor-not-allowed' : ''}`} 
+                          style={{backgroundColor: color}}
+                      />
+                  ))}
+              </div>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-slate-700 dark:text-slate-300 mb-2">Room Transition</h3>
+              <div className="flex rounded-lg bg-slate-100 dark:bg-slate-700/50 p-1 max-w-sm">
+                  <button
+                      onClick={() => changeRoomProperty('transitionType', 'none')}
+                      className={`flex-1 text-center text-sm px-3 py-1.5 rounded-md transition-colors ${
+                          (currentRoom.transitionType === 'none' || !currentRoom.transitionType)
+                          ? 'bg-white dark:bg-slate-600 shadow-sm text-slate-800 dark:text-slate-100 font-semibold'
+                          : 'text-slate-600 dark:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-600/50'
+                      }`}
+                  >
+                      Instant Cut
+                  </button>
+                  <button
+                      onClick={() => changeRoomProperty('transitionType', 'fade')}
+                      className={`flex-1 text-center text-sm px-3 py-1.5 rounded-md transition-colors ${
+                          currentRoom.transitionType === 'fade'
+                          ? 'bg-white dark:bg-slate-600 shadow-sm text-slate-800 dark:text-slate-100 font-semibold'
+                          : 'text-slate-600 dark:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-600/50'
+                      }`}
+                  >
+                      Crossfade
+                  </button>
+              </div>
+              {currentRoom.transitionType === 'fade' && (
+                  <div className="mt-3 max-w-sm">
+                      <label htmlFor="fade-duration" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                          Fade Duration (seconds)
+                      </label>
+                      <input
+                          id="fade-duration"
+                          type="number"
+                          value={currentRoom.transitionDuration || 1}
+                          onChange={e => changeRoomProperty('transitionDuration', Math.max(0.1, parseFloat(e.target.value)) || 1)}
+                          min="0.1"
+                          step="0.1"
+                          className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
+                      />
+                  </div>
+              )}
+            </div>
+            
+            <div>
+              <h3 className="font-semibold text-slate-700 dark:text-slate-300 mb-2">When entering this room</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
+                  Automatically remove objects from player inventory.
+              </p>
+              <div className="relative" ref={objectRemoveDropdownRef}>
+                  <button type="button" onClick={() => setOpenObjectRemoveDropdown(prev => !prev)} className="w-full text-left px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 flex justify-between items-center text-sm">
+                      <span>{`${currentRoom.objectRemoveIds?.length || 0} objects selected`}</span>
+                      <Icon as="chevron-down" className={`w-4 h-4 transition-transform ${openObjectRemoveDropdown ? 'rotate-180' : ''}`} />
+                  </button>
+                  {openObjectRemoveDropdown && (
+                      <div className="absolute z-10 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg flex flex-col max-h-60">
+                          <div className="p-2 border-b border-slate-200 dark:border-slate-700">
+                              <input 
+                                  type="text"
+                                  value={objectRemoveSearch}
+                                  onChange={(e) => setObjectRemoveSearch(e.target.value)}
+                                  placeholder="Search all game objects..."
+                                  className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
+                              />
+                          </div>
+                          <div className="overflow-y-auto p-2">
+                              {filteredObjectsForRemoval.length > 0 ? (
+                                  filteredObjectsForRemoval.map(obj => (
+                                      <label key={obj.id} className="flex items-center gap-2 text-sm p-1 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 rounded">
+                                          <input 
+                                              type="checkbox" 
+                                              checked={currentRoom.objectRemoveIds?.includes(obj.id)} 
+                                              onChange={e => {
+                                                  const currentIds = currentRoom.objectRemoveIds || [];
+                                                  const newIds = e.target.checked
+                                                      ? [...currentIds, obj.id]
+                                                      : currentIds.filter(id => id !== obj.id);
+                                                  changeRoomProperty('objectRemoveIds', newIds);
+                                              }}
+                                          />
+                                          <span className="truncate">{obj.name} <span className="text-xs text-slate-400">({obj.roomName})</span></span>
+                                      </label>
+                                  ))
+                              ) : (
+                                  <p className="text-xs text-slate-500 dark:text-slate-400 italic text-center py-2">No matching objects found.</p>
+                              )}
+                          </div>
+                      </div>
+                  )}
+              </div>
+              <textarea 
+                  value={editingRoomObjectRemoveText} 
+                  onChange={e => setEditingRoomObjectRemoveText(e.target.value)} 
+                  placeholder="Optional text to show players when objects are removed."
+                  className="w-full mt-2 h-20 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:outline-none resize-y text-sm"
               />
             </div>
           </div>
