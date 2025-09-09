@@ -15,6 +15,7 @@ interface RoomProps {
   inventory2Title?: string;
   inRoomObjects?: InventoryObject[];
   fontFamily?: string | null;
+  isPresentationMode?: boolean;
 }
 
 const getObjectColorClass = (nameColor?: string | null): string => {
@@ -56,7 +57,8 @@ const Room: React.FC<RoomProps> = ({
     inventory1Title = 'Inventory 1',
     inventory2Title = 'Inventory 2',
     inRoomObjects,
-    fontFamily
+    fontFamily,
+    isPresentationMode = false,
 }) => {
   const { backgroundColor: roomBackgroundColor, isFullScreenImage } = room;
 
@@ -129,10 +131,38 @@ const Room: React.FC<RoomProps> = ({
             }
 
             const size = obj.size ?? 0.25;
-            // When not in fullscreen, the image container is 70% wide.
-            // We adjust the maxWidth percentage to compensate, so the object's size
-            // is relative to the full slide width, matching the placement editor.
-            const maxWidthPercentage = isFullScreenImage ? size * 100 : (size / 0.7) * 100;
+
+            const baseStyle: React.CSSProperties = {
+                left: `${(obj.x ?? 0.5) * 100}%`,
+                top: `${(obj.y ?? 0.5) * 100}%`,
+                transform: 'translate(-50%, -50%)',
+                height: 'auto',
+                zIndex: 10,
+            };
+
+            let finalStyle: React.CSSProperties;
+
+            if (isPresentationMode) {
+                // In presentation view, the slide is sized relative to the viewport.
+                // We calculate the object's width using viewport units to ensure
+                // consistent scaling during window resizing, bypassing potential
+                // browser inconsistencies with nested percentage widths.
+                const slideWidthCalc = 'min(100vw, calc(100vh * 16 / 9))';
+                const objectWidthCalc = `calc(${size} * ${slideWidthCalc})`;
+
+                finalStyle = {
+                    ...baseStyle,
+                    width: objectWidthCalc,
+                };
+            } else {
+                // For dashboard previews, the container size is determined by a grid,
+                // so a simple percentage-based maxWidth is appropriate.
+                const maxWidthPercentage = isFullScreenImage ? size * 100 : (size / 0.7) * 100;
+                finalStyle = {
+                    ...baseStyle,
+                    maxWidth: `${maxWidthPercentage}%`,
+                };
+            }
 
             return (
                 <img
@@ -140,13 +170,7 @@ const Room: React.FC<RoomProps> = ({
                     src={`${API_BASE_URL}/assets/${obj.inRoomImage}`}
                     alt={obj.name}
                     className="absolute pointer-events-none"
-                    style={{
-                        left: `${(obj.x ?? 0.5) * 100}%`,
-                        top: `${(obj.y ?? 0.5) * 100}%`,
-                        transform: 'translate(-50%, -50%)',
-                        maxWidth: `${maxWidthPercentage}%`,
-                        zIndex: 10,
-                    }}
+                    style={finalStyle}
                 />
             );
         })}
