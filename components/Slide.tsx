@@ -123,8 +123,18 @@ const Room: React.FC<RoomProps> = ({
             </svg>
           </div>
         )}
-        {inRoomObjects?.map((obj) => (
-            obj.inRoomImage && (
+        {inRoomObjects?.map((obj) => {
+            if (!obj.inRoomImage) {
+              return null;
+            }
+
+            const size = obj.size ?? 0.25;
+            // When not in fullscreen, the image container is 70% wide.
+            // We adjust the maxWidth percentage to compensate, so the object's size
+            // is relative to the full slide width, matching the placement editor.
+            const maxWidthPercentage = isFullScreenImage ? size * 100 : (size / 0.7) * 100;
+
+            return (
                 <img
                     key={obj.id}
                     src={`${API_BASE_URL}/assets/${obj.inRoomImage}`}
@@ -134,13 +144,13 @@ const Room: React.FC<RoomProps> = ({
                         left: `${(obj.x ?? 0.5) * 100}%`,
                         top: `${(obj.y ?? 0.5) * 100}%`,
                         transform: 'translate(-50%, -50%)',
-                        maxWidth: `${(obj.size ?? 0.25) * 100}%`,
-                        maxHeight: `${(obj.size ?? 0.25) * 100}%`,
+                        maxWidth: `${maxWidthPercentage}%`,
+                        maxHeight: `${size * 100}%`,
                         zIndex: 10,
                     }}
                 />
-            )
-        ))}
+            );
+        })}
       </div>
       
       {!isFullScreenImage && (
