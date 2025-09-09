@@ -2310,7 +2310,7 @@ const Editor: React.FC = () => {
       )}
       <header className="bg-white dark:bg-slate-800 shadow-md p-2 flex justify-between items-center z-10">
         <div className="flex items-center gap-4">
-          <Link to="/" className="text-xl font-bold text-brand-600 dark:text-brand-400 p-2">Studio</Link>
+          <Link to="/" className="text-xl font-bold text-brand-600 dark:text-brand-400 p-2">Home</Link>
           <input 
             type="text" 
             value={editingGameTitle} 
