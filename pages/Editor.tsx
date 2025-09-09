@@ -609,8 +609,10 @@ const Editor: React.FC = () => {
   };
 
   const handleModalObjectChange = (field: keyof InventoryObject, value: string | boolean | null | number) => {
-    if (!modalObjectData) return;
-    setModalObjectData({ ...modalObjectData, [field]: value });
+    setModalObjectData(prevData => {
+        if (!prevData) return prevData;
+        return { ...prevData, [field]: value };
+    });
   };
 
   const handleModalObjectFileUpload = async (file: File | null, property: 'image' | 'inRoomImage') => {
