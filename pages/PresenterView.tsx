@@ -1411,6 +1411,27 @@ const PresenterView: React.FC = () => {
                         </div>
                     </div>
                 )}
+                {(game?.soundboard || []).length > 0 && (
+                    <div className="space-y-3 flex-1 min-h-0 flex flex-col">
+                        <h3 className="text-lg font-semibold text-slate-300">Sound Board</h3>
+                        <div className="overflow-y-auto pr-2 -mr-2 space-y-2">
+                            {game.soundboard?.map(clip => {
+                                const clipState = soundboardClips.get(clip.id);
+                                const isPlaying = clipState?.isPlaying || false;
+                                return (
+                                    <button
+                                        key={clip.id}
+                                        onClick={() => handlePlaySoundboardClip(clip.id)}
+                                        className={`w-full flex items-center gap-3 text-left p-2 rounded-lg transition-colors ${isPlaying ? 'bg-brand-600 text-white' : 'bg-slate-700/50 hover:bg-slate-700'}`}
+                                    >
+                                        <Icon as={isPlaying ? 'stop' : 'play'} className="w-5 h-5 flex-shrink-0" />
+                                        <span className="truncate text-sm font-semibold">{clip.name}</span>
+                                    </button>
+                                )
+                            })}
+                        </div>
+                    </div>
+                )}
                 {soundtrack && (
                      <div className="space-y-3">
                         <h3 className="text-lg font-semibold text-slate-300">Soundtrack</h3>
@@ -1434,27 +1455,6 @@ const PresenterView: React.FC = () => {
                             </div>
                         </div>
                      </div>
-                )}
-                {(game?.soundboard || []).length > 0 && (
-                    <div className="space-y-3 flex-1 min-h-0 flex flex-col">
-                        <h3 className="text-lg font-semibold text-slate-300">Sound Board</h3>
-                        <div className="overflow-y-auto pr-2 -mr-2 space-y-2">
-                            {game.soundboard?.map(clip => {
-                                const clipState = soundboardClips.get(clip.id);
-                                const isPlaying = clipState?.isPlaying || false;
-                                return (
-                                    <button
-                                        key={clip.id}
-                                        onClick={() => handlePlaySoundboardClip(clip.id)}
-                                        className={`w-full flex items-center gap-3 text-left p-2 rounded-lg transition-colors ${isPlaying ? 'bg-brand-600 text-white' : 'bg-slate-700/50 hover:bg-slate-700'}`}
-                                    >
-                                        <Icon as={isPlaying ? 'stop' : 'play'} className="w-5 h-5 flex-shrink-0" />
-                                        <span className="truncate text-sm font-semibold">{clip.name}</span>
-                                    </button>
-                                )
-                            })}
-                        </div>
-                    </div>
                 )}
             </div>
         )}
