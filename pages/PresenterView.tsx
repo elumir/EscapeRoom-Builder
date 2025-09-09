@@ -1101,17 +1101,19 @@ const PresenterView: React.FC = () => {
 
   const inventoryList1 = combinedInventoryObjects.filter(obj => (obj.inventorySlot || 1) === 1);
   const inventoryList2 = combinedInventoryObjects.filter(obj => obj.inventorySlot === 2);
+  
+  const hasAudio = !!soundtrack || (game?.soundboard && game.soundboard.length > 0);
 
   return (
     <div className="h-screen bg-slate-800 text-white flex flex-col">
       {isResetModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
           <div className="bg-slate-800 p-8 rounded-lg shadow-2xl w-full max-w-md border border-slate-700">
-              <h2 className="text-xl font-bold mb-4">Restart Game?</h2>
+              <h2 className="text-xl font-bold mb-4">Reset Game?</h2>
               <p className="text-slate-400 mb-6">This will reset all puzzles and inventory to their starting state. This action cannot be undone.</p>
               <div className="mt-6 flex justify-end gap-4">
                   <button type="button" onClick={() => setIsResetModalOpen(false)} className="px-4 py-2 bg-slate-600 text-slate-200 rounded-lg hover:bg-slate-500 transition-colors">Cancel</button>
-                  <button type="button" onClick={handleRestartGame} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">Restart</button>
+                  <button type="button" onClick={handleRestartGame} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">Reset</button>
               </div>
           </div>
         </div>
@@ -1199,6 +1201,9 @@ const PresenterView: React.FC = () => {
 
       <header className="flex-shrink-0 bg-slate-900 shadow-md p-2 flex justify-between items-center z-10">
         <div className="flex items-center gap-4">
+          <button onClick={() => setIsResetModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-slate-600 text-slate-200 rounded-lg hover:bg-slate-500 transition-colors">
+            <Icon as="restart" className="w-5 h-5" /> Reset
+          </button>
           <h1 className="text-xl font-bold text-brand-400 p-2">{game.title}</h1>
         </div>
         <div className="flex items-center gap-2">
@@ -1211,9 +1216,6 @@ const PresenterView: React.FC = () => {
               <Icon as="present" className="w-5 h-5" /> Open Window
             </button>
           )}
-          <button onClick={() => setIsResetModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-slate-600 text-slate-200 rounded-lg hover:bg-slate-500 transition-colors">
-            <Icon as="restart" className="w-5 h-5" /> Restart Game
-          </button>
         </div>
       </header>
 
@@ -1404,53 +1406,55 @@ const PresenterView: React.FC = () => {
         </div>
 
         {/* Right Column */}
-        <div className="w-80 bg-slate-900/50 p-4 flex flex-col border-l border-slate-700 space-y-6">
-            {soundtrack && (
-                 <div className="space-y-3">
-                    <h3 className="text-lg font-semibold text-slate-300">Soundtrack</h3>
-                    <div className="p-3 bg-slate-800/70 rounded-lg">
-                        <p className="font-semibold text-center truncate">{game?.soundtrack?.[soundtrack.currentTrackIndex]?.name || 'Unknown Track'}</p>
-                        <div className="flex items-center gap-4 mt-3">
-                            <button onClick={handleSoundtrackPrev} disabled={soundtrack.elements.length < 2} title="Previous Track" className="p-2 disabled:opacity-30"><Icon as="prev" className="w-5 h-5"/></button>
-                            <button onClick={handleSoundtrackRewind} title="Rewind to Start" className="p-2 disabled:opacity-30"><Icon as="rewind" className="w-5 h-5"/></button>
-                            <button onClick={handleSoundtrackPlayPause} className="p-3 bg-brand-600 rounded-full text-white shadow-lg"><Icon as={soundtrack.isPlaying ? 'stop' : 'play'} className="w-6 h-6"/></button>
-                            <button onClick={handleSoundtrackFadeOut} disabled={isFadingOut || !soundtrack.isPlaying} title="Fade Out & Stop" className="p-2 disabled:opacity-30"><Icon as="close" className="w-5 h-5"/></button>
-                            <button onClick={handleSoundtrackNext} disabled={soundtrack.elements.length < 2} title="Next Track" className="p-2 disabled:opacity-30"><Icon as="next" className="w-5 h-5"/></button>
+        {hasAudio && (
+            <div className="w-80 bg-slate-900/50 p-4 flex flex-col border-l border-slate-700 space-y-6">
+                {soundtrack && (
+                     <div className="space-y-3">
+                        <h3 className="text-lg font-semibold text-slate-300">Soundtrack</h3>
+                        <div className="p-3 bg-slate-800/70 rounded-lg">
+                            <p className="font-semibold text-center truncate">{game?.soundtrack?.[soundtrack.currentTrackIndex]?.name || 'Unknown Track'}</p>
+                            <div className="flex items-center gap-4 mt-3">
+                                <button onClick={handleSoundtrackPrev} disabled={soundtrack.elements.length < 2} title="Previous Track" className="p-2 disabled:opacity-30"><Icon as="prev" className="w-5 h-5"/></button>
+                                <button onClick={handleSoundtrackRewind} title="Rewind to Start" className="p-2 disabled:opacity-30"><Icon as="rewind" className="w-5 h-5"/></button>
+                                <button onClick={handleSoundtrackPlayPause} className="p-3 bg-brand-600 rounded-full text-white shadow-lg"><Icon as={soundtrack.isPlaying ? 'stop' : 'play'} className="w-6 h-6"/></button>
+                                <button onClick={handleSoundtrackFadeOut} disabled={isFadingOut || !soundtrack.isPlaying} title="Fade Out & Stop" className="p-2 disabled:opacity-30"><Icon as="close" className="w-5 h-5"/></button>
+                                <button onClick={handleSoundtrackNext} disabled={soundtrack.elements.length < 2} title="Next Track" className="p-2 disabled:opacity-30"><Icon as="next" className="w-5 h-5"/></button>
+                            </div>
+                             <div className="flex items-center gap-2 text-xs text-slate-400 mt-3">
+                                <span>{formatTime(progress)}</span>
+                                <input type="range" min="0" max={duration || 0} value={progress} onChange={handleSoundtrackSeek} className="w-full h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-brand-500 [&::-webkit-slider-thumb]:rounded-full" />
+                                <span>{formatTime(duration)}</span>
+                            </div>
+                             <div className="flex items-center gap-2 text-xs text-slate-400 mt-2">
+                                 <Icon as="audio" className="w-4 h-4" />
+                                 <input type="range" min="0" max="1" step="0.05" value={soundtrack.volume} onChange={(e) => handleSoundtrackVolumeChange(parseFloat(e.target.value))} className="w-full h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-brand-500 [&::-webkit-slider-thumb]:rounded-full" />
+                            </div>
                         </div>
-                         <div className="flex items-center gap-2 text-xs text-slate-400 mt-3">
-                            <span>{formatTime(progress)}</span>
-                            <input type="range" min="0" max={duration || 0} value={progress} onChange={handleSoundtrackSeek} className="w-full h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-brand-500 [&::-webkit-slider-thumb]:rounded-full" />
-                            <span>{formatTime(duration)}</span>
-                        </div>
-                         <div className="flex items-center gap-2 text-xs text-slate-400 mt-2">
-                             <Icon as="audio" className="w-4 h-4" />
-                             <input type="range" min="0" max="1" step="0.05" value={soundtrack.volume} onChange={(e) => handleSoundtrackVolumeChange(parseFloat(e.target.value))} className="w-full h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-brand-500 [&::-webkit-slider-thumb]:rounded-full" />
+                     </div>
+                )}
+                {(game?.soundboard || []).length > 0 && (
+                    <div className="space-y-3 flex-1 min-h-0 flex flex-col">
+                        <h3 className="text-lg font-semibold text-slate-300">Sound Board</h3>
+                        <div className="overflow-y-auto pr-2 -mr-2 space-y-2">
+                            {game.soundboard?.map(clip => {
+                                const clipState = soundboardClips.get(clip.id);
+                                const isPlaying = clipState?.isPlaying || false;
+                                return (
+                                    <button
+                                        key={clip.id}
+                                        onClick={() => handlePlaySoundboardClip(clip.id)}
+                                        className={`w-full flex items-center gap-3 text-left p-2 rounded-lg transition-colors ${isPlaying ? 'bg-brand-600 text-white' : 'bg-slate-700/50 hover:bg-slate-700'}`}
+                                    >
+                                        <Icon as={isPlaying ? 'stop' : 'play'} className="w-5 h-5 flex-shrink-0" />
+                                        <span className="truncate text-sm font-semibold">{clip.name}</span>
+                                    </button>
+                                )
+                            })}
                         </div>
                     </div>
-                 </div>
-            )}
-            {(game?.soundboard || []).length > 0 && (
-                <div className="space-y-3 flex-1 min-h-0 flex flex-col">
-                    <h3 className="text-lg font-semibold text-slate-300">Sound Board</h3>
-                    <div className="overflow-y-auto pr-2 -mr-2 space-y-2">
-                        {game.soundboard?.map(clip => {
-                            const clipState = soundboardClips.get(clip.id);
-                            const isPlaying = clipState?.isPlaying || false;
-                            return (
-                                <button
-                                    key={clip.id}
-                                    onClick={() => handlePlaySoundboardClip(clip.id)}
-                                    className={`w-full flex items-center gap-3 text-left p-2 rounded-lg transition-colors ${isPlaying ? 'bg-brand-600 text-white' : 'bg-slate-700/50 hover:bg-slate-700'}`}
-                                >
-                                    <Icon as={isPlaying ? 'stop' : 'play'} className="w-5 h-5 flex-shrink-0" />
-                                    <span className="truncate text-sm font-semibold">{clip.name}</span>
-                                </button>
-                            )
-                        })}
-                    </div>
-                </div>
-            )}
-        </div>
+                )}
+            </div>
+        )}
       </main>
     </div>
   );
