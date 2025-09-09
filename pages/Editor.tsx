@@ -167,30 +167,39 @@ const Editor: React.FC = () => {
     const handleClickOutside = (event: MouseEvent) => {
         if (objectRemoveDropdownRef.current && !objectRemoveDropdownRef.current.contains(event.target as Node)) {
             setOpenObjectRemoveDropdown(false);
+            setObjectRemoveSearch('');
         }
         if (modalObjectsDropdownRef.current && !modalObjectsDropdownRef.current.contains(event.target as Node)) {
             setOpenModalPuzzleObjectsDropdown(false);
+            setModalPuzzleObjectsSearch('');
         }
         if (modalDiscardObjectsDropdownRef.current && !modalDiscardObjectsDropdownRef.current.contains(event.target as Node)) {
             setOpenModalPuzzleDiscardObjectsDropdown(false);
+            setModalPuzzleDiscardObjectsSearch('');
         }
         if (modalRoomsDropdownRef.current && !modalRoomsDropdownRef.current.contains(event.target as Node)) {
             setOpenModalPuzzleRoomsDropdown(false);
+            setModalPuzzleRoomsSearch('');
         }
         if (modalPuzzlesDropdownRef.current && !modalPuzzlesDropdownRef.current.contains(event.target as Node)) {
             setOpenModalPuzzlePuzzlesDropdown(false);
+            setModalPuzzlePuzzlesSearch('');
         }
         if (modalRoomSolvesDropdownRef.current && !modalRoomSolvesDropdownRef.current.contains(event.target as Node)) {
             setOpenModalPuzzleRoomSolvesDropdown(false);
+            setModalPuzzleRoomSolvesSearch('');
         }
         if (modalActionsDropdownRef.current && !modalActionsDropdownRef.current.contains(event.target as Node)) {
             setOpenModalPuzzleActionsDropdown(false);
+            setModalPuzzleActionsSearch('');
         }
         if (modalCompletedActionsDropdownRef.current && !modalCompletedActionsDropdownRef.current.contains(event.target as Node)) {
             setOpenModalPuzzleCompletedActionsDropdown(false);
+            setModalPuzzleCompletedActionsSearch('');
         }
         if (modalActsDropdownRef.current && !modalActsDropdownRef.current.contains(event.target as Node)) {
             setOpenModalPuzzleActsDropdown(false);
+            setModalPuzzleActsSearch('');
         }
     };
     document.addEventListener("mousedown", handleClickOutside);
