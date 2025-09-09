@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import type { Puzzle } from '../../types';
 import Icon from '../Icon';
 import { API_BASE_URL } from '../../services/presentationService';
+import MarkdownRenderer from '../MarkdownRenderer';
 
 const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
@@ -144,8 +145,8 @@ const PuzzleItem: React.FC<{
                 </div>
                 <div className="flex-1">
                     <h3 className="font-bold text-slate-400 line-through">{puzzle.name}</h3>
-                    <div className="text-slate-300 whitespace-pre-wrap mt-2">
-                        {puzzle.solvedText}
+                    <div className="text-slate-300 mt-2">
+                        <MarkdownRenderer content={puzzle.solvedText} />
                     </div>
                 </div>
             </div>
@@ -225,8 +226,8 @@ const PuzzleItem: React.FC<{
                     </button>
                 </div>
             </div>
-            <div className="pl-4 text-slate-300 whitespace-pre-wrap">
-                {puzzle.unsolvedText}
+            <div className="pl-4 text-slate-300">
+                <MarkdownRenderer content={puzzle.unsolvedText} />
                  {lockingPuzzleName && (
                     <p className="text-red-500 text-xs mt-2">Locked by: {lockingPuzzleName}</p>
                 )}

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import type { Action } from '../../types';
 import Icon from '../Icon';
 import { API_BASE_URL } from '../../services/presentationService';
+import MarkdownRenderer from '../MarkdownRenderer';
 
 const formatTime = (seconds: number) => {
     if (isNaN(seconds) || seconds === Infinity) {
@@ -173,8 +174,8 @@ const ActionItem: React.FC<{
                     )}
                 </div>
             </div>
-            <div className={`pl-4 ${isComplete ? 'text-slate-500' : 'text-slate-300'} whitespace-pre-wrap`}>
-                {action.description}
+            <div className={`pl-4 ${isComplete ? 'text-slate-500' : 'text-slate-300'}`}>
+                <MarkdownRenderer content={action.description} />
                  {lockingPuzzleName && (
                     <p className="text-red-500 text-xs mt-2">Locked by: {lockingPuzzleName}</p>
                 )}

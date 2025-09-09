@@ -97,6 +97,9 @@ const Editor: React.FC = () => {
   const descriptionTextareaRef = useRef<HTMLTextAreaElement>(null);
   const solvedDescriptionTextareaRef = useRef<HTMLTextAreaElement>(null);
   const modalTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const actionDescriptionTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const puzzleUnsolvedTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const puzzleSolvedTextareaRef = useRef<HTMLTextAreaElement>(null);
   const placementAreaRef = useRef<HTMLDivElement>(null);
   const dragOffsetRef = useRef({ x: 0, y: 0 });
   const dragImageSizeRef = useRef({ width: 0, height: 0 });
@@ -888,6 +891,54 @@ const Editor: React.FC = () => {
         textarea.selectionEnd = end + prefix.length;
     }, 0);
   };
+
+  const applyModalTextFormatting = (
+    format: 'bold' | 'italic' | 'highlight',
+    textareaRef: React.RefObject<HTMLTextAreaElement>,
+    currentValue: string,
+    updater: (newValue: string) => void,
+    colorCode?: 'y' | 'c' | 'm' | 'l'
+) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = currentValue.substring(start, end);
+
+    let prefix = '';
+    let suffix = '';
+
+    switch (format) {
+        case 'bold':
+            prefix = '**';
+            suffix = '**';
+            break;
+        case 'italic':
+            prefix = '*';
+            suffix = '*';
+            break;
+        case 'highlight':
+            if (colorCode) {
+                prefix = `||${colorCode}|`;
+                suffix = `||`;
+            }
+            break;
+    }
+    
+    if (!prefix && format !== 'highlight') return;
+    if (format === 'highlight' && (!selectedText || !colorCode)) return;
+
+    const newText = `${prefix}${selectedText}${suffix}`;
+    const updatedValue = currentValue.substring(0, start) + newText + currentValue.substring(end);
+    updater(updatedValue);
+
+    textarea.focus();
+    setTimeout(() => {
+        textarea.selectionStart = start + prefix.length;
+        textarea.selectionEnd = end + prefix.length;
+    }, 0);
+};
   
   const applyModalFormatting = (format: 'bold' | 'italic' | 'highlight', colorCode?: 'y' | 'c' | 'm' | 'l') => {
     const textarea = modalTextareaRef.current;
@@ -1575,22 +1626,42 @@ const Editor: React.FC = () => {
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Unsolved Text</label>
+                            <div className="flex items-center gap-1 border border-slate-300 dark:border-slate-600 rounded-t-lg bg-slate-50 dark:bg-slate-700/50 p-1">
+                                <button onClick={() => applyModalTextFormatting('bold', puzzleUnsolvedTextareaRef, modalPuzzleData.unsolvedText, (v) => handleModalPuzzleChange('unsolvedText', v))} title="Bold" className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded font-bold">B</button>
+                                <button onClick={() => applyModalTextFormatting('italic', puzzleUnsolvedTextareaRef, modalPuzzleData.unsolvedText, (v) => handleModalPuzzleChange('unsolvedText', v))} title="Italic" className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded italic">I</button>
+                                <div className="h-5 w-px bg-slate-300 dark:bg-slate-600 mx-1"></div>
+                                <button onClick={() => applyModalTextFormatting('highlight', puzzleUnsolvedTextareaRef, modalPuzzleData.unsolvedText, (v) => handleModalPuzzleChange('unsolvedText', v), 'y')} title="Highlight Yellow" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"><div className="w-4 h-4 rounded-sm bg-yellow-400 border border-yellow-500"></div></button>
+                                <button onClick={() => applyModalTextFormatting('highlight', puzzleUnsolvedTextareaRef, modalPuzzleData.unsolvedText, (v) => handleModalPuzzleChange('unsolvedText', v), 'c')} title="Highlight Cyan" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"><div className="w-4 h-4 rounded-sm bg-cyan-400 border border-cyan-500"></div></button>
+                                <button onClick={() => applyModalTextFormatting('highlight', puzzleUnsolvedTextareaRef, modalPuzzleData.unsolvedText, (v) => handleModalPuzzleChange('unsolvedText', v), 'm')} title="Highlight Pink" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"><div className="w-4 h-4 rounded-sm bg-pink-400 border border-pink-500"></div></button>
+                                <button onClick={() => applyModalTextFormatting('highlight', puzzleUnsolvedTextareaRef, modalPuzzleData.unsolvedText, (v) => handleModalPuzzleChange('unsolvedText', v), 'l')} title="Highlight Lime" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"><div className="w-4 h-4 rounded-sm bg-lime-400 border border-lime-500"></div></button>
+                            </div>
                             <textarea 
+                                ref={puzzleUnsolvedTextareaRef}
                                 value={modalPuzzleData.unsolvedText}
                                 onChange={(e) => handleModalPuzzleChange('unsolvedText', e.target.value)}
                                 placeholder="Unsolved Text"
                                 rows={4}
-                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm resize-y"
+                                className="w-full px-3 py-2 border border-t-0 border-slate-300 dark:border-slate-600 rounded-b-md bg-slate-50 dark:bg-slate-700 text-sm resize-y"
                             />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Solved Text</label>
+                            <div className="flex items-center gap-1 border border-slate-300 dark:border-slate-600 rounded-t-lg bg-slate-50 dark:bg-slate-700/50 p-1">
+                                <button onClick={() => applyModalTextFormatting('bold', puzzleSolvedTextareaRef, modalPuzzleData.solvedText, (v) => handleModalPuzzleChange('solvedText', v))} title="Bold" className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded font-bold">B</button>
+                                <button onClick={() => applyModalTextFormatting('italic', puzzleSolvedTextareaRef, modalPuzzleData.solvedText, (v) => handleModalPuzzleChange('solvedText', v))} title="Italic" className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded italic">I</button>
+                                <div className="h-5 w-px bg-slate-300 dark:bg-slate-600 mx-1"></div>
+                                <button onClick={() => applyModalTextFormatting('highlight', puzzleSolvedTextareaRef, modalPuzzleData.solvedText, (v) => handleModalPuzzleChange('solvedText', v), 'y')} title="Highlight Yellow" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"><div className="w-4 h-4 rounded-sm bg-yellow-400 border border-yellow-500"></div></button>
+                                <button onClick={() => applyModalTextFormatting('highlight', puzzleSolvedTextareaRef, modalPuzzleData.solvedText, (v) => handleModalPuzzleChange('solvedText', v), 'c')} title="Highlight Cyan" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"><div className="w-4 h-4 rounded-sm bg-cyan-400 border border-cyan-500"></div></button>
+                                <button onClick={() => applyModalTextFormatting('highlight', puzzleSolvedTextareaRef, modalPuzzleData.solvedText, (v) => handleModalPuzzleChange('solvedText', v), 'm')} title="Highlight Pink" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"><div className="w-4 h-4 rounded-sm bg-pink-400 border border-pink-500"></div></button>
+                                <button onClick={() => applyModalTextFormatting('highlight', puzzleSolvedTextareaRef, modalPuzzleData.solvedText, (v) => handleModalPuzzleChange('solvedText', v), 'l')} title="Highlight Lime" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"><div className="w-4 h-4 rounded-sm bg-lime-400 border border-lime-500"></div></button>
+                            </div>
                             <textarea 
+                                ref={puzzleSolvedTextareaRef}
                                 value={modalPuzzleData.solvedText}
                                 onChange={(e) => handleModalPuzzleChange('solvedText', e.target.value)}
                                 placeholder="Solved Text"
                                 rows={4}
-                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm resize-y"
+                                className="w-full px-3 py-2 border border-t-0 border-slate-300 dark:border-slate-600 rounded-b-md bg-slate-50 dark:bg-slate-700 text-sm resize-y"
                             />
                         </div>
                     </div>
@@ -2122,12 +2193,22 @@ const Editor: React.FC = () => {
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Description / Host Response</label>
+                        <div className="flex items-center gap-1 border border-slate-300 dark:border-slate-600 rounded-t-lg bg-slate-50 dark:bg-slate-700/50 p-1">
+                            <button onClick={() => applyModalTextFormatting('bold', actionDescriptionTextareaRef, modalActionData.description, (v) => handleModalActionChange('description', v))} title="Bold" className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded font-bold">B</button>
+                            <button onClick={() => applyModalTextFormatting('italic', actionDescriptionTextareaRef, modalActionData.description, (v) => handleModalActionChange('description', v))} title="Italic" className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded italic">I</button>
+                            <div className="h-5 w-px bg-slate-300 dark:bg-slate-600 mx-1"></div>
+                            <button onClick={() => applyModalTextFormatting('highlight', actionDescriptionTextareaRef, modalActionData.description, (v) => handleModalActionChange('description', v), 'y')} title="Highlight Yellow" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"><div className="w-4 h-4 rounded-sm bg-yellow-400 border border-yellow-500"></div></button>
+                            <button onClick={() => applyModalTextFormatting('highlight', actionDescriptionTextareaRef, modalActionData.description, (v) => handleModalActionChange('description', v), 'c')} title="Highlight Cyan" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"><div className="w-4 h-4 rounded-sm bg-cyan-400 border border-cyan-500"></div></button>
+                            <button onClick={() => applyModalTextFormatting('highlight', actionDescriptionTextareaRef, modalActionData.description, (v) => handleModalActionChange('description', v), 'm')} title="Highlight Pink" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"><div className="w-4 h-4 rounded-sm bg-pink-400 border border-pink-500"></div></button>
+                            <button onClick={() => applyModalTextFormatting('highlight', actionDescriptionTextareaRef, modalActionData.description, (v) => handleModalActionChange('description', v), 'l')} title="Highlight Lime" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"><div className="w-4 h-4 rounded-sm bg-lime-400 border border-lime-500"></div></button>
+                        </div>
                         <textarea
+                            ref={actionDescriptionTextareaRef}
                             value={modalActionData.description}
                             onChange={(e) => handleModalActionChange('description', e.target.value)}
                             placeholder="e.g., You lift the corner of the rug and find a small, tarnished brass key."
                             rows={5}
-                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm resize-y"
+                            className="w-full px-3 py-2 border border-t-0 border-slate-300 dark:border-slate-600 rounded-b-md bg-slate-50 dark:bg-slate-700 text-sm resize-y"
                         />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
