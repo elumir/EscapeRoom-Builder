@@ -142,7 +142,6 @@ const PresentationView: React.FC = () => {
       inventory2Title: game.inventory2Title,
       inRoomObjects,
       fontFamily: game.fontFamily,
-      isPresentationMode: true,
     };
   }
 
