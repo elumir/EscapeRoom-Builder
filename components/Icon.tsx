@@ -148,7 +148,10 @@ const icons = {
   ),
   font: (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 4.5v15m0 0h13.5m-13.5 0L12 4.5" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M.75 12.749h10.5" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.249h7.5" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 21.749V13.5a3.75 3.75 0 0 1 7.5 0v8.25" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M.75 21.749V7.5a5.25 5.25 0 0 1 10.5 0v14.25" />
     </svg>
   ),
   'hand-expand': (
