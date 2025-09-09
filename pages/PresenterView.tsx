@@ -1341,16 +1341,20 @@ const PresenterView: React.FC = () => {
                 </div>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-6">
-                <div>
-                    <h3 className="font-semibold text-slate-400 mb-2">{currentRoom.isSolved ? 'Solved Description' : 'Room Description'}</h3>
+                <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
+                    <div className="border-b border-slate-700 pb-3 mb-4">
+                        <h3 className="font-semibold text-slate-300 text-lg">{currentRoom.isSolved ? 'Solved Description' : 'Room Description'}</h3>
+                    </div>
                     <div className="prose prose-invert max-w-none prose-p:text-slate-300">
                         <MarkdownRenderer content={currentRoom.isSolved ? currentRoom.solvedNotes : currentRoom.notes} />
                     </div>
                 </div>
 
                 {!game.hideAvailableObjects && (
-                    <div>
-                        <h3 className="font-semibold text-slate-400 mb-2">Objects in Room</h3>
+                    <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
+                        <div className="border-b border-slate-700 pb-3 mb-4">
+                           <h3 className="font-semibold text-slate-300 text-lg">Objects in Room</h3>
+                        </div>
                         <div className="space-y-2">
                             {roomObjects.length > 0 ? roomObjects.map(obj => (
                                 <ObjectItem key={obj.id} obj={obj} onToggle={handleToggleObject} lockingPuzzleName={lockingPuzzlesByObjectId.get(obj.id)} onToggleInRoomImage={handleToggleInRoomImage} variant="mini" />
@@ -1359,9 +1363,9 @@ const PresenterView: React.FC = () => {
                     </div>
                 )}
                 
-                 <div>
-                    <div className="flex justify-between items-center mb-2">
-                         <h3 className="font-semibold text-slate-400">Player Actions & Host Responses</h3>
+                 <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
+                    <div className="flex justify-between items-center border-b border-slate-700 pb-3 mb-4">
+                         <h3 className="font-semibold text-slate-300 text-lg">Player Actions & Host Responses</h3>
                          <div className="flex rounded-lg bg-slate-700/50 p-1 text-xs">
                              <button onClick={() => setActiveActionTab('open')} className={`px-2 py-1 rounded-md ${activeActionTab === 'open' ? 'bg-slate-600' : 'hover:bg-slate-600/50'}`}>Open ({openActions.length})</button>
                              <button onClick={() => setActiveActionTab('complete')} className={`px-2 py-1 rounded-md ${activeActionTab === 'complete' ? 'bg-slate-600' : 'hover:bg-slate-600/50'}`}>Complete ({completedActions.length})</button>
@@ -1381,9 +1385,9 @@ const PresenterView: React.FC = () => {
                     </div>
                 </div>
 
-                <div>
-                    <div className="flex justify-between items-center mb-2">
-                        <h3 className="font-semibold text-slate-400">Puzzles</h3>
+                <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
+                    <div className="flex justify-between items-center border-b border-slate-700 pb-3 mb-4">
+                        <h3 className="font-semibold text-slate-300 text-lg">Puzzles</h3>
                         <div className="flex rounded-lg bg-slate-700/50 p-1 text-xs">
                            <button onClick={() => setActivePuzzleTab('open')} className={`px-2 py-1 rounded-md ${activePuzzleTab === 'open' ? 'bg-slate-600' : 'hover:bg-slate-600/50'}`}>Open ({openPuzzles.length})</button>
                            <button onClick={() => setActivePuzzleTab('complete')} className={`px-2 py-1 rounded-md ${activePuzzleTab === 'complete' ? 'bg-slate-600' : 'hover:bg-slate-600/50'}`}>Complete ({completedPuzzles.length})</button>
