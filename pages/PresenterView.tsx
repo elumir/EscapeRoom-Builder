@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useParams } from 'react-router-dom';
 import * as gameService from '../services/presentationService';
 import { API_BASE_URL } from '../services/presentationService';
-import type { Game, Puzzle, InventoryObject } from '../types';
+import type { Game, Puzzle, InventoryObject, Room as RoomType } from '../types';
 import Icon from '../components/Icon';
 import { useBroadcastChannel } from '../hooks/useBroadcastChannel';
 import ObjectItem from '../components/presenter/ObjectItem';
@@ -260,6 +260,7 @@ const PresenterView: React.FC = () => {
         inRoomImage: null,
         showImageOverlay: false,
         inventorySlot,
+        isPickupable: true
       };
       setCustomItems(prev => [newItem, ...prev]);
     }
@@ -859,15 +860,9 @@ const PresenterView: React.FC = () => {
 
     let width, height;
 
-    // Start with a width that is half of the available screen width.
     width = screenWidth / 2;
-    // Calculate the corresponding height for a 16:9 aspect ratio.
     height = width / aspectRatio;
 
-    // If the calculated height is more than half the available screen height,
-    // it means the screen is relatively tall. In this case, we should base the
-    // calculation on half the screen height instead to maintain the aspect ratio
-    // while fitting within the "half screen" boundary.
     if (height > screenHeight / 2) {
         height = screenHeight / 2;
         width = height * aspectRatio;
@@ -902,7 +897,7 @@ const PresenterView: React.FC = () => {
         }
         acc[act].push({ ...room, originalIndex: index });
         return acc;
-    }, {} as Record<number, (Game['rooms'][0] & { originalIndex: number })[]>);
+    }, {} as Record<number, (RoomType & { originalIndex: number })[]>);
   }, [game]);
 
   const availableActs = useMemo(() => {
@@ -1082,7 +1077,6 @@ const PresenterView: React.FC = () => {
   const currentRoom = game.rooms[currentRoomIndex];
   const hasSolvedState = currentRoom?.solvedImage || (currentRoom?.solvedNotes && currentRoom.solvedNotes.trim() !== '');
   
-  // Filter out locked items
   const roomObjects = (currentRoom?.objects || []).filter(o => 
     !o.showInInventory && 
     !o.wasEverInInventory &&
@@ -1110,6 +1104,18 @@ const PresenterView: React.FC = () => {
 
   return (
     <div className="h-screen bg-slate-800 text-white flex flex-col">
+      {isResetModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+          <div className="bg-slate-800 p-8 rounded-lg shadow-2xl w-full max-w-md border border-slate-700">
+              <h2 className="text-xl font-bold mb-4">Restart Game?</h2>
+              <p className="text-slate-400 mb-6">This will reset all puzzles and inventory to their starting state. This action cannot be undone.</p>
+              <div className="mt-6 flex justify-end gap-4">
+                  <button type="button" onClick={() => setIsResetModalOpen(false)} className="px-4 py-2 bg-slate-600 text-slate-200 rounded-lg hover:bg-slate-500 transition-colors">Cancel</button>
+                  <button type="button" onClick={handleRestartGame} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">Restart</button>
+              </div>
+          </div>
+        </div>
+      )}
       {objectRemoveModalText && (
           <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
               <div className="bg-slate-800 p-8 rounded-lg shadow-2xl w-full max-w-md border border-slate-700 text-center">
@@ -1138,7 +1144,7 @@ const PresenterView: React.FC = () => {
                   <h2 className="text-xl font-bold mb-4 text-amber-400">Solving: {puzzleToSolve.name}</h2>
                    {puzzleToSolve.unsolvedText && (
                       <blockquote className="mb-6 p-4 bg-slate-700/50 border-l-4 border-slate-600 text-slate-300 italic">
-                          {puzzleToSolve.unsolvedText}
+                          <MarkdownRenderer content={puzzleToSolve.unsolvedText} />
                       </blockquote>
                   )}
                   <p className="text-slate-400 mb-6">Enter the answer provided by the players.</p>
@@ -1177,14 +1183,12 @@ const PresenterView: React.FC = () => {
                   </h2>
                   {solvedPuzzleInfo.solvedText && (
                       <blockquote className="mb-6 p-4 bg-slate-700/50 border-l-4 border-slate-600 text-slate-300 italic text-left">
-                          {solvedPuzzleInfo.solvedText}
+                          <MarkdownRenderer content={solvedPuzzleInfo.solvedText} />
                       </blockquote>
                   )}
                   <button 
                       type="button" 
                       onClick={handleCloseSolvedModal} 
-// FIX: The file was truncated here. Completed the button and the component structure to fix syntax and export errors.
-// The main content of the presenter view after the modals may be missing.
                       className="px-6 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors"
                   >
                       Close
@@ -1192,6 +1196,262 @@ const PresenterView: React.FC = () => {
               </div>
           </div>
       )}
+
+      <header className="flex-shrink-0 bg-slate-900 shadow-md p-2 flex justify-between items-center z-10">
+        <div className="flex items-center gap-4">
+          <h1 className="text-xl font-bold text-brand-400 p-2">{game.title}</h1>
+        </div>
+        <div className="flex items-center gap-2">
+          {isPresentationWindowOpen ? (
+            <button onClick={handleCloseGameWindow} className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-300 shadow">
+              <Icon as="close" className="w-5 h-5" /> Close Window
+            </button>
+          ) : (
+            <button onClick={handleOpenGameWindow} className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors duration-300 shadow">
+              <Icon as="present" className="w-5 h-5" /> Open Window
+            </button>
+          )}
+          <button onClick={() => setIsResetModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-slate-600 text-slate-200 rounded-lg hover:bg-slate-500 transition-colors">
+            <Icon as="restart" className="w-5 h-5" /> Restart Game
+          </button>
+        </div>
+      </header>
+
+      <main className="flex flex-1 overflow-hidden">
+        {/* Left Column */}
+        <div className="w-80 bg-slate-900/50 p-4 flex flex-col border-r border-slate-700">
+            <div className="flex-shrink-0 mb-4">
+                <div className="flex rounded-lg bg-slate-700/50 p-1">
+                    <button onClick={() => { setActiveTab('rooms'); setShowInventoryNotification(false); }} className={`relative flex-1 text-center text-sm px-3 py-1.5 rounded-md transition-colors ${activeTab === 'rooms' ? 'bg-slate-600 shadow-sm font-semibold' : 'text-slate-300 hover:bg-slate-600/50'}`}>Rooms</button>
+                    <button onClick={() => { setActiveTab('inventory'); setShowInventoryNotification(false); }} className={`relative flex-1 text-center text-sm px-3 py-1.5 rounded-md transition-colors ${activeTab === 'inventory' ? 'bg-slate-600 shadow-sm font-semibold' : 'text-slate-300 hover:bg-slate-600/50'}`}>
+                        Inventory
+                        {showInventoryNotification && <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-brand-400 ring-2 ring-slate-800" />}
+                    </button>
+                    <button onClick={() => { setActiveTab('discarded'); setShowInventoryNotification(false); }} className={`relative flex-1 text-center text-sm px-3 py-1.5 rounded-md transition-colors ${activeTab === 'discarded' ? 'bg-slate-600 shadow-sm font-semibold' : 'text-slate-300 hover:bg-slate-600/50'}`}>Discarded</button>
+                </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto pr-2 -mr-2">
+                {activeTab === 'rooms' && (
+                    <div className="space-y-2">
+                        <div className="flex justify-between items-center mb-2">
+                            <button onClick={handlePrevAct} disabled={!canGoToPrevAct} className="p-2 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-700 rounded-full" title={isPrevActLocked ? `Locked by: ${prevActLockingPuzzleName}` : `Go to previous act`}>
+                                <Icon as="prev" className="w-5 h-5" />
+                            </button>
+                            <h2 className="text-lg font-semibold text-slate-300">Act {selectedAct}</h2>
+                            <button onClick={handleNextAct} disabled={!canGoToNextAct} className="p-2 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-700 rounded-full" title={isNextActLocked ? `Locked by: ${nextActLockingPuzzleName}` : `Go to next act`}>
+                                <Icon as="next" className="w-5 h-5" />
+                            </button>
+                        </div>
+                        {roomsForSelectedAct.map(room => {
+                            const isLocked = lockingPuzzlesByRoomId.has(room.id);
+                            return (
+                                <button
+                                    key={room.id}
+                                    onClick={() => !isLocked && goToRoom(room.originalIndex)}
+                                    disabled={isLocked}
+                                    className={`w-full text-left p-2 rounded-lg transition-colors flex items-center gap-2 ${room.originalIndex === currentRoomIndex ? 'bg-brand-900/50' : 'hover:bg-slate-700'} ${isLocked ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                                    title={isLocked ? `Locked by: ${lockingPuzzlesByRoomId.get(room.id)}` : room.name}
+                                >
+                                    {isLocked && <Icon as="lock" className="w-4 h-4 text-red-400 flex-shrink-0" />}
+                                    <span className="truncate">{room.name}</span>
+                                </button>
+                            )
+                        })}
+                    </div>
+                )}
+                {activeTab === 'inventory' && (
+                    <div className="space-y-4">
+                        <div className="flex justify-between items-center">
+                            <h2 className="text-lg font-semibold text-slate-300">Inventory</h2>
+                             <button onClick={handleToggleAllInventoryDescriptions} className="flex items-center gap-2 px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 rounded-md">
+                                <Icon as={areAllDescriptionsVisible ? "description-slash" : "description"} className="w-4 h-4"/>
+                                {areAllDescriptionsVisible ? "Hide All" : "Show All"}
+                            </button>
+                        </div>
+
+                        {game.inventoryLayout === 'dual' ? (
+                            <div className="space-y-4">
+                                <div>
+                                    <div className="flex justify-between items-center mb-2">
+                                        <h3 className="font-semibold text-slate-400">{game.inventory1Title || 'Inventory 1'}</h3>
+                                        <button onClick={() => handleAddCustomItem(1)} className="p-1 hover:bg-slate-700 rounded-full text-slate-400" title="Add custom item"><Icon as="plus" className="w-4 h-4"/></button>
+                                    </div>
+                                    <div className="space-y-2">
+                                        {inventoryList1.length > 0 ? inventoryList1.map(obj => (
+                                            <ObjectItem key={obj.id} obj={obj} onToggle={obj.id.startsWith('custom-') ? handleToggleCustomItem : handleToggleObject} showVisibilityToggle onToggleDescription={handleToggleDescriptionVisibility} isDescriptionVisible={visibleDescriptionIds.has(obj.id)} onToggleImage={handleToggleObjectImage} />
+                                        )) : <p className="text-sm text-slate-500 italic">Empty</p>}
+                                    </div>
+                                </div>
+                                 <div>
+                                    <div className="flex justify-between items-center mb-2">
+                                        <h3 className="font-semibold text-slate-400">{game.inventory2Title || 'Inventory 2'}</h3>
+                                        <button onClick={() => handleAddCustomItem(2)} className="p-1 hover:bg-slate-700 rounded-full text-slate-400" title="Add custom item"><Icon as="plus" className="w-4 h-4"/></button>
+                                    </div>
+                                    <div className="space-y-2">
+                                        {inventoryList2.length > 0 ? inventoryList2.map(obj => (
+                                            <ObjectItem key={obj.id} obj={obj} onToggle={obj.id.startsWith('custom-') ? handleToggleCustomItem : handleToggleObject} showVisibilityToggle onToggleDescription={handleToggleDescriptionVisibility} isDescriptionVisible={visibleDescriptionIds.has(obj.id)} onToggleImage={handleToggleObjectImage} />
+                                        )) : <p className="text-sm text-slate-500 italic">Empty</p>}
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="space-y-2">
+                                 <button onClick={() => handleAddCustomItem(1)} className="w-full mt-2 flex items-center justify-center gap-2 px-4 py-2 bg-slate-700/50 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors text-sm">Add Custom Item</button>
+                                {combinedInventoryObjects.length > 0 ? combinedInventoryObjects.map(obj => (
+                                    <ObjectItem key={obj.id} obj={obj} onToggle={obj.id.startsWith('custom-') ? handleToggleCustomItem : handleToggleObject} showVisibilityToggle onToggleDescription={handleToggleDescriptionVisibility} isDescriptionVisible={visibleDescriptionIds.has(obj.id)} onToggleImage={handleToggleObjectImage} />
+                                )) : <p className="text-sm text-slate-500 italic text-center pt-4">Inventory is empty</p>}
+                            </div>
+                        )}
+                    </div>
+                )}
+                 {activeTab === 'discarded' && (
+                    <div className="space-y-4">
+                        <h2 className="text-lg font-semibold text-slate-300">Discarded Items</h2>
+                         <div className="space-y-2">
+                            {combinedDiscardedObjects.length > 0 ? combinedDiscardedObjects.map(obj => (
+                               <ObjectItem key={obj.id} obj={{...obj, showInInventory: false}} onToggle={obj.id.startsWith('custom-') ? handleToggleCustomItem : handleToggleObject} lockingPuzzleName={lockingPuzzlesByObjectId.get(obj.id)} />
+                            )) : <p className="text-sm text-slate-500 italic text-center pt-4">No items have been discarded</p>}
+                         </div>
+                    </div>
+                )}
+            </div>
+        </div>
+
+        {/* Center Column */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex-shrink-0 p-4 border-b border-slate-700">
+                <div className="flex justify-between items-start">
+                    <h2 className="text-2xl font-bold">{currentRoom.name}</h2>
+                    {hasSolvedState && (
+                        <label className={`flex items-center gap-2 text-sm ${currentRoom.isSolved ? 'text-green-400' : 'text-slate-400'} ${roomSolveIsLocked ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`} title={roomSolveIsLocked ? `Locked by: ${roomSolveLockingPuzzleName}` : "Toggle solved state"}>
+                            <span>Solved</span>
+                            <input
+                                type="checkbox"
+                                checked={currentRoom.isSolved}
+                                onChange={e => handleToggleRoomSolved(currentRoom.id, e.target.checked)}
+                                className="sr-only peer"
+                                disabled={roomSolveIsLocked}
+                            />
+                            <div className="relative w-11 h-6 bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                        </label>
+                    )}
+                </div>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-6">
+                <div>
+                    <h3 className="font-semibold text-slate-400 mb-2">{currentRoom.isSolved ? 'Solved Description' : 'Room Description'}</h3>
+                    <div className="prose prose-invert max-w-none prose-p:text-slate-300">
+                        <MarkdownRenderer content={currentRoom.isSolved ? currentRoom.solvedNotes : currentRoom.notes} />
+                    </div>
+                </div>
+
+                {!game.hideAvailableObjects && (
+                    <div>
+                        <h3 className="font-semibold text-slate-400 mb-2">Objects in Room</h3>
+                        <div className="space-y-2">
+                            {roomObjects.length > 0 ? roomObjects.map(obj => (
+                                <ObjectItem key={obj.id} obj={obj} onToggle={handleToggleObject} lockingPuzzleName={lockingPuzzlesByObjectId.get(obj.id)} onToggleInRoomImage={handleToggleInRoomImage} variant="mini" />
+                            )) : <p className="text-sm text-slate-500 italic">No objects available to pick up.</p>}
+                        </div>
+                    </div>
+                )}
+                
+                 <div>
+                    <div className="flex justify-between items-center mb-2">
+                         <h3 className="font-semibold text-slate-400">Player Actions & Host Responses</h3>
+                         <div className="flex rounded-lg bg-slate-700/50 p-1 text-xs">
+                             <button onClick={() => setActiveActionTab('open')} className={`px-2 py-1 rounded-md ${activeActionTab === 'open' ? 'bg-slate-600' : 'hover:bg-slate-600/50'}`}>Open ({openActions.length})</button>
+                             <button onClick={() => setActiveActionTab('complete')} className={`px-2 py-1 rounded-md ${activeActionTab === 'complete' ? 'bg-slate-600' : 'hover:bg-slate-600/50'}`}>Complete ({completedActions.length})</button>
+                         </div>
+                    </div>
+                    <div className="space-y-2">
+                        {activeActionTab === 'open' && (
+                            openActions.length > 0 
+                                ? openActions.map(action => <ActionItem key={action.id} action={action} onToggleImage={handleToggleActionImage} onToggleComplete={handleToggleActionComplete} />)
+                                : <p className="text-sm text-slate-500 italic">No open actions.</p>
+                        )}
+                         {activeActionTab === 'complete' && (
+                            completedActions.length > 0 
+                                ? completedActions.map(action => <ActionItem key={action.id} action={action} onToggleImage={handleToggleActionImage} onToggleComplete={handleToggleActionComplete} />)
+                                : <p className="text-sm text-slate-500 italic">No completed actions.</p>
+                        )}
+                    </div>
+                </div>
+
+                <div>
+                    <div className="flex justify-between items-center mb-2">
+                        <h3 className="font-semibold text-slate-400">Puzzles</h3>
+                        <div className="flex rounded-lg bg-slate-700/50 p-1 text-xs">
+                           <button onClick={() => setActivePuzzleTab('open')} className={`px-2 py-1 rounded-md ${activePuzzleTab === 'open' ? 'bg-slate-600' : 'hover:bg-slate-600/50'}`}>Open ({openPuzzles.length})</button>
+                           <button onClick={() => setActivePuzzleTab('complete')} className={`px-2 py-1 rounded-md ${activePuzzleTab === 'complete' ? 'bg-slate-600' : 'hover:bg-slate-600/50'}`}>Complete ({completedPuzzles.length})</button>
+                        </div>
+                    </div>
+                    <div className="space-y-4">
+                        {activePuzzleTab === 'open' && (
+                            openPuzzles.length > 0 
+                                ? openPuzzles.map(puzzle => <PuzzleItem key={puzzle.id} puzzle={puzzle} onToggle={handleTogglePuzzle} onToggleImage={handleTogglePuzzleImage} onAttemptSolve={handleAttemptSolve} />)
+                                : <p className="text-sm text-slate-500 italic">No open puzzles.</p>
+                        )}
+                         {activePuzzleTab === 'complete' && (
+                            completedPuzzles.length > 0 
+                                ? completedPuzzles.map(puzzle => <PuzzleItem key={puzzle.id} puzzle={puzzle} onToggle={()=>{}} onToggleImage={()=>{}} onAttemptSolve={()=>{}} />)
+                                : <p className="text-sm text-slate-500 italic">No completed puzzles.</p>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {/* Right Column */}
+        <div className="w-80 bg-slate-900/50 p-4 flex flex-col border-l border-slate-700 space-y-6">
+            {soundtrack && (
+                 <div className="space-y-3">
+                    <h3 className="text-lg font-semibold text-slate-300">Soundtrack</h3>
+                    <div className="p-3 bg-slate-800/70 rounded-lg">
+                        <p className="font-semibold text-center truncate">{game?.soundtrack?.[soundtrack.currentTrackIndex]?.name || 'Unknown Track'}</p>
+                        <div className="flex items-center gap-4 mt-3">
+                            <button onClick={handleSoundtrackPrev} disabled={soundtrack.elements.length < 2} title="Previous Track" className="p-2 disabled:opacity-30"><Icon as="prev" className="w-5 h-5"/></button>
+                            <button onClick={handleSoundtrackRewind} title="Rewind to Start" className="p-2 disabled:opacity-30"><Icon as="rewind" className="w-5 h-5"/></button>
+                            <button onClick={handleSoundtrackPlayPause} className="p-3 bg-brand-600 rounded-full text-white shadow-lg"><Icon as={soundtrack.isPlaying ? 'stop' : 'play'} className="w-6 h-6"/></button>
+                            <button onClick={handleSoundtrackFadeOut} disabled={isFadingOut || !soundtrack.isPlaying} title="Fade Out & Stop" className="p-2 disabled:opacity-30"><Icon as="close" className="w-5 h-5"/></button>
+                            <button onClick={handleSoundtrackNext} disabled={soundtrack.elements.length < 2} title="Next Track" className="p-2 disabled:opacity-30"><Icon as="next" className="w-5 h-5"/></button>
+                        </div>
+                         <div className="flex items-center gap-2 text-xs text-slate-400 mt-3">
+                            <span>{formatTime(progress)}</span>
+                            <input type="range" min="0" max={duration || 0} value={progress} onChange={handleSoundtrackSeek} className="w-full h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-brand-500 [&::-webkit-slider-thumb]:rounded-full" />
+                            <span>{formatTime(duration)}</span>
+                        </div>
+                         <div className="flex items-center gap-2 text-xs text-slate-400 mt-2">
+                             <Icon as="audio" className="w-4 h-4" />
+                             <input type="range" min="0" max="1" step="0.05" value={soundtrack.volume} onChange={(e) => handleSoundtrackVolumeChange(parseFloat(e.target.value))} className="w-full h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-brand-500 [&::-webkit-slider-thumb]:rounded-full" />
+                        </div>
+                    </div>
+                 </div>
+            )}
+            {(game?.soundboard || []).length > 0 && (
+                <div className="space-y-3 flex-1 min-h-0 flex flex-col">
+                    <h3 className="text-lg font-semibold text-slate-300">Sound Board</h3>
+                    <div className="overflow-y-auto pr-2 -mr-2 space-y-2">
+                        {game.soundboard?.map(clip => {
+                            const clipState = soundboardClips.get(clip.id);
+                            const isPlaying = clipState?.isPlaying || false;
+                            return (
+                                <button
+                                    key={clip.id}
+                                    onClick={() => handlePlaySoundboardClip(clip.id)}
+                                    className={`w-full flex items-center gap-3 text-left p-2 rounded-lg transition-colors ${isPlaying ? 'bg-brand-600 text-white' : 'bg-slate-700/50 hover:bg-slate-700'}`}
+                                >
+                                    <Icon as={isPlaying ? 'stop' : 'play'} className="w-5 h-5 flex-shrink-0" />
+                                    <span className="truncate text-sm font-semibold">{clip.name}</span>
+                                </button>
+                            )
+                        })}
+                    </div>
+                </div>
+            )}
+        </div>
+      </main>
     </div>
   );
 };
