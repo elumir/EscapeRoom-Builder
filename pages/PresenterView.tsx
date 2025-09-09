@@ -1089,11 +1089,37 @@ const PresenterView: React.FC = () => {
   );
   const completedActions = (currentRoom?.actions || []).filter(action => action.isComplete);
   
-  const openPuzzles = (currentRoom?.puzzles || []).filter(puzzle => 
-    !puzzle.isSolved && 
-    !lockingPuzzlesByPuzzleId.has(puzzle.id)
-  );
-  const completedPuzzles = (currentRoom?.puzzles || []).filter(puzzle => puzzle.isSolved);
+  const { openPuzzles, completedPuzzles } = useMemo(() => {
+      if (!game || !currentRoom) return { openPuzzles: [], completedPuzzles: [] };
+
+      // Get all global puzzles from the entire game
+      const allGlobalPuzzles = game.rooms.flatMap(room => room.puzzles.filter(p => p.isGlobal));
+      // Filter for global puzzles that are unsolved and not locked
+      const unsolvedGlobalPuzzles = allGlobalPuzzles.filter(p => !p.isSolved && !lockingPuzzlesByPuzzleId.has(p.id));
+
+      // Get puzzles specific to the current room
+      const currentRoomOpenPuzzles = (currentRoom.puzzles || []).filter(puzzle =>
+          !puzzle.isSolved &&
+          !lockingPuzzlesByPuzzleId.has(puzzle.id)
+      );
+      
+      const currentRoomCompletedPuzzles = (currentRoom.puzzles || []).filter(puzzle => puzzle.isSolved);
+
+      // Combine and deduplicate open puzzles
+      const combinedOpenPuzzles = [...currentRoomOpenPuzzles];
+      const currentRoomOpenPuzzleIds = new Set(currentRoomOpenPuzzles.map(p => p.id));
+
+      for (const globalPuzzle of unsolvedGlobalPuzzles) {
+          if (!currentRoomOpenPuzzleIds.has(globalPuzzle.id)) {
+              combinedOpenPuzzles.push(globalPuzzle);
+          }
+      }
+      
+      return {
+          openPuzzles: combinedOpenPuzzles,
+          completedPuzzles: currentRoomCompletedPuzzles
+      };
+  }, [game, currentRoom, lockingPuzzlesByPuzzleId]);
 
   const roomsForSelectedAct = roomsByAct[selectedAct] || [];
   const roomSolveIsLocked = lockingPuzzlesByRoomSolveId.has(currentRoom.id);
@@ -1376,24 +1402,24 @@ const PresenterView: React.FC = () => {
                     </div>
                  )}
 
-                {(currentRoom?.puzzles || []).length > 0 && (
+                {(openPuzzles.length > 0 || completedPuzzles.length > 0) && (
                     <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
                         <div className="flex justify-between items-center border-b border-slate-700 pb-3 mb-4">
                             <h3 className="font-semibold text-slate-300 text-lg">Puzzles</h3>
                             <div className="flex rounded-lg bg-slate-700/50 p-1 text-xs">
-                            <button onClick={() => setActivePuzzleTab('open')} className={`px-2 py-1 rounded-md ${activePuzzleTab === 'open' ? 'bg-slate-600' : 'hover:bg-slate-600/50'}`}>Open ({openPuzzles.length})</button>
-                            <button onClick={() => setActivePuzzleTab('complete')} className={`px-2 py-1 rounded-md ${activePuzzleTab === 'complete' ? 'bg-slate-600' : 'hover:bg-slate-600/50'}`}>Complete ({completedPuzzles.length})</button>
+                                <button onClick={() => setActivePuzzleTab('open')} className={`px-2 py-1 rounded-md ${activePuzzleTab === 'open' ? 'bg-slate-600' : 'hover:bg-slate-600/50'}`}>Open ({openPuzzles.length})</button>
+                                <button onClick={() => setActivePuzzleTab('complete')} className={`px-2 py-1 rounded-md ${activePuzzleTab === 'complete' ? 'bg-slate-600' : 'hover:bg-slate-600/50'}`}>Complete ({completedPuzzles.length})</button>
                             </div>
                         </div>
-                        <div className="space-y-4">
+                        <div className="space-y-2">
                             {activePuzzleTab === 'open' && (
-                                openPuzzles.length > 0 
-                                    ? openPuzzles.map(puzzle => <PuzzleItem key={puzzle.id} puzzle={puzzle} onToggle={handleTogglePuzzle} onToggleImage={handleTogglePuzzleImage} onAttemptSolve={handleAttemptSolve} />)
+                                openPuzzles.length > 0
+                                    ? openPuzzles.map(puzzle => <PuzzleItem key={puzzle.id} puzzle={puzzle} onToggle={handleTogglePuzzle} onToggleImage={handleTogglePuzzleImage} onAttemptSolve={handleAttemptSolve} isLocked={lockingPuzzlesByPuzzleId.has(puzzle.id)} lockingPuzzleName={lockingPuzzlesByPuzzleId.get(puzzle.id)} />)
                                     : <p className="text-sm text-slate-500 italic">No open puzzles.</p>
                             )}
                             {activePuzzleTab === 'complete' && (
-                                completedPuzzles.length > 0 
-                                    ? completedPuzzles.map(puzzle => <PuzzleItem key={puzzle.id} puzzle={puzzle} onToggle={()=>{}} onToggleImage={()=>{}} onAttemptSolve={()=>{}} />)
+                                completedPuzzles.length > 0
+                                    ? completedPuzzles.map(puzzle => <PuzzleItem key={puzzle.id} puzzle={puzzle} onToggle={handleTogglePuzzle} onToggleImage={handleTogglePuzzleImage} onAttemptSolve={handleAttemptSolve} />)
                                     : <p className="text-sm text-slate-500 italic">No completed puzzles.</p>
                             )}
                         </div>
@@ -1404,62 +1430,63 @@ const PresenterView: React.FC = () => {
 
         {/* Right Column */}
         {showRightColumn && (
-            <div className="w-80 bg-slate-900/50 p-4 flex flex-col border-l border-slate-700 space-y-6">
-                {showObjectsSection && (
-                    <div className="space-y-3">
-                        <h3 className="text-lg font-semibold text-slate-300">Objects in Room</h3>
-                        <div className="grid grid-cols-2 gap-2">
-                            {roomObjects.map(obj => (
-                                <ObjectItem key={obj.id} obj={obj} onToggle={handleToggleObject} lockingPuzzleName={lockingPuzzlesByObjectId.get(obj.id)} onToggleInRoomImage={handleToggleInRoomImage} variant="mini" />
-                            ))}
+            <div className="w-80 bg-slate-900/50 p-4 flex flex-col border-l border-slate-700">
+                <div className="flex-1 overflow-y-auto pr-2 -mr-2 space-y-6">
+                    {hasAudio && (
+                        <div>
+                             <h3 className="text-lg font-semibold text-slate-300 mb-2">Audio Controls</h3>
+                             {soundtrack && (
+                                 <div className="p-4 bg-slate-800 rounded-lg border border-slate-700 mb-4">
+                                     <h4 className="font-semibold text-sm mb-2 text-slate-400">Soundtrack</h4>
+                                      <div className="flex items-center gap-2 mb-2">
+                                        <div className="w-12 h-12 bg-slate-700 rounded-md flex-shrink-0"></div>
+                                        <div className="flex-grow min-w-0">
+                                            <p className="font-semibold text-sm truncate">{game.soundtrack?.[soundtrack.currentTrackIndex]?.name || 'Unknown Track'}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs font-mono text-slate-400">{formatTime(progress)}</span>
+                                        <input type="range" min="0" max={duration || 0} value={progress} onChange={handleSoundtrackSeek} className="w-full h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-brand-500 [&::-webkit-slider-thumb]:rounded-full" />
+                                        <span className="text-xs font-mono text-slate-400">{formatTime(duration)}</span>
+                                    </div>
+                                    <div className="flex justify-center items-center gap-2 mt-3">
+                                        <button onClick={handleSoundtrackPrev} title="Previous Track" className="p-2 text-slate-300 hover:text-white hover:bg-slate-700 rounded-full"><Icon as="prev" className="w-5 h-5"/></button>
+                                        <button onClick={handleSoundtrackRewind} title="Rewind to Start" className="p-2 text-slate-300 hover:text-white hover:bg-slate-700 rounded-full"><Icon as="rewind" className="w-5 h-5"/></button>
+                                        <button onClick={handleSoundtrackPlayPause} title={soundtrack.isPlaying ? "Pause" : "Play"} className="p-3 bg-brand-600 text-white rounded-full hover:bg-brand-500"><Icon as={soundtrack.isPlaying ? 'stop' : 'play'} className="w-6 h-6"/></button>
+                                        <button onClick={handleSoundtrackFadeOut} disabled={isFadingOut || !soundtrack.isPlaying} title="Fade Out" className="p-2 text-slate-300 hover:text-white hover:bg-slate-700 rounded-full disabled:opacity-50"><Icon as="share" className="w-5 h-5 transform -rotate-90"/></button>
+                                        <button onClick={handleSoundtrackNext} title="Next Track" className="p-2 text-slate-300 hover:text-white hover:bg-slate-700 rounded-full"><Icon as="next" className="w-5 h-5"/></button>
+                                    </div>
+                                    <div className="flex items-center gap-2 mt-3">
+                                        <input type="range" min="0" max="1" step="0.05" value={soundtrack.volume} onChange={e => handleSoundtrackVolumeChange(parseFloat(e.target.value))} className="w-full h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-brand-500 [&::-webkit-slider-thumb]:rounded-full" />
+                                    </div>
+                                 </div>
+                             )}
+                             {game.soundboard && game.soundboard.length > 0 && (
+                                <div className="p-4 bg-slate-800 rounded-lg border border-slate-700">
+                                    <h4 className="font-semibold text-sm mb-2 text-slate-400">Sound Board</h4>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {game.soundboard.map(clip => {
+                                            const clipState = soundboardClips.get(clip.id);
+                                            return (
+                                                <button key={clip.id} onClick={() => handlePlaySoundboardClip(clip.id)} className={`p-2 rounded-md text-sm text-left ${clipState?.isPlaying ? 'bg-brand-500 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
+                                                    <p className="font-semibold truncate">{clip.name}</p>
+                                                </button>
+                                            )
+                                        })}
+                                    </div>
+                                </div>
+                             )}
                         </div>
-                    </div>
-                )}
-                {(game?.soundboard || []).length > 0 && (
-                    <div className="space-y-3 flex-1 min-h-0 flex flex-col">
-                        <h3 className="text-lg font-semibold text-slate-300">Sound Board</h3>
-                        <div className="grid grid-cols-2 gap-2 overflow-y-auto pr-2 -mr-2">
-                            {game.soundboard?.map(clip => {
-                                const clipState = soundboardClips.get(clip.id);
-                                const isPlaying = clipState?.isPlaying || false;
-                                return (
-                                    <button
-                                        key={clip.id}
-                                        onClick={() => handlePlaySoundboardClip(clip.id)}
-                                        className={`w-full flex items-center gap-3 text-left p-2 rounded-lg transition-colors ${isPlaying ? 'bg-brand-600 text-white' : 'bg-slate-700/50 hover:bg-slate-700'}`}
-                                    >
-                                        <Icon as={isPlaying ? 'stop' : 'play'} className="w-5 h-5 flex-shrink-0" />
-                                        <span className="truncate text-sm font-semibold">{clip.name}</span>
-                                    </button>
-                                )
-                            })}
-                        </div>
-                    </div>
-                )}
-                {soundtrack && (
-                     <div className="space-y-3">
-                        <h3 className="text-lg font-semibold text-slate-300">Soundtrack</h3>
-                        <div className="p-3 bg-slate-800/70 rounded-lg">
-                            <p className="font-semibold text-center truncate">{game?.soundtrack?.[soundtrack.currentTrackIndex]?.name || 'Unknown Track'}</p>
-                            <div className="flex items-center gap-4 mt-3">
-                                <button onClick={handleSoundtrackPrev} disabled={soundtrack.elements.length < 2} title="Previous Track" className="p-2 disabled:opacity-30"><Icon as="prev" className="w-5 h-5"/></button>
-                                <button onClick={handleSoundtrackRewind} title="Rewind to Start" className="p-2 disabled:opacity-30"><Icon as="rewind" className="w-5 h-5"/></button>
-                                <button onClick={handleSoundtrackPlayPause} className="p-3 bg-brand-600 rounded-full text-white shadow-lg"><Icon as={soundtrack.isPlaying ? 'stop' : 'play'} className="w-6 h-6"/></button>
-                                <button onClick={handleSoundtrackFadeOut} disabled={isFadingOut || !soundtrack.isPlaying} title="Fade Out & Stop" className="p-2 disabled:opacity-30"><Icon as="close" className="w-5 h-5"/></button>
-                                <button onClick={handleSoundtrackNext} disabled={soundtrack.elements.length < 2} title="Next Track" className="p-2 disabled:opacity-30"><Icon as="next" className="w-5 h-5"/></button>
-                            </div>
-                             <div className="flex items-center gap-2 text-xs text-slate-400 mt-3">
-                                <span>{formatTime(progress)}</span>
-                                <input type="range" min="0" max={duration || 0} value={progress} onChange={handleSoundtrackSeek} className="w-full h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-brand-500 [&::-webkit-slider-thumb]:rounded-full" />
-                                <span>{formatTime(duration)}</span>
-                            </div>
-                             <div className="flex items-center gap-2 text-xs text-slate-400 mt-2">
-                                 <Icon as="audio" className="w-4 h-4" />
-                                 <input type="range" min="0" max="1" step="0.05" value={soundtrack.volume} onChange={(e) => handleSoundtrackVolumeChange(parseFloat(e.target.value))} className="w-full h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-brand-500 [&::-webkit-slider-thumb]:rounded-full" />
+                    )}
+                    {showObjectsSection && (
+                        <div>
+                            <h3 className="text-lg font-semibold text-slate-300 mb-2">Available to Pick Up</h3>
+                            <div className="space-y-2">
+                                {roomObjects.map(obj => <ObjectItem key={obj.id} obj={obj} onToggle={handleToggleObject} lockingPuzzleName={lockingPuzzlesByObjectId.get(obj.id)} onToggleInRoomImage={handleToggleInRoomImage} variant="mini" />)}
                             </div>
                         </div>
-                     </div>
-                )}
+                    )}
+                </div>
             </div>
         )}
       </main>
