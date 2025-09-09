@@ -486,7 +486,7 @@ const Editor: React.FC = () => {
   };
 
   const addObject = () => {
-    const newObject: InventoryObject = { id: generateUUID(), name: '', description: '', showInInventory: false, image: null, inRoomImage: null, showInRoomImage: true, showImageOverlay: false, nameColor: null, inventorySlot: 1, x: 0.5, y: 0.5, size: 0.25 };
+    const newObject: InventoryObject = { id: generateUUID(), name: '', description: '', showInInventory: false, image: null, inRoomImage: null, showInRoomImage: true, showImageOverlay: false, nameColor: null, inventorySlot: 1, x: 0.5, y: 0.5, size: 0.25, isPickupable: true };
     const newObjects = [...editingRoomObjects, newObject];
     setEditingRoomObjects(newObjects);
     
@@ -1356,6 +1356,22 @@ const Editor: React.FC = () => {
                             rows={5}
                             className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm resize-y"
                         />
+                    </div>
+                    <div>
+                        <label className="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-300 cursor-pointer p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700">
+                            <input
+                                type="checkbox"
+                                className="w-4 h-4 rounded border-slate-400 text-brand-600 shadow-sm focus:ring-brand-500"
+                                checked={modalObjectData.isPickupable ?? true}
+                                onChange={(e) => handleModalObjectChange('isPickupable', e.target.checked)}
+                            />
+                            <span>Allow players to pick up this item</span>
+                        </label>
+                        { (modalObjectData.isPickupable === false) && (
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 pl-10">
+                                This item will be visible in the room (if an "In Room Image" is set) but cannot be added to the inventory. It can still be part of a puzzle or action.
+                            </p>
+                        )}
                     </div>
                     {game.inventoryLayout === 'dual' && (
                         <div>

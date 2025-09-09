@@ -35,6 +35,7 @@ export interface InventoryObject {
   x?: number;
   y?: number;
   size?: number;
+  isPickupable?: boolean;
 }
 
 export interface Puzzle {

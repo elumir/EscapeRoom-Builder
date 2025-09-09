@@ -77,14 +77,16 @@ const ObjectItem: React.FC<{
                                 <Icon as={obj.showInRoomImage ? 'eye' : 'eye-slash'} className="w-3 h-3"/>
                             </button>
                         )}
-                        <button
-                            onClick={() => onToggle(obj.id, true)}
-                            disabled={isLocked}
-                            className="p-1 bg-white/20 text-white rounded-full hover:bg-white/40 disabled:bg-white/10 disabled:cursor-not-allowed flex-shrink-0"
-                            title={lockingPuzzleName ? `Locked by: ${lockingPuzzleName}` : "Add to inventory"}
-                        >
-                            <Icon as="hand-expand" className="w-3 h-3"/>
-                        </button>
+                        {(obj.isPickupable ?? true) && (
+                            <button
+                                onClick={() => onToggle(obj.id, true)}
+                                disabled={isLocked}
+                                className="p-1 bg-white/20 text-white rounded-full hover:bg-white/40 disabled:bg-white/10 disabled:cursor-not-allowed flex-shrink-0"
+                                title={lockingPuzzleName ? `Locked by: ${lockingPuzzleName}` : "Add to inventory"}
+                            >
+                                <Icon as="hand-expand" className="w-3 h-3"/>
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>
