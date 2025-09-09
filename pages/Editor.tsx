@@ -272,6 +272,30 @@ const Editor: React.FC = () => {
     }, 100);
   };
   
+  const handleDuplicateRoom = (sourceIndex: number) => {
+      if (!game) return;
+
+      const sourceRoom = game.rooms[sourceIndex];
+      if (!sourceRoom) return;
+
+      const newRoom: RoomType = {
+          ...sourceRoom,
+          id: generateUUID(),
+          name: `${sourceRoom.name} Copy`,
+          objects: sourceRoom.objects.map(obj => ({ ...obj, id: generateUUID() })),
+          puzzles: sourceRoom.puzzles.map(p => ({ ...p, id: generateUUID() })),
+          actions: (sourceRoom.actions || []).map(a => ({ ...a, id: generateUUID() })),
+      };
+
+      const newRooms = [...game.rooms];
+      newRooms.splice(sourceIndex + 1, 0, newRoom);
+      const newGame = { ...game, rooms: newRooms };
+      
+      updateGame(newGame);
+      
+      selectRoom(sourceIndex + 1, newRooms);
+  };
+
   const deleteRoom = () => {
     if (!game || game.rooms.length <= 1) {
       alert("You cannot delete the last room.");
@@ -2231,7 +2255,7 @@ const Editor: React.FC = () => {
                                   onDragLeave={handleDragLeave}
                                   onDrop={() => handleDrop(room.originalIndex)}
                                   onDragEnd={handleDragEnd}
-                                  className={`p-2 rounded-lg cursor-pointer flex items-center gap-2 mb-2 relative
+                                  className={`p-2 rounded-lg cursor-pointer group flex items-center gap-2 mb-2 relative
                                       ${room.originalIndex === selectedRoomIndex ? 'bg-brand-100 dark:bg-brand-900/50' : 'hover:bg-slate-100 dark:hover:bg-slate-700'}
                                       ${draggedRoomIndex === room.originalIndex ? 'opacity-50' : ''}
                                   `}
@@ -2241,7 +2265,14 @@ const Editor: React.FC = () => {
                                       <div className={`absolute left-0 right-0 ${draggedRoomIndex !== null && draggedRoomIndex > room.originalIndex ? 'top-0' : 'bottom-0'} h-0.5 bg-brand-500`}></div>
                                   )}
                                   <Icon as="reorder" className="w-5 h-5 text-slate-400 dark:text-slate-500 flex-shrink-0" />
-                                  <span className="truncate">{room.name}</span>
+                                  <div className="flex-grow flex justify-between items-center min-w-0">
+                                    <span className="truncate">{room.name}</span>
+                                    <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <button onClick={(e) => { e.stopPropagation(); handleDuplicateRoom(room.originalIndex); }} className="p-1 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title="Duplicate Room">
+                                        <Icon as="duplicate" className="w-4 h-4" />
+                                      </button>
+                                    </div>
+                                  </div>
                               </div>
                           ))}
                       </div>
