@@ -1659,7 +1659,7 @@ const Editor: React.FC = () => {
                             />
                         </div>
                     </div>
-                    <div>
+                    <div className="pt-2">
                         <label className="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-300 cursor-pointer p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700">
                             <input
                                 type="checkbox"
@@ -1667,7 +1667,12 @@ const Editor: React.FC = () => {
                                 checked={modalPuzzleData.isGlobal || false}
                                 onChange={(e) => handleModalPuzzleChange('isGlobal', e.target.checked)}
                             />
-                            <span>Global Puzzle (shows in all rooms until solved)</span>
+                            <div>
+                                <span>Global Puzzle</span>
+                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                    If checked, this puzzle will appear in all rooms until it is solved.
+                                </p>
+                            </div>
                         </label>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
