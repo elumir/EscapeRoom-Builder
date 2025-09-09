@@ -1103,6 +1103,8 @@ const PresenterView: React.FC = () => {
   const inventoryList2 = combinedInventoryObjects.filter(obj => obj.inventorySlot === 2);
   
   const hasAudio = !!soundtrack || (game?.soundboard && game.soundboard.length > 0);
+  const showObjectsSection = !game.hideAvailableObjects && roomObjects.length > 0;
+  const showRightColumn = hasAudio || showObjectsSection;
 
   return (
     <div className="h-screen bg-slate-800 text-white flex flex-col">
@@ -1350,19 +1352,6 @@ const PresenterView: React.FC = () => {
                     </div>
                 </div>
 
-                {!game.hideAvailableObjects && (
-                    <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
-                        <div className="border-b border-slate-700 pb-3 mb-4">
-                           <h3 className="font-semibold text-slate-300 text-lg">Objects in Room</h3>
-                        </div>
-                        <div className="space-y-2">
-                            {roomObjects.length > 0 ? roomObjects.map(obj => (
-                                <ObjectItem key={obj.id} obj={obj} onToggle={handleToggleObject} lockingPuzzleName={lockingPuzzlesByObjectId.get(obj.id)} onToggleInRoomImage={handleToggleInRoomImage} variant="mini" />
-                            )) : <p className="text-sm text-slate-500 italic">No objects available to pick up.</p>}
-                        </div>
-                    </div>
-                )}
-                
                  <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
                     <div className="flex justify-between items-center border-b border-slate-700 pb-3 mb-4">
                          <h3 className="font-semibold text-slate-300 text-lg">Player Actions & Host Responses</h3>
@@ -1410,8 +1399,18 @@ const PresenterView: React.FC = () => {
         </div>
 
         {/* Right Column */}
-        {hasAudio && (
+        {showRightColumn && (
             <div className="w-80 bg-slate-900/50 p-4 flex flex-col border-l border-slate-700 space-y-6">
+                {showObjectsSection && (
+                    <div className="space-y-3">
+                        <h3 className="text-lg font-semibold text-slate-300">Objects in Room</h3>
+                        <div className="space-y-2">
+                            {roomObjects.map(obj => (
+                                <ObjectItem key={obj.id} obj={obj} onToggle={handleToggleObject} lockingPuzzleName={lockingPuzzlesByObjectId.get(obj.id)} onToggleInRoomImage={handleToggleInRoomImage} variant="mini" />
+                            ))}
+                        </div>
+                    </div>
+                )}
                 {soundtrack && (
                      <div className="space-y-3">
                         <h3 className="text-lg font-semibold text-slate-300">Soundtrack</h3>
