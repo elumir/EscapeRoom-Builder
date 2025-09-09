@@ -2655,19 +2655,13 @@ const Editor: React.FC = () => {
                   <div ref={objectsContainerRef} className="space-y-4">
                       {editingRoomObjects.map((obj, index) => {
                          const locks = objectLockMap.get(obj.id);
+                         const hasStatusIndicators = locks || (obj.isPickupable ?? true) || (obj.showInRoomImage && obj.inRoomImage) || game.inventoryLayout === 'dual';
+                         
                          return (
                             <div key={obj.id} className="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-700">
                                 <div className="flex justify-between items-start">
-                                    <div>
-                                      <p className="font-semibold">{obj.name || <span className="italic text-slate-500">Untitled Object</span>}</p>
-                                      {locks && (
-                                        <div className="flex items-center gap-1 text-xs text-red-500 mt-1" title={`Locked by: ${locks.join(', ')}`}>
-                                          <Icon as="lock" className="w-3 h-3"/>
-                                          <span>Locked</span>
-                                        </div>
-                                      )}
-                                    </div>
-                                    <div className="flex items-center gap-1">
+                                    <p className="font-semibold flex-1 min-w-0 break-words">{obj.name || <span className="italic text-slate-500">Untitled Object</span>}</p>
+                                    <div className="flex items-center gap-1 flex-shrink-0 ml-2">
                                       <button onClick={() => setObjectModalState({ object: { ...obj }, index })} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title="Edit Object">
                                         <Icon as="edit" className="w-4 h-4" />
                                       </button>
@@ -2676,6 +2670,33 @@ const Editor: React.FC = () => {
                                       </button>
                                     </div>
                                 </div>
+                                {hasStatusIndicators && (
+                                  <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400 mt-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+                                      {locks && (
+                                          <div className="flex items-center text-red-500" title={`Locked by: ${locks.join(', ')}`}>
+                                              <Icon as="lock" className="w-4 h-4" />
+                                          </div>
+                                      )}
+                                      {(obj.isPickupable ?? true) && (
+                                          <div title="Pickupable">
+                                              <Icon as="hand-expand" className="w-4 h-4" />
+                                          </div>
+                                      )}
+                                      {obj.showInRoomImage && obj.inRoomImage && (
+                                          <div title="Initially visible in room">
+                                              <Icon as="eye" className="w-4 h-4" />
+                                          </div>
+                                      )}
+                                      {game.inventoryLayout === 'dual' && (
+                                          <div 
+                                            className="flex items-center justify-center w-4 h-4 bg-slate-200 dark:bg-slate-600 rounded-sm text-xs font-bold" 
+                                            title={`Goes to ${obj.inventorySlot === 2 ? (game.inventory2Title || 'Inventory 2') : (game.inventory1Title || 'Inventory 1')}`}
+                                          >
+                                              {obj.inventorySlot || 1}
+                                          </div>
+                                      )}
+                                  </div>
+                                )}
                             </div>
                          )
                       })}
