@@ -2672,25 +2672,25 @@ const Editor: React.FC = () => {
                                     </div>
                                 </div>
                                 {hasStatusIndicators && (
-                                  <div className={`flex items-center gap-2.5 text-slate-500 dark:text-slate-400 mt-2 ${isPickupable ? 'pt-2 border-t border-slate-200 dark:border-slate-700' : ''}`}>
+                                  <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 mt-2">
                                       {locks && (
                                           <div className="flex items-center text-red-500" title={`Locked by: ${locks.join(', ')}`}>
-                                              <Icon as="lock" className="w-3.5 h-3.5" />
+                                              <Icon as="lock" className="w-3 h-3" />
                                           </div>
                                       )}
                                       {isPickupable && (
                                           <div title="Pickupable">
-                                              <Icon as="hand-expand" className="w-3.5 h-3.5" />
+                                              <Icon as="hand-expand" className="w-3 h-3" />
                                           </div>
                                       )}
                                       {obj.showInRoomImage && obj.inRoomImage && (
                                           <div title="Initially visible in room">
-                                              <Icon as="eye" className="w-3.5 h-3.5" />
+                                              <Icon as="eye" className="w-3 h-3" />
                                           </div>
                                       )}
                                       {game.inventoryLayout === 'dual' && isPickupable && (
                                           <div 
-                                            className="flex items-center justify-center w-3.5 h-3.5 bg-slate-200 dark:bg-slate-600 rounded-sm text-[10px] font-bold" 
+                                            className="flex items-center justify-center w-3 h-3 bg-slate-200 dark:bg-slate-600 rounded-sm text-[9px] font-bold" 
                                             title={`Goes to ${obj.inventorySlot === 2 ? (game.inventory2Title || 'Inventory 2') : (game.inventory1Title || 'Inventory 1')}`}
                                           >
                                               {obj.inventorySlot || 1}
