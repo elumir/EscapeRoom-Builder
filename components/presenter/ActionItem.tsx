@@ -20,7 +20,7 @@ const ActionItem: React.FC<{
     isLocked?: boolean;
     lockingPuzzleName?: string;
     variant?: 'full' | 'mini';
-}> = ({ action, onToggleImage, onToggleComplete, isLocked, lockingPuzzleName, variant = 'full' }) => {
+}> = React.memo(({ action, onToggleImage, onToggleComplete, isLocked, lockingPuzzleName, variant = 'full' }) => {
     
     const isComplete = action.isComplete ?? false;
     const isDisabled = !!isLocked;
@@ -211,6 +211,6 @@ const ActionItem: React.FC<{
             )}
         </div>
     );
-};
+});
 
 export default ActionItem;

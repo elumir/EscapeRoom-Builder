@@ -18,7 +18,7 @@ const PuzzleItem: React.FC<{
     isLocked?: boolean;
     lockingPuzzleName?: string;
     variant?: 'full' | 'mini';
-}> = ({ puzzle, onToggle, onToggleImage, onAttemptSolve, isLocked, lockingPuzzleName, variant = 'full' }) => {
+}> = React.memo(({ puzzle, onToggle, onToggleImage, onAttemptSolve, isLocked, lockingPuzzleName, variant = 'full' }) => {
     // --- All Hooks must be at the top level ---
     const [isFlashing, setIsFlashing] = useState(false);
     const prevIsSolved = useRef(puzzle.isSolved);
@@ -263,6 +263,6 @@ const PuzzleItem: React.FC<{
             )}
         </div>
     );
-};
+});
 
 export default PuzzleItem;

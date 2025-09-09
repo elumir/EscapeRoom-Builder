@@ -1,10 +1,65 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import * as gameService from '../services/presentationService';
-import type { Game, Room as RoomType, InventoryObject } from '../types';
+import type { Game, Room as RoomType } from '../types';
 import Icon from '../components/Icon';
 import Room from '../components/Slide';
 import { useAuth } from '../hooks/useAuth';
+
+const GameCard = React.memo(({ game, fallbackRoom, onPresentClick }: { game: Game, fallbackRoom: RoomType, onPresentClick: (game: Game) => void }) => {
+    const { firstRoom, previewProps } = useMemo(() => {
+        const firstRoom = game.rooms[0] || fallbackRoom;
+        const inventoryObjects = game.rooms.flatMap(r => r.objects).filter(t => t.showInInventory);
+        const visibleMapImages = game.mapDisplayMode === 'room-specific'
+            ? [firstRoom.mapImage].filter(Boolean)
+            : game.rooms.map(r => r.mapImage).filter(Boolean);
+        const inRoomObjects = firstRoom.objects.filter(obj => obj.showInRoomImage && obj.inRoomImage);
+        
+        return {
+            firstRoom,
+            previewProps: {
+                inventoryObjects,
+                visibleMapImages,
+                inRoomObjects,
+                globalBackgroundColor: game.globalBackgroundColor,
+                inventoryLayout: game.inventoryLayout,
+                inventory1Title: game.inventory1Title,
+                inventory2Title: game.inventory2Title,
+                fontFamily: game.fontFamily,
+            }
+        };
+    }, [game, fallbackRoom]);
+
+    return (
+        <div className="group relative bg-white dark:bg-slate-800 rounded-lg shadow-md overflow-hidden border border-slate-200 dark:border-slate-700 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col justify-between">
+            <div>
+                <Link to={`/editor/${game.id}`} className="block hover:opacity-90 transition-opacity">
+                    <div className="aspect-video bg-slate-200 dark:bg-slate-700">
+                        <Room room={firstRoom} {...previewProps} />
+                    </div>
+                    <div className="flex justify-between items-start px-4 pt-2">
+                        <h3 className="text-lg font-semibold truncate text-slate-800 dark:text-slate-200 group-hover:text-brand-600 dark:group-hover:text-brand-400">{game.title}</h3>
+                        {game.visibility === 'public' && (
+                            <span className="text-xs font-semibold bg-sky-100 text-sky-800 dark:bg-sky-900/50 dark:text-sky-300 px-2 py-0.5 rounded-full flex-shrink-0">
+                                Public
+                            </span>
+                        )}
+                    </div>
+                </Link>
+                <p className="text-sm text-slate-500 dark:text-slate-400 px-4 pb-2">{game.rooms.length} room(s)</p>
+            </div>
+            <div className="p-4">
+                <button
+                    onClick={() => onPresentClick(game)}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors duration-300 shadow"
+                >
+                    <Icon as="present" className="w-5 h-5" />
+                    Present
+                </button>
+            </div>
+        </div>
+    );
+});
 
 const Dashboard: React.FC = () => {
     const [games, setGames] = useState<Game[]>([]);
@@ -167,59 +222,14 @@ const Dashboard: React.FC = () => {
                     </div>
                 ) : games.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                        {games.map(g => {
-                           const inventoryObjects = g.rooms
-                             .flatMap(r => r.objects)
-                             .filter(t => t.showInInventory);
-                            
-                           const firstRoom = g.rooms[0] || fallbackRoom;
-                           const visibleMapImages = g.mapDisplayMode === 'room-specific'
-                                ? [firstRoom.mapImage].filter(Boolean)
-                                : g.rooms.map(r => r.mapImage).filter(Boolean);
-                           const inRoomObjects = firstRoom.objects.filter(
-                               (obj) => obj.showInRoomImage && obj.inRoomImage
-                           );
-
-                            return (
-                                <div key={g.id} className="group relative bg-white dark:bg-slate-800 rounded-lg shadow-md overflow-hidden border border-slate-200 dark:border-slate-700 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col justify-between">
-                                    <div>
-                                        <Link to={`/editor/${g.id}`} className="block hover:opacity-90 transition-opacity">
-                                            <div className="aspect-video bg-slate-200 dark:bg-slate-700">
-                                              <Room 
-                                                room={firstRoom}
-                                                inventoryObjects={inventoryObjects}
-                                                visibleMapImages={visibleMapImages}
-                                                globalBackgroundColor={g.globalBackgroundColor}
-                                                inventoryLayout={g.inventoryLayout}
-                                                inventory1Title={g.inventory1Title}
-                                                inventory2Title={g.inventory2Title}
-                                                fontFamily={g.fontFamily}
-                                                inRoomObjects={inRoomObjects}
-                                              />
-                                            </div>
-                                            <div className="flex justify-between items-start px-4 pt-2">
-                                                <h3 className="text-lg font-semibold truncate text-slate-800 dark:text-slate-200 group-hover:text-brand-600 dark:group-hover:text-brand-400">{g.title}</h3>
-                                                {g.visibility === 'public' && (
-                                                    <span className="text-xs font-semibold bg-sky-100 text-sky-800 dark:bg-sky-900/50 dark:text-sky-300 px-2 py-0.5 rounded-full flex-shrink-0">
-                                                        Public
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </Link>
-                                        <p className="text-sm text-slate-500 dark:text-slate-400 px-4 pb-2">{g.rooms.length} room(s)</p>
-                                    </div>
-                                    <div className="p-4">
-                                        <button
-                                            onClick={() => handlePresentClick(g)}
-                                            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors duration-300 shadow"
-                                        >
-                                            <Icon as="present" className="w-5 h-5" />
-                                            Present
-                                        </button>
-                                    </div>
-                                </div>
-                            )
-                        })}
+                        {games.map(g => (
+                            <GameCard 
+                                key={g.id}
+                                game={g}
+                                fallbackRoom={fallbackRoom}
+                                onPresentClick={handlePresentClick}
+                            />
+                        ))}
                     </div>
                 ) : (
                     <div className="text-center py-16 px-6 bg-white dark:bg-slate-800 rounded-lg shadow-md">

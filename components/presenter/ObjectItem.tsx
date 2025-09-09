@@ -37,7 +37,7 @@ const ObjectItem: React.FC<{
     onToggleImage?: (id: string, state: boolean) => void;
     onToggleInRoomImage?: (id: string, state: boolean) => void;
     variant?: 'full' | 'mini';
-}> = ({ 
+}> = React.memo(({ 
     obj, 
     onToggle, 
     lockingPuzzleName, 
@@ -149,6 +149,6 @@ const ObjectItem: React.FC<{
             )}
         </div>
     );
-};
+});
 
 export default ObjectItem;
