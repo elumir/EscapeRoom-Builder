@@ -954,8 +954,14 @@ const Editor: React.FC = () => {
         const finalXPercent = centerX / parentRect.width;
         const finalYPercent = centerY / parentRect.height;
 
-        handleModalObjectChange('x', finalXPercent);
-        handleModalObjectChange('y', finalYPercent);
+        setModalObjectData(prevData => {
+            if (!prevData) return prevData;
+            return {
+                ...prevData,
+                x: finalXPercent,
+                y: finalYPercent,
+            };
+        });
     };
 
     const handleDragMouseUp = () => {
