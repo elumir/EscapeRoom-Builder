@@ -17,47 +17,8 @@ const CheckmarkIcon = ({ className = 'h-6 w-6' }: { className?: string }) => (
     </svg>
 );
 
-// --- SOLVED PUZZLE COMPONENT ---
-const SolvedPuzzle = React.memo<{
-    puzzle: Puzzle;
-    variant?: 'full' | 'mini';
-}>(({ puzzle, variant = 'full' }) => {
-    const [isFlashing, setIsFlashing] = useState(true);
 
-    useEffect(() => {
-        // Flash effect on initial render of this component
-        const timer = setTimeout(() => setIsFlashing(false), 1000);
-        return () => clearTimeout(timer);
-    }, []); // Empty dependency array ensures this runs only once on mount
-
-    const flashClass = isFlashing ? 'border-green-500' : 'border-transparent';
-    const transitionClass = 'transition-colors duration-1000';
-
-    if (variant === 'mini') {
-        return (
-            <div className={`mt-1 flex items-center gap-1 p-1 rounded-sm border ${flashClass} ${transitionClass}`}>
-                <div className="text-green-400 flex-shrink-0"><CheckmarkIcon className="h-3 w-3" /></div>
-                <h4 className="font-semibold text-slate-500 text-[9px] truncate line-through">{puzzle.name}</h4>
-            </div>
-        );
-    }
-
-    return (
-        <div className={`flex items-start gap-4 p-4 bg-slate-800/50 rounded-lg border-2 ${flashClass} ${transitionClass}`}>
-            <div className="text-green-400 mt-1 flex-shrink-0"><CheckmarkIcon className="h-6 w-6" /></div>
-            <div className="flex-1">
-                <h3 className="font-bold text-slate-400 line-through">{puzzle.name}</h3>
-                <div className="text-slate-300 mt-2">
-                    <MarkdownRenderer content={puzzle.solvedText} />
-                </div>
-            </div>
-        </div>
-    );
-});
-
-
-// --- UNSOLVED PUZZLE COMPONENT ---
-const UnsolvedPuzzle = React.memo<{
+const PuzzleItem: React.FC<{
     puzzle: Puzzle;
     onToggle: (id: string, state: boolean) => void;
     onToggleImage: (id: string, state: boolean) => void;
@@ -65,14 +26,40 @@ const UnsolvedPuzzle = React.memo<{
     isLocked?: boolean;
     lockingPuzzleName?: string;
     variant?: 'full' | 'mini';
-}>(({ puzzle, onToggle, onToggleImage, onAttemptSolve, isLocked, lockingPuzzleName, variant = 'full' }) => {
+}> = React.memo(({
+    puzzle,
+    onToggle,
+    onToggleImage,
+    onAttemptSolve,
+    isLocked = false,
+    lockingPuzzleName,
+    variant = 'full',
+}) => {
+    // --- STATE AND REFS FOR BOTH SOLVED/UNSOLVED ---
+    
+    // Hooks for UNSOLVED state (audio player)
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [progress, setProgress] = useState(0);
     const [duration, setDuration] = useState(0);
+    
+    // Hooks for SOLVED state (flash effect)
+    const [isFlashing, setIsFlashing] = useState(true);
+    const prevIsSolvedRef = useRef(puzzle.isSolved);
 
+    // --- EFFECTS ---
+
+    // Effect for handling audio player setup and cleanup
     useEffect(() => {
-        if (!puzzle.sound) return;
+        if (puzzle.isSolved || !puzzle.sound) {
+            // Cleanup if puzzle is solved or has no sound
+            if (audioRef.current) {
+                audioRef.current.pause();
+                audioRef.current = null;
+                setIsPlaying(false);
+            }
+            return;
+        }
 
         const audio = new Audio(`${API_BASE_URL}/assets/${puzzle.sound}`);
         audioRef.current = audio;
@@ -86,14 +73,16 @@ const UnsolvedPuzzle = React.memo<{
         audio.addEventListener('ended', handleAudioEnd);
 
         return () => {
-            audio.pause();
-            audio.removeEventListener('loadedmetadata', setAudioData);
-            audio.removeEventListener('timeupdate', setAudioTime);
-            audio.removeEventListener('ended', handleAudioEnd);
-            audioRef.current = null;
+            if (audio) {
+                audio.pause();
+                audio.removeEventListener('loadedmetadata', setAudioData);
+                audio.removeEventListener('timeupdate', setAudioTime);
+                audio.removeEventListener('ended', handleAudioEnd);
+            }
         };
-    }, [puzzle.sound]);
-
+    }, [puzzle.sound, puzzle.isSolved]);
+    
+    // Effect to pause audio if puzzle becomes locked while playing
     useEffect(() => {
         if (isLocked && audioRef.current && isPlaying) {
             audioRef.current.pause();
@@ -101,6 +90,27 @@ const UnsolvedPuzzle = React.memo<{
         }
     }, [isLocked, isPlaying]);
 
+    // Effect for handling the "flash on solve" behavior
+    useEffect(() => {
+        const justSolved = puzzle.isSolved && !prevIsSolvedRef.current;
+        
+        if (justSolved) {
+            setIsFlashing(true);
+            const timer = setTimeout(() => setIsFlashing(false), 1000);
+            return () => clearTimeout(timer);
+        }
+        
+        if (!puzzle.isSolved) {
+            // Reset flash state if puzzle becomes unsolved (e.g., game reset)
+            setIsFlashing(true);
+        }
+        
+        prevIsSolvedRef.current = puzzle.isSolved;
+
+    }, [puzzle.isSolved]);
+
+
+    // --- EVENT HANDLERS (for unsolved state) ---
     const handlePlayPause = () => {
         if (audioRef.current) {
             if (isPlaying) audioRef.current.pause();
@@ -131,128 +141,143 @@ const UnsolvedPuzzle = React.memo<{
         else onToggle(puzzle.id, true);
     };
 
-    if (variant === 'mini') {
-        return (
-            <div className={`mt-1 flex flex-col ${isLocked ? 'opacity-50' : ''}`}>
-                <div className="flex items-center justify-between gap-1">
-                    <div className="flex-1 min-w-0">
-                        <h4 className="font-bold text-amber-400/80 text-[9px] truncate flex items-center gap-1">
-                            {isLocked && <Icon as="lock" className="w-2 h-2 text-slate-400"/>}
-                            {puzzle.name}
-                        </h4>
-                    </div>
-                     <button
-                        onClick={handleCompleteClick}
-                        disabled={isLocked}
-                        className="px-1.5 py-0.5 bg-green-700 text-white rounded text-[9px] hover:bg-green-600 disabled:bg-slate-600 flex-shrink-0"
-                    >
-                        {puzzle.answer ? 'Solve' : 'Complete'}
-                    </button>
+
+    // --- RENDER LOGIC ---
+
+    if (puzzle.isSolved) {
+        // --- RENDER SOLVED PUZZLE ---
+        const flashClass = isFlashing ? 'border-green-500' : 'border-transparent';
+        const transitionClass = 'transition-colors duration-1000';
+
+        if (variant === 'mini') {
+            return (
+                <div className={`mt-1 flex items-center gap-1 p-1 rounded-sm border ${flashClass} ${transitionClass}`}>
+                    <div className="text-green-400 flex-shrink-0"><CheckmarkIcon className="h-3 w-3" /></div>
+                    <h4 className="font-semibold text-slate-500 text-[9px] truncate line-through">{puzzle.name}</h4>
                 </div>
-                {lockingPuzzleName && (
-                   <p className="text-red-500/80 text-[8px] leading-tight truncate mt-0.5 pl-1">Locked by: {lockingPuzzleName}</p>
-                )}
-                {puzzle.image && (
-                  <div className={`flex items-center gap-1 pl-1 mt-1 ${isLocked ? 'opacity-50' : ''}`}>
-                      <label className={`flex items-center transform scale-75 origin-left ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
-                          <input
-                              type="checkbox"
-                              checked={puzzle.showImageOverlay}
-                              onChange={(e) => onToggleImage(puzzle.id, e.target.checked)}
-                              className="sr-only peer"
-                              disabled={isLocked}
-                          />
-                          <div className="relative w-9 h-5 bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-sky-600"></div>
-                      </label>
-                      <span className="text-slate-400 text-[9px]">Show Puzzle</span>
-                  </div>
+            );
+        }
+
+        return (
+            <div className={`flex items-start gap-4 p-4 bg-slate-800/50 rounded-lg border-2 ${flashClass} ${transitionClass}`}>
+                <div className="text-green-400 mt-1 flex-shrink-0"><CheckmarkIcon className="h-6 w-6" /></div>
+                <div className="flex-1">
+                    <h3 className="font-bold text-slate-400 line-through">{puzzle.name}</h3>
+                    <div className="text-slate-300 mt-2">
+                        <MarkdownRenderer content={puzzle.solvedText} />
+                    </div>
+                </div>
+            </div>
+        );
+
+    } else {
+        // --- RENDER UNSOLVED PUZZLE ---
+        if (variant === 'mini') {
+            return (
+                <div className={`mt-1 flex flex-col ${isLocked ? 'opacity-50' : ''}`}>
+                    <div className="flex items-center justify-between gap-1">
+                        <div className="flex-1 min-w-0">
+                            <h4 className="font-bold text-amber-400/80 text-[9px] truncate flex items-center gap-1">
+                                {isLocked && <Icon as="lock" className="w-2 h-2 text-slate-400"/>}
+                                {puzzle.name}
+                            </h4>
+                        </div>
+                         <button
+                            onClick={handleCompleteClick}
+                            disabled={isLocked}
+                            className="px-1.5 py-0.5 bg-green-700 text-white rounded text-[9px] hover:bg-green-600 disabled:bg-slate-600 flex-shrink-0"
+                        >
+                            {puzzle.answer ? 'Solve' : 'Complete'}
+                        </button>
+                    </div>
+                    {lockingPuzzleName && (
+                       <p className="text-red-500/80 text-[8px] leading-tight truncate mt-0.5 pl-1">Locked by: {lockingPuzzleName}</p>
+                    )}
+                    {puzzle.image && (
+                      <div className={`flex items-center gap-1 pl-1 mt-1 ${isLocked ? 'opacity-50' : ''}`}>
+                          <label className={`flex items-center transform scale-75 origin-left ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                              <input
+                                  type="checkbox"
+                                  checked={puzzle.showImageOverlay}
+                                  onChange={(e) => onToggleImage(puzzle.id, e.target.checked)}
+                                  className="sr-only peer"
+                                  disabled={isLocked}
+                              />
+                              <div className="relative w-9 h-5 bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-sky-600"></div>
+                          </label>
+                          <span className="text-slate-400 text-[9px]">Show Puzzle</span>
+                      </div>
+                    )}
+                </div>
+            );
+        }
+
+        return (
+            <div className={`flex flex-col gap-3 p-4 bg-slate-800/50 rounded-lg transition-opacity ${isLocked ? 'opacity-50' : ''}`}>
+                <div className="flex items-start gap-4">
+                    <div className="flex-1">
+                        <h3 className="font-bold text-amber-400 flex items-center gap-2">
+                            {isLocked && <Icon as="lock" className="w-4 h-4 text-slate-400"/>}
+                            {puzzle.name}
+                        </h3>
+                    </div>
+                    <div className="flex items-center gap-4 flex-shrink-0">
+                        {puzzle.image && (
+                            <label className={`flex items-center gap-2 text-sm text-sky-300 ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                                <span>Show Puzzle</span>
+                                <input
+                                    type="checkbox"
+                                    checked={puzzle.showImageOverlay}
+                                    onChange={(e) => onToggleImage(puzzle.id, e.target.checked)}
+                                    className="sr-only peer"
+                                    disabled={isLocked}
+                                />
+                                <div className="relative w-11 h-6 bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-600"></div>
+                            </label>
+                        )}
+                        <button
+                            onClick={handleCompleteClick}
+                            disabled={isLocked}
+                            className="px-3 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-sm font-semibold"
+                        >
+                            {puzzle.answer ? 'Solve' : 'Complete'}
+                        </button>
+                    </div>
+                </div>
+                <div className="pl-4 text-slate-300">
+                    <MarkdownRenderer content={puzzle.unsolvedText} />
+                     {lockingPuzzleName && (
+                        <p className="text-red-500 text-xs mt-2">Locked by: {lockingPuzzleName}</p>
+                    )}
+                </div>
+                {puzzle.sound && (
+                    <div className="pl-4 mt-2">
+                        <div className={`flex items-center gap-3 w-full bg-slate-700/50 p-2 rounded-lg transition-opacity ${isLocked ? 'opacity-60' : ''}`}>
+                            <button onClick={handlePlayPause} disabled={isLocked} title={isPlaying ? "Pause" : "Play"} className="p-2 bg-slate-700 rounded-full hover:bg-slate-600 flex-shrink-0 disabled:cursor-not-allowed disabled:hover:bg-slate-700">
+                                <Icon as={isPlaying ? 'stop' : 'play'} className="h-5 w-5" />
+                            </button>
+                            <button onClick={handleRewind} disabled={isLocked} title="Rewind to Start" className="p-2 bg-slate-700 rounded-full hover:bg-slate-600 flex-shrink-0 disabled:cursor-not-allowed disabled:hover:bg-slate-700">
+                               <Icon as="rewind" className="h-5 w-5" />
+                            </button>
+                            <div className="flex-grow flex items-center gap-2">
+                                <span className="text-xs text-slate-400 font-mono">{formatTime(progress)}</span>
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max={duration || 0}
+                                    value={progress}
+                                    onChange={handleScrub}
+                                    disabled={isLocked}
+                                    className="w-full h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer disabled:cursor-not-allowed [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-brand-500 [&::-webkit-slider-thumb]:rounded-full"
+                                />
+                                 <span className="text-xs text-slate-400 font-mono">{formatTime(duration)}</span>
+                            </div>
+                        </div>
+                    </div>
                 )}
             </div>
         );
     }
-
-    return (
-        <div className={`flex flex-col gap-3 p-4 bg-slate-800/50 rounded-lg transition-opacity ${isLocked ? 'opacity-50' : ''}`}>
-            <div className="flex items-start gap-4">
-                <div className="flex-1">
-                    <h3 className="font-bold text-amber-400 flex items-center gap-2">
-                        {isLocked && <Icon as="lock" className="w-4 h-4 text-slate-400"/>}
-                        {puzzle.name}
-                    </h3>
-                </div>
-                <div className="flex items-center gap-4 flex-shrink-0">
-                    {puzzle.image && (
-                        <label className={`flex items-center gap-2 text-sm text-sky-300 ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
-                            <span>Show Puzzle</span>
-                            <input
-                                type="checkbox"
-                                checked={puzzle.showImageOverlay}
-                                onChange={(e) => onToggleImage(puzzle.id, e.target.checked)}
-                                className="sr-only peer"
-                                disabled={isLocked}
-                            />
-                            <div className="relative w-11 h-6 bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-600"></div>
-                        </label>
-                    )}
-                    <button
-                        onClick={handleCompleteClick}
-                        disabled={isLocked}
-                        className="px-3 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-sm font-semibold"
-                    >
-                        {puzzle.answer ? 'Solve' : 'Complete'}
-                    </button>
-                </div>
-            </div>
-            <div className="pl-4 text-slate-300">
-                <MarkdownRenderer content={puzzle.unsolvedText} />
-                 {lockingPuzzleName && (
-                    <p className="text-red-500 text-xs mt-2">Locked by: {lockingPuzzleName}</p>
-                )}
-            </div>
-            {puzzle.sound && (
-                <div className="pl-4 mt-2">
-                    <div className={`flex items-center gap-3 w-full bg-slate-700/50 p-2 rounded-lg transition-opacity ${isLocked ? 'opacity-60' : ''}`}>
-                        <button onClick={handlePlayPause} disabled={isLocked} title={isPlaying ? "Pause" : "Play"} className="p-2 bg-slate-700 rounded-full hover:bg-slate-600 flex-shrink-0 disabled:cursor-not-allowed disabled:hover:bg-slate-700">
-                            <Icon as={isPlaying ? 'stop' : 'play'} className="h-5 w-5" />
-                        </button>
-                        <button onClick={handleRewind} disabled={isLocked} title="Rewind to Start" className="p-2 bg-slate-700 rounded-full hover:bg-slate-600 flex-shrink-0 disabled:cursor-not-allowed disabled:hover:bg-slate-700">
-                           <Icon as="rewind" className="h-5 w-5" />
-                        </button>
-                        <div className="flex-grow flex items-center gap-2">
-                            <span className="text-xs text-slate-400 font-mono">{formatTime(progress)}</span>
-                            <input
-                                type="range"
-                                min="0"
-                                max={duration || 0}
-                                value={progress}
-                                onChange={handleScrub}
-                                disabled={isLocked}
-                                className="w-full h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer disabled:cursor-not-allowed [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-brand-500 [&::-webkit-slider-thumb]:rounded-full"
-                            />
-                             <span className="text-xs text-slate-400 font-mono">{formatTime(duration)}</span>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-});
-
-
-// --- DISPATCHER COMPONENT ---
-const PuzzleItem: React.FC<{
-    puzzle: Puzzle;
-    onToggle: (id: string, state: boolean) => void;
-    onToggleImage: (id: string, state: boolean) => void;
-    onAttemptSolve: (id: string) => void;
-    isLocked?: boolean;
-    lockingPuzzleName?: string;
-    variant?: 'full' | 'mini';
-}> = React.memo((props) => {
-    if (props.puzzle.isSolved) {
-        return <SolvedPuzzle puzzle={props.puzzle} variant={props.variant} />;
-    }
-    return <UnsolvedPuzzle {...props} />;
 });
 
 export default PuzzleItem;
