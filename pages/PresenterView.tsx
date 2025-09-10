@@ -1422,6 +1422,26 @@ const PresenterView: React.FC = () => {
                   </div>
                 </div>
               )}
+              
+              {game.soundboard && game.soundboard.length > 0 && (
+                 <div>
+                    <h3 className="text-lg font-semibold text-slate-300 mb-2">Sound Board</h3>
+                    <div className="grid grid-cols-3 gap-2">
+                        {game.soundboard.map(clip => {
+                            const clipState = soundboardClips.get(clip.id);
+                            return (
+                                <button
+                                    key={clip.id}
+                                    onClick={() => handlePlaySoundboardClip(clip.id)}
+                                    className={`p-2 rounded-md text-center text-xs transition-colors ${clipState?.isPlaying ? 'bg-brand-600 text-white animate-pulse' : 'bg-slate-700 hover:bg-slate-600'}`}
+                                >
+                                    {clip.name}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+              )}
 
               {soundtrack && (
                 <div>
@@ -1445,26 +1465,6 @@ const PresenterView: React.FC = () => {
                         <input type="range" min="0" max="1" step="0.05" value={soundtrack.volume} onChange={(e) => handleSoundtrackVolumeChange(parseFloat(e.target.value))} className="w-full h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-slate-400 [&::-webkit-slider-thumb]:rounded-full" />
                     </div>
                   </div>
-                </div>
-              )}
-              
-              {game.soundboard && game.soundboard.length > 0 && (
-                 <div>
-                    <h3 className="text-lg font-semibold text-slate-300 mb-2">Sound Board</h3>
-                    <div className="grid grid-cols-3 gap-2">
-                        {game.soundboard.map(clip => {
-                            const clipState = soundboardClips.get(clip.id);
-                            return (
-                                <button
-                                    key={clip.id}
-                                    onClick={() => handlePlaySoundboardClip(clip.id)}
-                                    className={`p-2 rounded-md text-center text-xs transition-colors ${clipState?.isPlaying ? 'bg-brand-600 text-white animate-pulse' : 'bg-slate-700 hover:bg-slate-600'}`}
-                                >
-                                    {clip.name}
-                                </button>
-                            );
-                        })}
-                    </div>
                 </div>
               )}
             </div>
