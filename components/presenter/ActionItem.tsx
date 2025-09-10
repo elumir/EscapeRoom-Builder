@@ -13,16 +13,14 @@ const formatTime = (seconds: number) => {
     return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
 };
 
-const ActionItem: React.FC<{
+// Component for an action that is NOT complete
+const OpenAction: React.FC<{
     action: Action;
     onToggleImage: (id: string, state: boolean) => void;
     onToggleComplete: (id: string, state: boolean) => void;
     isLocked?: boolean;
     lockingPuzzleName?: string;
-    variant?: 'full' | 'mini';
-}> = React.memo(({ action, onToggleImage, onToggleComplete, isLocked, lockingPuzzleName, variant = 'full' }) => {
-    
-    const isComplete = action.isComplete ?? false;
+}> = ({ action, onToggleImage, onToggleComplete, isLocked, lockingPuzzleName }) => {
     const isDisabled = !!isLocked;
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const [isPlaying, setIsPlaying] = useState(false);
@@ -30,9 +28,7 @@ const ActionItem: React.FC<{
     const [duration, setDuration] = useState(0);
 
     useEffect(() => {
-        if (!action.sound) {
-            return;
-        }
+        if (!action.sound) return;
 
         const audio = new Audio(`${API_BASE_URL}/assets/${action.sound}`);
         audioRef.current = audio;
@@ -51,9 +47,7 @@ const ActionItem: React.FC<{
             audio.removeEventListener('timeupdate', setAudioTime);
             audio.removeEventListener('ended', handleAudioEnd);
             audioRef.current = null;
-            setIsPlaying(false);
-            setProgress(0);
-        }
+        };
     }, [action.sound]);
     
     useEffect(() => {
@@ -66,11 +60,8 @@ const ActionItem: React.FC<{
     const handlePlayPause = (e: React.MouseEvent) => {
         e.stopPropagation();
         if (audioRef.current) {
-            if (isPlaying) {
-                audioRef.current.pause();
-            } else {
-                audioRef.current.play().catch(err => console.error("Error playing sound:", err));
-            }
+            if (isPlaying) audioRef.current.pause();
+            else audioRef.current.play().catch(err => console.error("Error playing sound:", err));
             setIsPlaying(!isPlaying);
         }
     };
@@ -81,7 +72,7 @@ const ActionItem: React.FC<{
             audioRef.current.currentTime = 0;
             setIsPlaying(false);
         }
-    }
+    };
 
     const handleScrub = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (audioRef.current) {
@@ -89,59 +80,15 @@ const ActionItem: React.FC<{
             audioRef.current.currentTime = newTime;
             setProgress(newTime);
         }
-    }
-
-    if (variant === 'mini') {
-        return (
-            <div className={`mt-1 flex flex-col ${isDisabled ? 'opacity-50' : ''}`}>
-                <div className="flex items-center justify-between gap-1">
-                     <h4 className={`font-bold text-[9px] truncate flex-grow flex items-center gap-1 ${isComplete ? 'text-slate-500 line-through' : 'text-teal-300/80'}`}>
-                        {isLocked && <Icon as="lock" className="w-2 h-2 text-slate-400"/>}
-                        {action.name}
-                     </h4>
-                     {!action.hideCompleteButton && (
-                        <label className={`flex items-center transform scale-75 origin-center ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
-                            <input
-                                type="checkbox"
-                                checked={isComplete}
-                                onChange={(e) => onToggleComplete(action.id, e.target.checked)}
-                                className="sr-only peer"
-                                disabled={isLocked}
-                            />
-                            <div className="relative w-9 h-5 bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-slate-500"></div>
-                        </label>
-                     )}
-                </div>
-                {lockingPuzzleName && (
-                    <p className="text-red-500/80 text-[8px] leading-tight truncate mt-0.5">Locked by: {lockingPuzzleName}</p>
-                )}
-                {action.image && (
-                  <div className={`flex items-center gap-1 mt-1`}>
-                      <label className={`flex items-center transform scale-75 origin-left ${isDisabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
-                          <input
-                              type="checkbox"
-                              checked={action.showImageOverlay}
-                              onChange={(e) => onToggleImage(action.id, e.target.checked)}
-                              className="sr-only peer"
-                              disabled={isDisabled}
-                          />
-                          <div className="relative w-9 h-5 bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-sky-600 peer-disabled:opacity-50"></div>
-                      </label>
-                      <span className="text-slate-400 text-[9px]">Show Image</span>
-                  </div>
-                )}
-            </div>
-        );
-    }
+    };
 
     return (
         <div className={`flex flex-col gap-3 p-4 bg-slate-800/50 rounded-lg transition-opacity ${isDisabled ? 'opacity-50' : ''}`}>
             <div className="flex items-start justify-between gap-4">
-                <h3 className={`font-bold flex items-center gap-2 ${isComplete ? 'text-slate-400 line-through' : 'text-teal-300'}`}>
+                <h3 className="font-bold flex items-center gap-2 text-teal-300">
                     {isLocked && <Icon as="lock" className="w-4 h-4 text-slate-400"/>}
                     {action.name}
                 </h3>
-
                 <div className="flex items-center gap-4 flex-shrink-0">
                     {action.image && (
                         <label className={`flex items-center gap-2 text-sm text-sky-300 ${isDisabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
@@ -153,18 +100,15 @@ const ActionItem: React.FC<{
                                 className="sr-only peer"
                                 disabled={isDisabled}
                             />
-                            <div className="relative w-11 h-6 bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-600 
-                            peer-disabled:opacity-50
-                            "></div>
+                            <div className="relative w-11 h-6 bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-600 peer-disabled:opacity-50"></div>
                         </label>
                     )}
-
                     {!action.hideCompleteButton && (
-                        <label className={`flex items-center gap-2 text-sm ${isComplete ? 'text-yellow-300' : 'text-green-300'} ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
-                            <span>{isComplete ? 'Re-open' : 'Hide'}</span>
+                        <label className={`flex items-center gap-2 text-sm text-green-300 ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                            <span>Hide</span>
                             <input
                                 type="checkbox"
-                                checked={isComplete}
+                                checked={false}
                                 onChange={(e) => onToggleComplete(action.id, e.target.checked)}
                                 className="sr-only peer"
                                 disabled={isLocked}
@@ -174,7 +118,7 @@ const ActionItem: React.FC<{
                     )}
                 </div>
             </div>
-            <div className={`pl-4 ${isComplete ? 'text-slate-500' : 'text-slate-300'}`}>
+            <div className="pl-4 text-slate-300">
                 <MarkdownRenderer content={action.description} />
                  {lockingPuzzleName && (
                     <p className="text-red-500 text-xs mt-2">Locked by: {lockingPuzzleName}</p>
@@ -184,11 +128,7 @@ const ActionItem: React.FC<{
                 <div className="pl-4 mt-2">
                     <div className={`flex items-center gap-3 w-full bg-slate-700/50 p-2 rounded-lg transition-opacity ${isDisabled ? 'opacity-60' : ''}`}>
                         <button onClick={handlePlayPause} disabled={isDisabled} title={isPlaying ? "Pause" : "Play"} className="p-2 bg-slate-700 rounded-full hover:bg-slate-600 flex-shrink-0 disabled:cursor-not-allowed disabled:hover:bg-slate-700">
-                            {isPlaying ? (
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M5.5 3.5A1.5 1.5 0 017 5v10a1.5 1.5 0 01-3 0V5a1.5 1.5 0 011.5-1.5zM12.5 3.5A1.5 1.5 0 0114 5v10a1.5 1.5 0 01-3 0V5a1.5 1.5 0 011.5-1.5z" /></svg>
-                            ) : (
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" /></svg>
-                            )}
+                             <Icon as={isPlaying ? 'stop' : 'play'} className="h-5 w-5" />
                         </button>
                         <button onClick={handleRewind} disabled={isDisabled} title="Rewind to Start" className="p-2 bg-slate-700 rounded-full hover:bg-slate-600 flex-shrink-0 disabled:cursor-not-allowed disabled:hover:bg-slate-700">
                            <Icon as="rewind" className="h-5 w-5" />
@@ -210,6 +150,59 @@ const ActionItem: React.FC<{
                 </div>
             )}
         </div>
+    );
+};
+
+// Component for an action that IS complete
+const CompletedAction: React.FC<{
+    action: Action;
+    onToggleComplete: (id: string, state: boolean) => void;
+}> = ({ action, onToggleComplete }) => {
+    return (
+        <div className="flex flex-col gap-3 p-4 bg-slate-800/50 rounded-lg">
+            <div className="flex items-start justify-between gap-4">
+                <h3 className="font-bold flex items-center gap-2 text-slate-400 line-through">
+                    {action.name}
+                </h3>
+                {!action.hideCompleteButton && (
+                    <label className="flex items-center gap-2 text-sm text-yellow-300 cursor-pointer">
+                        <span>Re-open</span>
+                        <input
+                            type="checkbox"
+                            checked={true}
+                            onChange={(e) => onToggleComplete(action.id, e.target.checked)}
+                            className="sr-only peer"
+                        />
+                        <div className="relative w-11 h-6 bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-slate-500"></div>
+                    </label>
+                )}
+            </div>
+            <div className="pl-4 text-slate-500">
+                <MarkdownRenderer content={action.description} />
+            </div>
+        </div>
+    );
+};
+
+
+const ActionItem: React.FC<{
+    action: Action;
+    onToggleImage: (id: string, state: boolean) => void;
+    onToggleComplete: (id: string, state: boolean) => void;
+    isLocked?: boolean;
+    lockingPuzzleName?: string;
+}> = React.memo(({ action, onToggleImage, onToggleComplete, isLocked, lockingPuzzleName }) => {
+    if (action.isComplete) {
+        return <CompletedAction action={action} onToggleComplete={onToggleComplete} />;
+    }
+    return (
+        <OpenAction
+            action={action}
+            onToggleImage={onToggleImage}
+            onToggleComplete={onToggleComplete}
+            isLocked={isLocked}
+            lockingPuzzleName={lockingPuzzleName}
+        />
     );
 });
 
