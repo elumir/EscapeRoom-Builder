@@ -1370,41 +1370,45 @@ const PresenterView: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-xl font-bold">Player Actions</h3>
-                    <div className="flex rounded-lg bg-slate-700/50 p-1 text-sm">
-                        <button onClick={() => setActiveActionTab('open')} className={`px-3 py-1 rounded-md ${activeActionTab === 'open' ? 'bg-slate-600' : ''}`}>Open ({openActions.length})</button>
-                        <button onClick={() => setActiveActionTab('complete')} className={`px-3 py-1 rounded-md ${activeActionTab === 'complete' ? 'bg-slate-600' : ''}`}>Complete ({completedActions.length})</button>
+                {(openActions.length > 0 || completedActions.length > 0) && (
+                    <div className="space-y-4">
+                        <div className="flex justify-between items-center">
+                            <h3 className="text-xl font-bold">Player Actions</h3>
+                            <div className="flex rounded-lg bg-slate-700/50 p-1 text-sm">
+                                <button onClick={() => setActiveActionTab('open')} className={`px-3 py-1 rounded-md ${activeActionTab === 'open' ? 'bg-slate-600' : ''}`}>Open ({openActions.length})</button>
+                                <button onClick={() => setActiveActionTab('complete')} className={`px-3 py-1 rounded-md ${activeActionTab === 'complete' ? 'bg-slate-600' : ''}`}>Complete ({completedActions.length})</button>
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            {activeActionTab === 'open' && (openActions.length > 0 ? openActions.map(action => (
+                                <ActionItem key={action.id} action={action} onToggleImage={handleToggleActionImage} onToggleComplete={handleToggleActionComplete} isLocked={lockingPuzzlesByActionId.has(action.id)} lockingPuzzleName={lockingPuzzlesByActionId.get(action.id)} />
+                            )) : <p className="text-slate-500 italic">No open actions.</p>)}
+                            {activeActionTab === 'complete' && (completedActions.length > 0 ? completedActions.map(action => (
+                                <ActionItem key={action.id} action={action} onToggleImage={handleToggleActionImage} onToggleComplete={handleToggleActionComplete} />
+                            )) : <p className="text-slate-500 italic">No completed actions.</p>)}
+                        </div>
                     </div>
-                  </div>
-                  <div className="space-y-2">
-                    {activeActionTab === 'open' && (openActions.length > 0 ? openActions.map(action => (
-                        <ActionItem key={action.id} action={action} onToggleImage={handleToggleActionImage} onToggleComplete={handleToggleActionComplete} isLocked={lockingPuzzlesByActionId.has(action.id)} lockingPuzzleName={lockingPuzzlesByActionId.get(action.id)} />
-                    )) : <p className="text-slate-500 italic">No open actions.</p>)}
-                    {activeActionTab === 'complete' && (completedActions.length > 0 ? completedActions.map(action => (
-                        <ActionItem key={action.id} action={action} onToggleImage={handleToggleActionImage} onToggleComplete={handleToggleActionComplete} />
-                    )) : <p className="text-slate-500 italic">No completed actions.</p>)}
-                  </div>
-                </div>
+                )}
 
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-xl font-bold">Puzzles</h3>
-                     <div className="flex rounded-lg bg-slate-700/50 p-1 text-sm">
-                        <button onClick={() => setActivePuzzleTab('open')} className={`px-3 py-1 rounded-md ${activePuzzleTab === 'open' ? 'bg-slate-600' : ''}`}>Open ({openPuzzles.length})</button>
-                        <button onClick={() => setActivePuzzleTab('complete')} className={`px-3 py-1 rounded-md ${activePuzzleTab === 'complete' ? 'bg-slate-600' : ''}`}>Complete ({completedPuzzles.length})</button>
+                {(openPuzzles.length > 0 || completedPuzzles.length > 0) && (
+                    <div className="space-y-4">
+                        <div className="flex justify-between items-center">
+                            <h3 className="text-xl font-bold">Puzzles</h3>
+                            <div className="flex rounded-lg bg-slate-700/50 p-1 text-sm">
+                                <button onClick={() => setActivePuzzleTab('open')} className={`px-3 py-1 rounded-md ${activePuzzleTab === 'open' ? 'bg-slate-600' : ''}`}>Open ({openPuzzles.length})</button>
+                                <button onClick={() => setActivePuzzleTab('complete')} className={`px-3 py-1 rounded-md ${activePuzzleTab === 'complete' ? 'bg-slate-600' : ''}`}>Complete ({completedPuzzles.length})</button>
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            {activePuzzleTab === 'open' && (openPuzzles.length > 0 ? openPuzzles.map(puzzle => (
+                                <PuzzleItem key={puzzle.id} puzzle={puzzle} onToggle={handleTogglePuzzle} onToggleImage={handleTogglePuzzleImage} onAttemptSolve={handleAttemptSolve} isLocked={lockingPuzzlesByPuzzleId.has(puzzle.id)} lockingPuzzleName={lockingPuzzlesByPuzzleId.get(puzzle.id)} />
+                            )) : <p className="text-slate-500 italic">No open puzzles.</p>)}
+                            {activePuzzleTab === 'complete' && (completedPuzzles.length > 0 ? completedPuzzles.map(puzzle => (
+                                <PuzzleItem key={puzzle.id} puzzle={puzzle} onToggle={handleTogglePuzzle} onToggleImage={handleTogglePuzzleImage} onAttemptSolve={handleAttemptSolve} />
+                            )) : <p className="text-slate-500 italic">No completed puzzles.</p>)}
+                        </div>
                     </div>
-                  </div>
-                  <div className="space-y-2">
-                    {activePuzzleTab === 'open' && (openPuzzles.length > 0 ? openPuzzles.map(puzzle => (
-                        <PuzzleItem key={puzzle.id} puzzle={puzzle} onToggle={handleTogglePuzzle} onToggleImage={handleTogglePuzzleImage} onAttemptSolve={handleAttemptSolve} isLocked={lockingPuzzlesByPuzzleId.has(puzzle.id)} lockingPuzzleName={lockingPuzzlesByPuzzleId.get(puzzle.id)} />
-                    )) : <p className="text-slate-500 italic">No open puzzles.</p>)}
-                    {activePuzzleTab === 'complete' && (completedPuzzles.length > 0 ? completedPuzzles.map(puzzle => (
-                        <PuzzleItem key={puzzle.id} puzzle={puzzle} onToggle={handleTogglePuzzle} onToggleImage={handleTogglePuzzleImage} onAttemptSolve={handleAttemptSolve} />
-                    )) : <p className="text-slate-500 italic">No completed puzzles.</p>)}
-                  </div>
-                </div>
+                )}
             </div>
         </div>
         
