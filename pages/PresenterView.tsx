@@ -955,39 +955,65 @@ const PresenterView: React.FC = () => {
     setSoundtrack({ ...soundtrack, isPlaying: !soundtrack.isPlaying });
   };
 
-  const handleSoundtrackNext = () => {
+  const handleTrackChange = useCallback((direction: 'next' | 'prev') => {
       if (!soundtrack || soundtrack.elements.length < 2) return;
-      const { elements, trackOrder, currentTrackIndex, isPlaying } = soundtrack;
-      elements[currentTrackIndex].pause();
-      elements[currentTrackIndex].currentTime = 0;
-      
-      const currentPosition = trackOrder.indexOf(currentTrackIndex);
-      const nextPosition = (currentPosition + 1) % trackOrder.length;
-      const nextTrackIndex = trackOrder[nextPosition];
-      
-      if (isPlaying) {
-          elements[nextTrackIndex].currentTime = 0;
-          elements[nextTrackIndex].play().catch(e => console.error("Playback failed:", e));
-      }
-      setSoundtrack({ ...soundtrack, currentTrackIndex: nextTrackIndex });
-  };
+      const { elements, trackOrder, currentTrackIndex, isPlaying, volume } = soundtrack;
   
-  const handleSoundtrackPrev = () => {
-      if (!soundtrack || soundtrack.elements.length < 2) return;
-      const { elements, trackOrder, currentTrackIndex, isPlaying } = soundtrack;
-      elements[currentTrackIndex].pause();
-      elements[currentTrackIndex].currentTime = 0;
-
       const currentPosition = trackOrder.indexOf(currentTrackIndex);
-      const prevPosition = (currentPosition - 1 + trackOrder.length) % trackOrder.length;
-      const prevTrackIndex = trackOrder[prevPosition];
+      const newPosition = direction === 'next'
+          ? (currentPosition + 1) % trackOrder.length
+          : (currentPosition - 1 + trackOrder.length) % trackOrder.length;
+      const newTrackIndex = trackOrder[newPosition];
+      
+      const currentAudio = elements[currentTrackIndex];
 
-      if (isPlaying) {
-          elements[prevTrackIndex].currentTime = 0;
-          elements[prevTrackIndex].play().catch(e => console.error("Playback failed:", e));
+      // If not playing, just switch the track index. No fade needed.
+      if (!isPlaying) {
+          currentAudio.currentTime = 0;
+          setSoundtrack(prev => prev ? { ...prev, currentTrackIndex: newTrackIndex } : null);
+          return;
       }
-      setSoundtrack({ ...soundtrack, currentTrackIndex: prevTrackIndex });
-  };
+      
+      // If playing, fade out the current track and then play the next one.
+      const nextAudio = elements[newTrackIndex];
+  
+      if (fadeIntervalRef.current) {
+        clearInterval(fadeIntervalRef.current);
+      }
+      setIsFadingOut(true);
+  
+      const fadeDuration = 1000; // 1 second fade
+      const steps = 20;
+      const interval = fadeDuration / steps;
+      // Handle case where volume is already 0 to avoid division by zero
+      const volumeStep = currentAudio.volume > 0 ? currentAudio.volume / steps : 0;
+  
+      fadeIntervalRef.current = setInterval(() => {
+          if (currentAudio.volume > volumeStep) {
+              currentAudio.volume -= volumeStep;
+          } else {
+              clearInterval(fadeIntervalRef.current!);
+              fadeIntervalRef.current = null;
+              
+              currentAudio.pause();
+              currentAudio.currentTime = 0;
+              currentAudio.volume = volume; // Reset volume for next time
+  
+              if (nextAudio) {
+                  nextAudio.currentTime = 0;
+                  nextAudio.volume = volume;
+                  nextAudio.play().catch(e => console.error("Playback failed:", e));
+              }
+  
+              setIsFadingOut(false);
+              setSoundtrack(prev => prev ? { ...prev, currentTrackIndex: newTrackIndex } : null);
+          }
+      }, interval);
+  }, [soundtrack]);
+
+  const handleSoundtrackNext = useCallback(() => handleTrackChange('next'), [handleTrackChange]);
+  
+  const handleSoundtrackPrev = useCallback(() => handleTrackChange('prev'), [handleTrackChange]);
 
   const handleSoundtrackRewind = () => {
     if (!soundtrack) return;
@@ -1458,11 +1484,11 @@ const PresenterView: React.FC = () => {
                         <span className="text-xs text-slate-400 font-mono">{formatTime(duration)}</span>
                     </div>
                     <div className="flex justify-center items-center gap-2">
-                        <button onClick={handleSoundtrackPrev} className="p-2 hover:bg-slate-700 rounded-full"><Icon as="prev" className="w-5 h-5" /></button>
-                        <button onClick={handleSoundtrackRewind} className="p-2 hover:bg-slate-700 rounded-full"><Icon as="rewind" className="w-5 h-5" /></button>
-                        <button onClick={handleSoundtrackPlayPause} className="p-3 bg-brand-600 text-white rounded-full hover:bg-brand-700">{soundtrack.isPlaying ? <Icon as="stop" className="w-5 h-5" /> : <Icon as="play" className="w-5 h-5" />}</button>
-                        <button onClick={handleSoundtrackFadeOut} disabled={isFadingOut} className="p-2 hover:bg-slate-700 rounded-full disabled:opacity-50">Fade</button>
-                        <button onClick={handleSoundtrackNext} className="p-2 hover:bg-slate-700 rounded-full"><Icon as="next" className="w-5 h-5" /></button>
+                        <button onClick={handleSoundtrackPrev} className="p-2 hover:bg-slate-700 rounded-full disabled:opacity-50" disabled={isFadingOut}><Icon as="prev" className="w-5 h-5" /></button>
+                        <button onClick={handleSoundtrackRewind} className="p-2 hover:bg-slate-700 rounded-full disabled:opacity-50" disabled={isFadingOut}><Icon as="rewind" className="w-5 h-5" /></button>
+                        <button onClick={handleSoundtrackPlayPause} className="p-3 bg-brand-600 text-white rounded-full hover:bg-brand-700 disabled:opacity-50" disabled={isFadingOut}>{soundtrack.isPlaying ? <Icon as="stop" className="w-5 h-5" /> : <Icon as="play" className="w-5 h-5" />}</button>
+                        <button onClick={handleSoundtrackFadeOut} disabled={isFadingOut || !soundtrack.isPlaying} className="p-2 hover:bg-slate-700 rounded-full disabled:opacity-50">Fade</button>
+                        <button onClick={handleSoundtrackNext} className="p-2 hover:bg-slate-700 rounded-full disabled:opacity-50" disabled={isFadingOut}><Icon as="next" className="w-5 h-5" /></button>
                     </div>
                      <div className="flex items-center gap-2">
                         <Icon as="audio" className="w-4 h-4 text-slate-400" />
