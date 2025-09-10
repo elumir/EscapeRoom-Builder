@@ -245,7 +245,6 @@ const PresenterView: React.FC = () => {
     };
   }, [game?.soundboard]);
 
-
   const handleAddCustomItem = (inventorySlot: 1 | 2) => {
     const name = window.prompt("Enter the name for the new custom item:");
     if (name && name.trim()) {
@@ -340,7 +339,6 @@ const PresenterView: React.FC = () => {
       const allIds = combinedInventoryObjects.map(obj => obj.id);
       return allIds.every(id => visibleDescriptionIds.has(id));
   }, [combinedInventoryObjects, visibleDescriptionIds]);
-
 
   const isPresentationWindowOpen = presentationWindow && !presentationWindow.closed;
 
@@ -500,7 +498,6 @@ const PresenterView: React.FC = () => {
       }
     }
   }, [game, postMessage, updateAndBroadcast, customItems, currentRoomIndex]);
-
 
   const handleToggleObject = (objectId: string, newState: boolean) => {
     if (!game) return;
@@ -916,6 +913,29 @@ const PresenterView: React.FC = () => {
       }
     }
   }, [currentRoomIndex, game, availableActs]);
+  
+  const currentRoom = useMemo(() => game?.rooms[currentRoomIndex], [game, currentRoomIndex]);
+
+  const visiblePuzzles = useMemo(() => {
+    if (!game || !currentRoom) return [];
+    // Use a map to gather all global puzzles and de-duplicate
+    const allGlobalPuzzles = new Map<string, Puzzle>();
+    game.rooms.forEach(room => {
+        (room.puzzles || []).forEach(puzzle => {
+            if (puzzle.isGlobal) {
+                allGlobalPuzzles.set(puzzle.id, puzzle);
+            }
+        });
+    });
+
+    // Combine current room's puzzles with all global puzzles
+    const visiblePuzzleMap = new Map<string, Puzzle>();
+    (currentRoom.puzzles || []).forEach(p => visiblePuzzleMap.set(p.id, p));
+    allGlobalPuzzles.forEach((p, id) => visiblePuzzleMap.set(id, p));
+
+    return Array.from(visiblePuzzleMap.values());
+  }, [game, currentRoom]);
+
 
   const currentActIndex = availableActs.indexOf(selectedAct);
 
@@ -1072,11 +1092,10 @@ const PresenterView: React.FC = () => {
     return <div className="h-screen bg-slate-800 text-white flex items-center justify-center">Loading Presenter View...</div>;
   }
   
-  if (status === 'error' || !game) {
+  if (status === 'error' || !game || !currentRoom) {
     return <div className="h-screen bg-slate-800 text-white flex items-center justify-center">Error: Could not load game. It may be private or does not exist.</div>;
   }
   
-  const currentRoom = game.rooms[currentRoomIndex];
   const hasSolvedState = currentRoom?.solvedImage || (currentRoom?.solvedNotes && currentRoom.solvedNotes.trim() !== '');
   
   const roomObjects = (currentRoom?.objects || []).filter(o => 
@@ -1091,26 +1110,6 @@ const PresenterView: React.FC = () => {
   );
   const completedActions = (currentRoom?.actions || []).filter(action => action.isComplete);
   
-  const visiblePuzzles = useMemo(() => {
-    if (!game || !currentRoom) return [];
-    // Use a map to gather all global puzzles and de-duplicate
-    const allGlobalPuzzles = new Map<string, Puzzle>();
-    game.rooms.forEach(room => {
-        (room.puzzles || []).forEach(puzzle => {
-            if (puzzle.isGlobal) {
-                allGlobalPuzzles.set(puzzle.id, puzzle);
-            }
-        });
-    });
-
-    // Combine current room's puzzles with all global puzzles
-    const visiblePuzzleMap = new Map<string, Puzzle>();
-    (currentRoom.puzzles || []).forEach(p => visiblePuzzleMap.set(p.id, p));
-    allGlobalPuzzles.forEach((p, id) => visiblePuzzleMap.set(id, p));
-
-    return Array.from(visiblePuzzleMap.values());
-  }, [game, currentRoom]);
-
   const openPuzzles = visiblePuzzles.filter(puzzle => 
     !puzzle.isSolved && 
     !lockingPuzzlesByPuzzleId.has(puzzle.id)
@@ -1161,6 +1160,50 @@ const PresenterView: React.FC = () => {
                   </button>
               </div>
           </div>
+      )}
+       {puzzleToSolve && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+          <div className="bg-slate-800 p-8 rounded-lg shadow-2xl w-full max-w-md border border-slate-700">
+              <h2 className="text-xl font-bold mb-4">Solve: {puzzleToSolve.name}</h2>
+              {solveError && <p className="text-red-400 mb-4">{solveError}</p>}
+              <form onSubmit={handleSubmitAnswer}>
+                  <input
+                      type="text"
+                      value={submittedAnswer}
+                      onChange={e => setSubmittedAnswer(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''))}
+                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md mb-4"
+                      autoFocus
+                  />
+                  <div className="flex justify-end gap-4">
+                      <button type="button" onClick={() => setPuzzleToSolve(null)} className="px-4 py-2 bg-slate-600 text-slate-200 rounded-lg hover:bg-slate-500 transition-colors">Cancel</button>
+                      <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">Submit</button>
+                  </div>
+              </form>
+          </div>
+        </div>
+      )}
+      {solvedPuzzleInfo && (
+        <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 backdrop-blur-sm">
+          <div className="bg-slate-800 p-12 rounded-lg shadow-2xl w-full max-w-2xl border-2 border-green-500 text-center animate-pulse-once" style={{animation: 'pulse 1s ease-in-out'}}>
+              <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-500 mb-6">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h2 className="text-3xl font-bold mb-4 text-green-300">Puzzle Solved!</h2>
+              <h3 className="text-xl font-semibold mb-6">{solvedPuzzleInfo.name}</h3>
+              <div className="text-slate-300 mb-8 max-h-40 overflow-y-auto">
+                <MarkdownRenderer content={solvedPuzzleInfo.solvedText} />
+              </div>
+              <button
+                  type="button"
+                  onClick={handleCloseSolvedModal}
+                  className="px-8 py-3 bg-slate-600 text-slate-200 rounded-lg hover:bg-slate-500 transition-colors text-lg font-semibold"
+              >
+                  Continue
+              </button>
+          </div>
+        </div>
       )}
     </div>
   );
