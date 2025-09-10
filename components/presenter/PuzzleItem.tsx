@@ -8,7 +8,7 @@ const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
-}
+};
 
 const CheckmarkIcon = ({ className = 'h-6 w-6' }: { className?: string }) => (
     <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -16,7 +16,45 @@ const CheckmarkIcon = ({ className = 'h-6 w-6' }: { className?: string }) => (
     </svg>
 );
 
-const PuzzleItem: React.FC<{
+const SolvedPuzzle: React.FC<{ puzzle: Puzzle; variant: 'full' | 'mini' }> = ({ puzzle, variant }) => {
+    const [isFlashing, setIsFlashing] = useState(true);
+
+    useEffect(() => {
+        // This effect runs once when the component mounts, creating the flash.
+        const timer = setTimeout(() => setIsFlashing(false), 1000);
+        return () => clearTimeout(timer);
+    }, []);
+
+    const flashClass = isFlashing ? 'border-green-500' : 'border-transparent';
+    const transitionClass = 'transition-colors duration-1000';
+
+    if (variant === 'mini') {
+        return (
+            <div className={`mt-1 flex items-center gap-1 p-1 rounded-sm border ${flashClass} ${transitionClass}`}>
+                <div className="text-green-400 flex-shrink-0">
+                    <CheckmarkIcon className="h-3 w-3" />
+                </div>
+                <h4 className="font-semibold text-slate-500 text-[9px] truncate line-through">{puzzle.name}</h4>
+            </div>
+        );
+    }
+
+    return (
+        <div className={`flex items-start gap-4 p-4 bg-slate-800/50 rounded-lg border-2 ${flashClass} ${transitionClass}`}>
+            <div className="text-green-400 mt-1 flex-shrink-0">
+                <CheckmarkIcon className="h-6 w-6" />
+            </div>
+            <div className="flex-1">
+                <h3 className="font-bold text-slate-400 line-through">{puzzle.name}</h3>
+                <div className="text-slate-300 mt-2">
+                    <MarkdownRenderer content={puzzle.solvedText} />
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const UnsolvedPuzzle: React.FC<{
     puzzle: Puzzle;
     onToggle: (id: string, state: boolean) => void;
     onToggleImage: (id: string, state: boolean) => void;
@@ -24,32 +62,14 @@ const PuzzleItem: React.FC<{
     isLocked?: boolean;
     lockingPuzzleName?: string;
     variant?: 'full' | 'mini';
-}> = React.memo(({ puzzle, onToggle, onToggleImage, onAttemptSolve, isLocked, lockingPuzzleName, variant = 'full' }) => {
-    // --- All Hooks must be at the top level ---
-    const [isFlashing, setIsFlashing] = useState(false);
-    const prevIsSolved = useRef(puzzle.isSolved);
+}> = ({ puzzle, onToggle, onToggleImage, onAttemptSolve, isLocked, lockingPuzzleName, variant = 'full' }) => {
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [progress, setProgress] = useState(0);
     const [duration, setDuration] = useState(0);
-
-    // --- All Effects ---
+    
     useEffect(() => {
-        // Check if the puzzle was just solved to trigger a flash effect
-        if (puzzle.isSolved && !prevIsSolved.current) {
-            setIsFlashing(true);
-            const timer = setTimeout(() => {
-                setIsFlashing(false);
-            }, 1000); // Flash duration
-
-            return () => clearTimeout(timer);
-        }
-        prevIsSolved.current = puzzle.isSolved;
-    }, [puzzle.isSolved]);
-
-    useEffect(() => {
-        // No sound or puzzle is solved, do not set up audio.
-        if (!puzzle.sound || puzzle.isSolved) {
+        if (!puzzle.sound) {
             return;
         }
 
@@ -64,19 +84,15 @@ const PuzzleItem: React.FC<{
         audio.addEventListener('timeupdate', setAudioTime);
         audio.addEventListener('ended', handleAudioEnd);
 
-        // Cleanup function for when sound changes, puzzle is solved, or component unmounts.
         return () => {
             audio.pause();
             audio.removeEventListener('loadedmetadata', setAudioData);
             audio.removeEventListener('timeupdate', setAudioTime);
             audio.removeEventListener('ended', handleAudioEnd);
             audioRef.current = null;
-            setIsPlaying(false);
-            setProgress(0);
         }
-    }, [puzzle.sound, puzzle.isSolved]);
-    
-    // Effect to stop sound if puzzle becomes locked
+    }, [puzzle.sound]);
+
     useEffect(() => {
         if (isLocked && audioRef.current && isPlaying) {
             audioRef.current.pause();
@@ -84,7 +100,6 @@ const PuzzleItem: React.FC<{
         }
     }, [isLocked, isPlaying]);
 
-    // --- All Handlers ---
     const handlePlayPause = () => {
         if (audioRef.current) {
             if (isPlaying) {
@@ -95,7 +110,7 @@ const PuzzleItem: React.FC<{
             setIsPlaying(!isPlaying);
         }
     };
-    
+
     const handleRewind = () => {
         if (audioRef.current) {
             audioRef.current.pause();
@@ -114,46 +129,13 @@ const PuzzleItem: React.FC<{
 
     const handleCompleteClick = () => {
         if (isLocked) return;
-
         if (puzzle.answer) {
             onAttemptSolve(puzzle.id);
         } else {
             onToggle(puzzle.id, true);
         }
     };
-
-    // --- Conditional Rendering ---
-    if (puzzle.isSolved) {
-        const flashClass = isFlashing ? 'border-green-500' : 'border-transparent';
-        const transitionClass = 'transition-colors duration-1000';
-
-        if (variant === 'mini') {
-            return (
-                <div className={`mt-1 flex items-center gap-1 p-1 rounded-sm border ${flashClass} ${transitionClass}`}>
-                    <div className="text-green-400 flex-shrink-0">
-                        <CheckmarkIcon className="h-3 w-3" />
-                    </div>
-                    <h4 className="font-semibold text-slate-500 text-[9px] truncate line-through">{puzzle.name}</h4>
-                </div>
-            );
-        }
-
-        return (
-            <div className={`flex items-start gap-4 p-4 bg-slate-800/50 rounded-lg border-2 ${flashClass} ${transitionClass}`}>
-                <div className="text-green-400 mt-1 flex-shrink-0">
-                    <CheckmarkIcon className="h-6 w-6" />
-                </div>
-                <div className="flex-1">
-                    <h3 className="font-bold text-slate-400 line-through">{puzzle.name}</h3>
-                    <div className="text-slate-300 mt-2">
-                        <MarkdownRenderer content={puzzle.solvedText} />
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    // --- Unsolved State ---
+    
     if (variant === 'mini') {
         return (
              <div className={`mt-1 flex flex-col ${isLocked ? 'opacity-50' : ''}`}>
@@ -263,6 +245,21 @@ const PuzzleItem: React.FC<{
             )}
         </div>
     );
+};
+
+const PuzzleItem: React.FC<{
+    puzzle: Puzzle;
+    onToggle: (id: string, state: boolean) => void;
+    onToggleImage: (id: string, state: boolean) => void;
+    onAttemptSolve: (id: string) => void;
+    isLocked?: boolean;
+    lockingPuzzleName?: string;
+    variant?: 'full' | 'mini';
+}> = React.memo((props) => {
+    if (props.puzzle.isSolved) {
+        return <SolvedPuzzle puzzle={props.puzzle} variant={props.variant || 'full'} />;
+    }
+    return <UnsolvedPuzzle {...props} />;
 });
 
 export default PuzzleItem;
