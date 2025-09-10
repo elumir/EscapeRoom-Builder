@@ -36,6 +36,7 @@ export interface InventoryObject {
   y?: number;
   size?: number;
   isPickupable?: boolean;
+  isPresenterHidden?: boolean;
 }
 
 export interface Puzzle {

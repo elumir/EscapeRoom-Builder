@@ -51,6 +51,7 @@ const ObjectItem: React.FC<{
     const colorClass = migrateObjectColorClass(obj.nameColor);
     const textColorClass = colorClass.includes('text-') ? '' : 'text-white';
     const isLocked = !!lockingPuzzleName;
+    const isPresenterVisible = !(obj.isPresenterHidden ?? false);
 
     if (variant === 'mini') {
         return (
@@ -65,16 +66,16 @@ const ObjectItem: React.FC<{
                     <div className="flex items-center gap-1">
                         {onToggleInRoomImage && obj.inRoomImage && (
                             <button
-                                onClick={() => onToggleInRoomImage(obj.id, !obj.showInRoomImage)}
+                                onClick={() => onToggleInRoomImage(obj.id, !isPresenterVisible)}
                                 disabled={isLocked}
                                 className={`p-1 rounded-full transition-colors ${
-                                    obj.showInRoomImage 
+                                    isPresenterVisible 
                                         ? 'bg-sky-500 text-white hover:bg-sky-600' 
                                         : 'bg-white/20 text-white hover:bg-white/40'
                                 } disabled:bg-white/10 disabled:cursor-not-allowed flex-shrink-0`}
-                                title={obj.showInRoomImage ? "Hide in-room image" : "Show in-room image"}
+                                title={isPresenterVisible ? "Hide in-room image" : "Show in-room image"}
                             >
-                                <Icon as={obj.showInRoomImage ? 'eye' : 'eye-slash'} className="w-3 h-3"/>
+                                <Icon as={isPresenterVisible ? 'eye' : 'eye-slash'} className="w-3 h-3"/>
                             </button>
                         )}
                         {(obj.isPickupable ?? true) && (

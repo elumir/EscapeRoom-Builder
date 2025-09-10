@@ -515,7 +515,6 @@ const PresenterView: React.FC = () => {
                     if (newState) { // Item is being added to inventory
                         newObj.wasEverInInventory = true;
                         newObj.addedToInventoryTimestamp = Date.now();
-                        newObj.showInRoomImage = false; // Hide in-room image when picked up
                     } else { // Item is being removed from inventory (discarded)
                         if (game.discardMode === 'return_to_room') {
                             // By setting this to false, it will reappear in its original room
@@ -572,7 +571,6 @@ const PresenterView: React.FC = () => {
                       showInInventory: true, 
                       wasEverInInventory: true,
                       addedToInventoryTimestamp: Date.now(),
-                      showInRoomImage: false, // Hide in-room image when picked up by puzzle
                     };
                 }
                 return obj;
@@ -761,7 +759,7 @@ const PresenterView: React.FC = () => {
               ...room,
               objects: room.objects.map(obj => {
                   if (obj.id === objectId) {
-                      return { ...obj, showInRoomImage: newState };
+                      return { ...obj, isPresenterHidden: newState };
                   }
                   return obj;
               })
@@ -828,6 +826,7 @@ const PresenterView: React.FC = () => {
                 wasEverInInventory: false,
                 showImageOverlay: false,
                 addedToInventoryTimestamp: undefined,
+                isPresenterHidden: false,
             })),
             puzzles: room.puzzles.map(p => ({
                 ...p,
