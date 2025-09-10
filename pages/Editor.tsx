@@ -2558,12 +2558,10 @@ const Editor: React.FC = () => {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
             <div>
-              <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold text-slate-700 dark:text-slate-300">Room Background Color</h3>
-                  {game.globalBackgroundColor && (
-                      <span className="text-xs text-slate-500 dark:text-slate-400 italic">Global color is active</span>
-                  )}
-              </div>
+              <h3 className="font-semibold text-slate-700 dark:text-slate-300 mb-2">Room Background Color</h3>
+              {game.globalBackgroundColor && (
+                  <p className="text-xs text-slate-500 dark:text-slate-400 italic mb-2">Global color is active</p>
+              )}
               <div className={`flex flex-wrap gap-2 p-3 bg-slate-100 dark:bg-slate-700/50 rounded-lg ${game.globalBackgroundColor ? 'opacity-50' : ''}`}>
                   {COLORS.map(color => (
                       <button 
@@ -2579,6 +2577,9 @@ const Editor: React.FC = () => {
 
             <div>
               <h3 className="font-semibold text-slate-700 dark:text-slate-300 mb-2">Room Transition</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
+                  Transitions affect entering a room, not exiting.
+              </p>
               <div className="flex rounded-lg bg-slate-100 dark:bg-slate-700/50 p-1 max-w-sm">
                   <button
                       onClick={() => changeRoomProperty('transitionType', 'none')}
