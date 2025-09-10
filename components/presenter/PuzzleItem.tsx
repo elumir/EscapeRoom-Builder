@@ -1,15 +1,12 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React from 'react';
 import type { Puzzle } from '../../types';
 import Icon from '../Icon';
-import { API_BASE_URL } from '../../services/presentationService';
 import MarkdownRenderer from '../MarkdownRenderer';
 
-const formatTime = (seconds: number) => {
-    if (isNaN(seconds) || seconds === Infinity) return '0:00';
-    const minutes = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
-};
+// This component has been temporarily simplified for debugging purposes.
+// All internal hooks (useState, useEffect) for audio playback and visual effects
+// have been removed to isolate the source of a persistent React rendering error (#310).
+// If this resolves the error, the functionality can be carefully reintroduced.
 
 const CheckmarkIcon = ({ className = 'h-6 w-6' }: { className?: string }) => (
     <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24" stroke="currentColor" strokeWidth={2}>
@@ -35,106 +32,7 @@ const PuzzleItem: React.FC<{
     lockingPuzzleName,
     variant = 'full',
 }) => {
-    // --- STATE AND REFS FOR BOTH SOLVED/UNSOLVED ---
     
-    // Hooks for UNSOLVED state (audio player)
-    const audioRef = useRef<HTMLAudioElement | null>(null);
-    const [isPlaying, setIsPlaying] = useState(false);
-    const [progress, setProgress] = useState(0);
-    const [duration, setDuration] = useState(0);
-    
-    // Hooks for SOLVED state (flash effect)
-    const [isFlashing, setIsFlashing] = useState(true);
-    const prevIsSolvedRef = useRef(puzzle.isSolved);
-
-    // --- EFFECTS ---
-
-    // Effect for handling audio player setup and cleanup
-    useEffect(() => {
-        if (puzzle.isSolved || !puzzle.sound) {
-            // Cleanup if puzzle is solved or has no sound
-            if (audioRef.current) {
-                audioRef.current.pause();
-                audioRef.current = null;
-                setIsPlaying(false);
-            }
-            return;
-        }
-
-        const audio = new Audio(`${API_BASE_URL}/assets/${puzzle.sound}`);
-        audioRef.current = audio;
-
-        const setAudioData = () => setDuration(audio.duration);
-        const setAudioTime = () => setProgress(audio.currentTime);
-        const handleAudioEnd = () => setIsPlaying(false);
-
-        audio.addEventListener('loadedmetadata', setAudioData);
-        audio.addEventListener('timeupdate', setAudioTime);
-        audio.addEventListener('ended', handleAudioEnd);
-
-        return () => {
-            if (audio) {
-                audio.pause();
-                audio.removeEventListener('loadedmetadata', setAudioData);
-                audio.removeEventListener('timeupdate', setAudioTime);
-                audio.removeEventListener('ended', handleAudioEnd);
-            }
-        };
-    }, [puzzle.sound, puzzle.isSolved]);
-    
-    // Effect to pause audio if puzzle becomes locked while playing
-    useEffect(() => {
-        if (isLocked && audioRef.current && isPlaying) {
-            audioRef.current.pause();
-            setIsPlaying(false);
-        }
-    }, [isLocked, isPlaying]);
-
-    // Effect for handling the "flash on solve" behavior
-    useEffect(() => {
-        const justSolved = puzzle.isSolved && !prevIsSolvedRef.current;
-        
-        if (justSolved) {
-            setIsFlashing(true);
-            const timer = setTimeout(() => setIsFlashing(false), 1000);
-            return () => clearTimeout(timer);
-        }
-        
-        if (!puzzle.isSolved) {
-            // Reset flash state if puzzle becomes unsolved (e.g., game reset)
-            setIsFlashing(true);
-        }
-        
-        prevIsSolvedRef.current = puzzle.isSolved;
-
-    }, [puzzle.isSolved]);
-
-
-    // --- EVENT HANDLERS (for unsolved state) ---
-    const handlePlayPause = () => {
-        if (audioRef.current) {
-            if (isPlaying) audioRef.current.pause();
-            else audioRef.current.play().catch(e => console.error("Error playing sound:", e));
-            setIsPlaying(!isPlaying);
-        }
-    };
-
-    const handleRewind = () => {
-        if (audioRef.current) {
-            audioRef.current.pause();
-            audioRef.current.currentTime = 0;
-            setIsPlaying(false);
-        }
-    };
-
-    const handleScrub = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (audioRef.current) {
-            const newTime = Number(e.target.value);
-            audioRef.current.currentTime = newTime;
-            setProgress(newTime);
-        }
-    };
-
     const handleCompleteClick = () => {
         if (isLocked) return;
         if (puzzle.answer) onAttemptSolve(puzzle.id);
@@ -146,12 +44,9 @@ const PuzzleItem: React.FC<{
 
     if (puzzle.isSolved) {
         // --- RENDER SOLVED PUZZLE ---
-        const flashClass = isFlashing ? 'border-green-500' : 'border-transparent';
-        const transitionClass = 'transition-colors duration-1000';
-
         if (variant === 'mini') {
             return (
-                <div className={`mt-1 flex items-center gap-1 p-1 rounded-sm border ${flashClass} ${transitionClass}`}>
+                <div className={`mt-1 flex items-center gap-1 p-1 rounded-sm border border-transparent`}>
                     <div className="text-green-400 flex-shrink-0"><CheckmarkIcon className="h-3 w-3" /></div>
                     <h4 className="font-semibold text-slate-500 text-[9px] truncate line-through">{puzzle.name}</h4>
                 </div>
@@ -159,7 +54,7 @@ const PuzzleItem: React.FC<{
         }
 
         return (
-            <div className={`flex items-start gap-4 p-4 bg-slate-800/50 rounded-lg border-2 ${flashClass} ${transitionClass}`}>
+            <div className={`flex items-start gap-4 p-4 bg-slate-800/50 rounded-lg border-2 border-transparent`}>
                 <div className="text-green-400 mt-1 flex-shrink-0"><CheckmarkIcon className="h-6 w-6" /></div>
                 <div className="flex-1">
                     <h3 className="font-bold text-slate-400 line-through">{puzzle.name}</h3>
@@ -251,28 +146,8 @@ const PuzzleItem: React.FC<{
                     )}
                 </div>
                 {puzzle.sound && (
-                    <div className="pl-4 mt-2">
-                        <div className={`flex items-center gap-3 w-full bg-slate-700/50 p-2 rounded-lg transition-opacity ${isLocked ? 'opacity-60' : ''}`}>
-                            <button onClick={handlePlayPause} disabled={isLocked} title={isPlaying ? "Pause" : "Play"} className="p-2 bg-slate-700 rounded-full hover:bg-slate-600 flex-shrink-0 disabled:cursor-not-allowed disabled:hover:bg-slate-700">
-                                <Icon as={isPlaying ? 'stop' : 'play'} className="h-5 w-5" />
-                            </button>
-                            <button onClick={handleRewind} disabled={isLocked} title="Rewind to Start" className="p-2 bg-slate-700 rounded-full hover:bg-slate-600 flex-shrink-0 disabled:cursor-not-allowed disabled:hover:bg-slate-700">
-                               <Icon as="rewind" className="h-5 w-5" />
-                            </button>
-                            <div className="flex-grow flex items-center gap-2">
-                                <span className="text-xs text-slate-400 font-mono">{formatTime(progress)}</span>
-                                <input
-                                    type="range"
-                                    min="0"
-                                    max={duration || 0}
-                                    value={progress}
-                                    onChange={handleScrub}
-                                    disabled={isLocked}
-                                    className="w-full h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer disabled:cursor-not-allowed [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-brand-500 [&::-webkit-slider-thumb]:rounded-full"
-                                />
-                                 <span className="text-xs text-slate-400 font-mono">{formatTime(duration)}</span>
-                            </div>
-                        </div>
+                     <div className="pl-4 mt-2 text-xs text-slate-500 italic">
+                        (Audio player temporarily disabled for debugging)
                     </div>
                 )}
             </div>

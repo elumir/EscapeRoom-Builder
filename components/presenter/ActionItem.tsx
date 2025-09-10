@@ -1,17 +1,12 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React from 'react';
 import type { Action } from '../../types';
 import Icon from '../Icon';
-import { API_BASE_URL } from '../../services/presentationService';
 import MarkdownRenderer from '../MarkdownRenderer';
 
-const formatTime = (seconds: number) => {
-    if (isNaN(seconds) || seconds === Infinity) {
-        return '0:00';
-    }
-    const minutes = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
-};
+// This component has been temporarily simplified for debugging purposes.
+// All internal hooks (useState, useEffect, useRef) for audio playback have been removed
+// to isolate the source of a persistent React rendering error (#310).
+// If this resolves the error, the audio functionality can be carefully reintroduced.
 
 const ActionItem: React.FC<{
     action: Action;
@@ -20,78 +15,6 @@ const ActionItem: React.FC<{
     isLocked?: boolean;
     lockingPuzzleName?: string;
 }> = React.memo(({ action, onToggleImage, onToggleComplete, isLocked = false, lockingPuzzleName }) => {
-    // --- HOOKS FOR BOTH STATES ---
-    const audioRef = useRef<HTMLAudioElement | null>(null);
-    const [isPlaying, setIsPlaying] = useState(false);
-    const [progress, setProgress] = useState(0);
-    const [duration, setDuration] = useState(0);
-
-    // --- EFFECTS ---
-    useEffect(() => {
-        if (action.isComplete || !action.sound) {
-            if (audioRef.current) {
-                audioRef.current.pause();
-                audioRef.current = null;
-                setIsPlaying(false);
-            }
-            return;
-        }
-
-        const audio = new Audio(`${API_BASE_URL}/assets/${action.sound}`);
-        audioRef.current = audio;
-
-        const setAudioData = () => setDuration(audio.duration);
-        const setAudioTime = () => setProgress(audio.currentTime);
-        const handleAudioEnd = () => setIsPlaying(false);
-
-        audio.addEventListener('loadedmetadata', setAudioData);
-        audio.addEventListener('timeupdate', setAudioTime);
-        audio.addEventListener('ended', handleAudioEnd);
-
-        return () => {
-            if (audio) {
-                audio.pause();
-                audio.removeEventListener('loadedmetadata', setAudioData);
-                audio.removeEventListener('timeupdate', setAudioTime);
-                audio.removeEventListener('ended', handleAudioEnd);
-            }
-        };
-    }, [action.sound, action.isComplete]);
-    
-    useEffect(() => {
-        if (isLocked && audioRef.current && isPlaying) {
-            audioRef.current.pause();
-            setIsPlaying(false);
-        }
-    }, [isLocked, isPlaying]);
-    
-    // --- HANDLERS ---
-    const handlePlayPause = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (audioRef.current) {
-            if (isPlaying) audioRef.current.pause();
-            else audioRef.current.play().catch(err => console.error("Error playing sound:", err));
-            setIsPlaying(!isPlaying);
-        }
-    };
-    
-    const handleRewind = () => {
-        if (audioRef.current) {
-            audioRef.current.pause();
-            audioRef.current.currentTime = 0;
-            setIsPlaying(false);
-        }
-    };
-
-    const handleScrub = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (audioRef.current) {
-            const newTime = Number(e.target.value);
-            audioRef.current.currentTime = newTime;
-            setProgress(newTime);
-        }
-    };
-
-    // --- RENDER LOGIC ---
 
     if (action.isComplete) {
         // --- RENDER COMPLETED ACTION ---
@@ -166,28 +89,8 @@ const ActionItem: React.FC<{
                 )}
             </div>
             {action.sound && (
-                <div className="pl-4 mt-2">
-                    <div className={`flex items-center gap-3 w-full bg-slate-700/50 p-2 rounded-lg transition-opacity ${isDisabled ? 'opacity-60' : ''}`}>
-                        <button onClick={handlePlayPause} disabled={isDisabled} title={isPlaying ? "Pause" : "Play"} className="p-2 bg-slate-700 rounded-full hover:bg-slate-600 flex-shrink-0 disabled:cursor-not-allowed disabled:hover:bg-slate-700">
-                             <Icon as={isPlaying ? 'stop' : 'play'} className="h-5 w-5" />
-                        </button>
-                        <button onClick={handleRewind} disabled={isDisabled} title="Rewind to Start" className="p-2 bg-slate-700 rounded-full hover:bg-slate-600 flex-shrink-0 disabled:cursor-not-allowed disabled:hover:bg-slate-700">
-                           <Icon as="rewind" className="h-5 w-5" />
-                        </button>
-                        <div className="flex-grow flex items-center gap-2">
-                            <span className="text-xs text-slate-400 font-mono">{formatTime(progress)}</span>
-                            <input
-                                type="range"
-                                min="0"
-                                max={duration || 0}
-                                value={progress}
-                                onChange={handleScrub}
-                                disabled={isDisabled}
-                                className="w-full h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer disabled:cursor-not-allowed [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-brand-500 [&::-webkit-slider-thumb]:rounded-full"
-                            />
-                             <span className="text-xs text-slate-400 font-mono">{formatTime(duration)}</span>
-                        </div>
-                    </div>
+                <div className="pl-4 mt-2 text-xs text-slate-500 italic">
+                    (Audio player temporarily disabled for debugging)
                 </div>
             )}
         </div>
