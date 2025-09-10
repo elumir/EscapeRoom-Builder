@@ -1089,40 +1089,11 @@ const PresenterView: React.FC = () => {
   );
   const completedActions = (currentRoom?.actions || []).filter(action => action.isComplete);
   
-  const allGlobalPuzzles = useMemo(() => {
-    if (!game) return [];
-    const uniqueGlobalPuzzles = new Map<string, Puzzle>();
-    game.rooms.forEach(room => {
-        room.puzzles.forEach(puzzle => {
-            if (puzzle.isGlobal && !uniqueGlobalPuzzles.has(puzzle.id)) {
-                uniqueGlobalPuzzles.set(puzzle.id, puzzle);
-            }
-        });
-    });
-    return Array.from(uniqueGlobalPuzzles.values());
-  }, [game]);
-
-  const allPuzzlesForCurrentRoom = useMemo(() => {
-    if (!currentRoom) return [];
-    
-    const roomPuzzles = currentRoom.puzzles.filter(p => !p.isGlobal);
-    const combined = [...roomPuzzles];
-    const roomPuzzleIds = new Set(roomPuzzles.map(p => p.id));
-
-    allGlobalPuzzles.forEach(gp => {
-        if (!roomPuzzleIds.has(gp.id)) {
-            combined.push(gp);
-        }
-    });
-
-    return combined;
-  }, [currentRoom, allGlobalPuzzles]);
-
-  const openPuzzles = allPuzzlesForCurrentRoom.filter(puzzle => 
+  const openPuzzles = (currentRoom?.puzzles || []).filter(puzzle => 
     !puzzle.isSolved && 
     !lockingPuzzlesByPuzzleId.has(puzzle.id)
   );
-  const completedPuzzles = allPuzzlesForCurrentRoom.filter(puzzle => puzzle.isSolved);
+  const completedPuzzles = (currentRoom?.puzzles || []).filter(puzzle => puzzle.isSolved);
 
   const roomsForSelectedAct = roomsByAct[selectedAct] || [];
   const roomSolveIsLocked = lockingPuzzlesByRoomSolveId.has(currentRoom.id);
@@ -1423,69 +1394,69 @@ const PresenterView: React.FC = () => {
         {/* Right Column */}
         {showRightColumn && (
           <div className="w-80 bg-slate-900/50 p-4 flex flex-col border-l border-slate-700">
-            {/* Available Objects */}
-            {showObjectsSection && (
-                <div className="mb-4">
-                    <h3 className="font-semibold text-slate-300 mb-2">Available to Pick Up</h3>
-                    <div className="grid grid-cols-2 gap-2">
-                       {roomObjects.map(obj => (
-                            <ObjectItem 
-                                key={obj.id} 
-                                obj={obj} 
-                                onToggle={handleToggleObject} 
-                                lockingPuzzleName={lockingPuzzlesByObjectId.get(obj.id)} 
-                                onToggleInRoomImage={handleToggleInRoomImage}
-                                variant="mini"
-                            />
-                       ))}
-                    </div>
-                </div>
-            )}
-            
-            {hasAudio && <div className="border-t border-slate-700 my-4"></div>}
-            
-            {/* Soundtrack */}
-            {soundtrack && (
-              <div className="mb-4">
-                <h3 className="font-semibold text-slate-300 mb-2">Soundtrack</h3>
-                <div className="p-2 bg-slate-700/50 rounded-lg">
-                  <p className="text-sm font-semibold truncate text-center mb-2">{game?.soundtrack?.[soundtrack.currentTrackIndex]?.name || 'Unknown Track'}</p>
-                  <div className="flex items-center justify-center gap-4 mb-2">
-                      <button onClick={handleSoundtrackPrev} className="p-2 hover:bg-slate-600 rounded-full" title="Previous Track"><Icon as="prev" className="w-5 h-5"/></button>
-                      <button onClick={handleSoundtrackRewind} className="p-2 hover:bg-slate-600 rounded-full" title="Rewind"><Icon as="rewind" className="w-5 h-5"/></button>
-                      <button onClick={handleSoundtrackPlayPause} className="p-3 bg-brand-600 rounded-full hover:bg-brand-500" title={soundtrack.isPlaying ? "Pause" : "Play"}>{soundtrack.isPlaying ? <Icon as="stop" className="w-5 h-5"/> : <Icon as="play" className="w-5 h-5"/>}</button>
-                      <button onClick={handleSoundtrackFadeOut} disabled={isFadingOut} className="p-2 hover:bg-slate-600 rounded-full disabled:opacity-50" title="Fade Out"><Icon as="stop" className="w-5 h-5"/></button>
-                      <button onClick={handleSoundtrackNext} className="p-2 hover:bg-slate-600 rounded-full" title="Next Track"><Icon as="next" className="w-5 h-5"/></button>
-                  </div>
-                  <div className="flex items-center gap-2">
-                      <span className="text-xs font-mono">{formatTime(progress)}</span>
-                      <input type="range" min="0" max={duration || 0} value={progress} onChange={handleSoundtrackSeek} className="w-full h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-brand-500 [&::-webkit-slider-thumb]:rounded-full"/>
-                      <span className="text-xs font-mono">{formatTime(duration)}</span>
-                  </div>
-                  <div className="flex items-center gap-2 mt-2">
-                      <Icon as="audio" className="w-4 h-4 text-slate-400"/>
-                      <input type="range" min="0" max="1" step="0.05" value={soundtrack.volume} onChange={e => handleSoundtrackVolumeChange(parseFloat(e.target.value))} className="w-full"/>
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            {/* Soundboard */}
-            {game?.soundboard && game.soundboard.length > 0 && (
+            <div className="flex-1 overflow-y-auto pr-2 -mr-2 space-y-6">
+              {soundtrack && (
                 <div>
-                  <h3 className="font-semibold text-slate-300 mb-2">Sound Board</h3>
+                  <h3 className="text-lg font-semibold text-slate-300 mb-2">Soundtrack</h3>
+                  <div className="p-3 bg-slate-700/50 rounded-lg space-y-2">
+                    <p className="text-sm font-semibold truncate text-center">{game.soundtrack?.[soundtrack.currentTrackIndex]?.name || 'Unknown Track'}</p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-400 font-mono">{formatTime(progress)}</span>
+                      <input type="range" min="0" max={duration || 0} value={progress} onChange={handleSoundtrackSeek} className="w-full h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-brand-500 [&::-webkit-slider-thumb]:rounded-full"/>
+                      <span className="text-xs text-slate-400 font-mono">{formatTime(duration)}</span>
+                    </div>
+                    <div className="flex justify-center items-center gap-2">
+                      <button onClick={handleSoundtrackPrev} className="p-2 hover:bg-slate-600 rounded-full"><Icon as="prev" className="w-5 h-5" /></button>
+                      <button onClick={handleSoundtrackRewind} className="p-2 hover:bg-slate-600 rounded-full"><Icon as="rewind" className="w-5 h-5" /></button>
+                      <button onClick={handleSoundtrackPlayPause} className="p-3 bg-brand-600 hover:bg-brand-700 rounded-full text-white">
+                        <Icon as={soundtrack.isPlaying ? 'stop' : 'play'} className="w-5 h-5" />
+                      </button>
+                      <button onClick={handleSoundtrackFadeOut} disabled={isFadingOut} className="p-2 hover:bg-slate-600 rounded-full disabled:opacity-50" title="Fade Out">
+                        <Icon as="stop" className="w-5 h-5" />
+                      </button>
+                      <button onClick={handleSoundtrackNext} className="p-2 hover:bg-slate-600 rounded-full"><Icon as="next" className="w-5 h-5" /></button>
+                    </div>
+                    <div className="flex items-center gap-2 pt-2">
+                        <Icon as="audio" className="w-4 h-4 text-slate-400" />
+                        <input type="range" min="0" max="1" step="0.05" value={soundtrack.volume} onChange={e => handleSoundtrackVolumeChange(parseFloat(e.target.value))} className="w-full h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-brand-500 [&::-webkit-slider-thumb]:rounded-full" />
+                    </div>
+                  </div>
+                </div>
+              )}
+              {game?.soundboard && game.soundboard.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-300 mb-2">Soundboard</h3>
                   <div className="grid grid-cols-2 gap-2">
-                    {game.soundboard.map(clip => {
-                       const clipState = soundboardClips.get(clip.id);
-                       return (
-                         <button key={clip.id} onClick={() => handlePlaySoundboardClip(clip.id)} className={`p-2 rounded-lg text-left transition-colors ${clipState?.isPlaying ? 'bg-brand-600' : 'bg-slate-700/50 hover:bg-slate-700'}`}>
-                           <p className="text-sm font-semibold truncate">{clip.name}</p>
-                         </button>
-                       )
+                    {game.soundboard.map(clipInfo => {
+                      const clipState = soundboardClips.get(clipInfo.id);
+                      if (!clipState) return null;
+                      return (
+                        <button key={clipInfo.id} onClick={() => handlePlaySoundboardClip(clipInfo.id)} className={`p-2 rounded-md text-sm truncate transition-colors ${clipState.isPlaying ? 'bg-brand-500 text-white' : 'bg-slate-700 hover:bg-slate-600'}`}>
+                          {clipInfo.name}
+                        </button>
+                      )
                     })}
                   </div>
                 </div>
-            )}
+              )}
+              {showObjectsSection && (
+                 <div>
+                    <h3 className="text-lg font-semibold text-slate-300 mb-2">Available to Pick Up</h3>
+                    <div className="space-y-2">
+                        {roomObjects.map(obj => (
+                            <ObjectItem 
+                                key={obj.id}
+                                obj={obj}
+                                onToggle={handleToggleObject}
+                                lockingPuzzleName={lockingPuzzlesByObjectId.get(obj.id)}
+                                onToggleInRoomImage={handleToggleInRoomImage}
+                                variant="mini"
+                            />
+                        ))}
+                    </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </main>
@@ -1493,4 +1464,5 @@ const PresenterView: React.FC = () => {
   );
 };
 
+// FIX: Add default export to the PresenterView component.
 export default PresenterView;
