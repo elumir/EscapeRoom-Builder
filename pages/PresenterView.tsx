@@ -1249,7 +1249,6 @@ const PresenterView: React.FC = () => {
                         Inventory
                         {showInventoryNotification && <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-brand-400 ring-2 ring-slate-800" />}
                     </button>
-                    {/* FIX: Changed `setActive` to `setActiveTab` to correctly update the component state. */}
                     <button onClick={() => { setActiveTab('discarded'); setShowInventoryNotification(false); }} className={`relative flex-1 text-center text-sm px-3 py-1.5 rounded-md transition-colors ${activeTab === 'discarded' ? 'bg-slate-600 shadow-sm font-semibold' : 'text-slate-300 hover:bg-slate-600/50'}`}>Discarded</button>
                 </div>
             </div>

@@ -3,6 +3,8 @@ import React from 'react';
 interface IconProps {
   as: 'plus' | 'trash' | 'present' | 'prev' | 'next' | 'close' | 'reorder' | 'expand' | 'collapse' | 'lock' | 'eye' | 'eye-slash' | 'chevron-down' | 'restart' | 'rewind' | 'settings' | 'gallery' | 'audio' | 'map' | 'edit' | 'shuffle' | 'swatch' | 'share' | 'stop' | 'play' | 'font' | 'hand-expand' | 'description' | 'description-slash' | 'move-right' | 'duplicate';
   className?: string;
+  // FIX: Added title prop to allow tooltips on icons.
+  title?: string;
 }
 
 const icons = {
@@ -193,8 +195,8 @@ const icons = {
   ),
 };
 
-const Icon: React.FC<IconProps> = ({ as, className = 'w-6 h-6' }) => {
-  return <div className={className}>{icons[as]}</div>;
+const Icon: React.FC<IconProps> = ({ as, className = 'w-6 h-6', title }) => {
+  return <div className={className} title={title}>{icons[as]}</div>;
 };
 
 export default Icon;

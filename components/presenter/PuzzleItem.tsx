@@ -10,6 +10,12 @@ const formatTime = (seconds: number) => {
     return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
 }
 
+const CheckmarkIcon = ({ className = 'h-6 w-6' }: { className?: string }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+);
+
 const PuzzleItem: React.FC<{
     puzzle: Puzzle;
     onToggle: (id: string, state: boolean) => void;
@@ -118,12 +124,6 @@ const PuzzleItem: React.FC<{
 
     // --- Conditional Rendering ---
     if (puzzle.isSolved) {
-        const CheckmarkIcon = ({ className = 'h-6 w-6' }: { className?: string }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-        );
-        
         const flashClass = isFlashing ? 'border-green-500' : 'border-transparent';
         const transitionClass = 'transition-colors duration-1000';
 
@@ -246,7 +246,7 @@ const PuzzleItem: React.FC<{
                            <Icon as="rewind" className="h-5 w-5" />
                         </button>
                         <div className="flex-grow flex items-center gap-2">
-                            <span className="text-xs text-slate-400">{formatTime(progress)}</span>
+                            <span className="text-xs text-slate-400 font-mono">{formatTime(progress)}</span>
                             <input
                                 type="range"
                                 min="0"
@@ -256,7 +256,7 @@ const PuzzleItem: React.FC<{
                                 disabled={isLocked}
                                 className="w-full h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer disabled:cursor-not-allowed [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-brand-500 [&::-webkit-slider-thumb]:rounded-full"
                             />
-                             <span className="text-xs text-slate-400">{formatTime(duration)}</span>
+                             <span className="text-xs text-slate-400 font-mono">{formatTime(duration)}</span>
                         </div>
                     </div>
                 </div>
