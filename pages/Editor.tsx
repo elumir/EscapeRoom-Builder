@@ -514,7 +514,7 @@ const Editor: React.FC = () => {
   }
 
   const addPuzzle = () => {
-    const newPuzzle: Puzzle = { id: generateUUID(), name: 'New Puzzle', answer: '', isSolved: false, unsolvedText: '', solvedText: '', image: null, sound: null, showImageOverlay: false, lockedObjectIds: [], discardObjectIds: [], lockedRoomIds: [], lockedPuzzleIds: [], lockedRoomSolveIds: [], lockedActionIds: [], completedActionIds: [], autoAddLockedObjects: false, lockedActNumbers: [] };
+    const newPuzzle: Puzzle = { id: generateUUID(), name: 'New Puzzle', answer: '', isSolved: false, unsolvedText: '', solvedText: '', image: null, sound: null, showImageOverlay: false, lockedObjectIds: [], discardObjectIds: [], lockedRoomIds: [], lockedPuzzleIds: [], lockedRoomSolveIds: [], lockedActionIds: [], completedActionIds: [], autoAddLockedObjects: false, isGlobal: false, lockedActNumbers: [] };
     const newPuzzles = [...editingRoomPuzzles, newPuzzle];
     setEditingRoomPuzzles(newPuzzles);
     
@@ -1658,6 +1658,17 @@ const Editor: React.FC = () => {
                                 className="w-full font-mono px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
                             />
                         </div>
+                    </div>
+                    <div>
+                        <label className="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-300 cursor-pointer p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700/50 -ml-2">
+                            <input
+                                type="checkbox"
+                                className="w-4 h-4 rounded border-slate-400 text-brand-600 shadow-sm focus:ring-brand-500"
+                                checked={modalPuzzleData.isGlobal || false}
+                                onChange={(e) => handleModalPuzzleChange('isGlobal', e.target.checked)}
+                            />
+                            <span>Global Puzzle (show in all rooms in presenter view once unlocked)</span>
+                        </label>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>

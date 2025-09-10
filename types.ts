@@ -56,6 +56,7 @@ export interface Puzzle {
   lockedActionIds: string[];
   completedActionIds: string[];
   autoAddLockedObjects: boolean;
+  isGlobal?: boolean;
   lockedActNumbers?: number[];
 }
 
