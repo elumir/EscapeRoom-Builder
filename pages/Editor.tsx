@@ -1584,7 +1584,7 @@ const Editor: React.FC = () => {
                                     src={`${API_BASE_URL}/assets/${modalObjectData.inRoomImage}`}
                                     alt={modalObjectData.name}
                                     onMouseDown={handleDragMouseDown}
-                                    className={`absolute transition-opacity ${isDragging ? 'opacity-75 cursor-grabbing' : 'cursor-grabbing'}`}
+                                    className={`absolute transition-opacity ${isDragging ? 'opacity-75 cursor-grabbing' : 'cursor-grab'}`}
                                     style={{
                                         left: `${(modalObjectData.x ?? 0.5) * 100}%`,
                                         top: `${(modalObjectData.y ?? 0.5) * 100}%`,

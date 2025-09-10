@@ -1315,8 +1315,86 @@ const PresenterView: React.FC = () => {
                          <div className="grid grid-cols-2 gap-2">
                             {combinedDiscardedObjects.length > 0 ? combinedDiscardedObjects.map(obj => (
                                <ObjectItem key={obj.id} obj={{...obj, showInInventory: false}} onToggle={obj.id.startsWith('custom-') ? handleToggleCustomItem : handleToggleObject} lockingPuzzleName={lockingPuzzlesByObjectId.get(obj.id)} />
-                            )) : (
-                                <p className="col-span-2 text-sm text-slate-500 italic text-center pt-4">No discarded items.</p>
+                            )) : <p className="col-span-2 text-sm text-slate-500 italic text-center pt-4">No items have been discarded</p>}
+                         </div>
+                    </div>
+                )}
+            </div>
+        </div>
+
+        {/* Center Column */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex-shrink-0 p-4 border-b border-slate-700">
+                <div className="flex justify-between items-start">
+                    <h2 className="text-2xl font-bold">{currentRoom.name}</h2>
+                    {hasSolvedState && (
+                        <label className={`flex items-center gap-2 text-sm ${currentRoom.isSolved ? 'text-green-400' : 'text-slate-400'} ${roomSolveIsLocked ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`} title={roomSolveIsLocked ? `Locked by: ${roomSolveLockingPuzzleName}` : "Toggle solved state"}>
+                            <span>Solved</span>
+                            <input
+                                type="checkbox"
+                                checked={currentRoom.isSolved}
+                                onChange={e => handleToggleRoomSolved(currentRoom.id, e.target.checked)}
+                                className="sr-only peer"
+                                disabled={roomSolveIsLocked}
+                            />
+                            <div className="relative w-11 h-6 bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                        </label>
+                    )}
+                </div>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-6">
+                <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
+                    <div className="border-b border-slate-700 pb-3 mb-4">
+                        <h3 className="font-semibold text-slate-300 text-lg">{currentRoom.isSolved ? 'Solved Description' : 'Room Description'}</h3>
+                    </div>
+                    <div className="prose prose-invert max-w-none prose-p:text-slate-300">
+                        <MarkdownRenderer content={currentRoom.isSolved ? currentRoom.solvedNotes : currentRoom.notes} />
+                    </div>
+                </div>
+
+                 {(currentRoom?.actions || []).length > 0 && (
+                    <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
+                        <div className="flex justify-between items-center border-b border-slate-700 pb-3 mb-4">
+                            <h3 className="font-semibold text-slate-300 text-lg">Player Actions & Host Responses</h3>
+                            <div className="flex rounded-lg bg-slate-700/50 p-1 text-xs">
+                                <button onClick={() => setActiveActionTab('open')} className={`px-2 py-1 rounded-md ${activeActionTab === 'open' ? 'bg-slate-600' : 'hover:bg-slate-600/50'}`}>Open ({openActions.length})</button>
+                                <button onClick={() => setActiveActionTab('complete')} className={`px-2 py-1 rounded-md ${activeActionTab === 'complete' ? 'bg-slate-600' : 'hover:bg-slate-600/50'}`}>Complete ({completedActions.length})</button>
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            {activeActionTab === 'open' && (
+                                openActions.length > 0 
+                                    ? openActions.map(action => <ActionItem key={action.id} action={action} onToggleImage={handleToggleActionImage} onToggleComplete={handleToggleActionComplete} />)
+                                    : <p className="text-sm text-slate-500 italic">No open actions.</p>
+                            )}
+                            {activeActionTab === 'complete' && (
+                                completedActions.length > 0 
+                                    ? completedActions.map(action => <ActionItem key={action.id} action={action} onToggleImage={handleToggleActionImage} onToggleComplete={handleToggleActionComplete} />)
+                                    : <p className="text-sm text-slate-500 italic">No completed actions.</p>
+                            )}
+                        </div>
+                    </div>
+                 )}
+
+                {(currentRoom?.puzzles || []).length > 0 && (
+                    <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
+                        <div className="flex justify-between items-center border-b border-slate-700 pb-3 mb-4">
+                            <h3 className="font-semibold text-slate-300 text-lg">Puzzles</h3>
+                            <div className="flex rounded-lg bg-slate-700/50 p-1 text-xs">
+                            <button onClick={() => setActivePuzzleTab('open')} className={`px-2 py-1 rounded-md ${activePuzzleTab === 'open' ? 'bg-slate-600' : 'hover:bg-slate-600/50'}`}>Open ({openPuzzles.length})</button>
+                            <button onClick={() => setActivePuzzleTab('complete')} className={`px-2 py-1 rounded-md ${activePuzzleTab === 'complete' ? 'bg-slate-600' : 'hover:bg-slate-600/50'}`}>Complete ({completedPuzzles.length})</button>
+                            </div>
+                        </div>
+                        <div className="space-y-4">
+                            {activePuzzleTab === 'open' && (
+                                openPuzzles.length > 0 
+                                    ? openPuzzles.map(puzzle => <PuzzleItem key={puzzle.id} puzzle={puzzle} onToggle={handleTogglePuzzle} onToggleImage={handleTogglePuzzleImage} onAttemptSolve={handleAttemptSolve} />)
+                                    : <p className="text-sm text-slate-500 italic">No open puzzles.</p>
+                            )}
+                            {activePuzzleTab === 'complete' && (
+                                completedPuzzles.length > 0 
+                                    ? completedPuzzles.map(puzzle => <PuzzleItem key={puzzle.id} puzzle={puzzle} onToggle={()=>{}} onToggleImage={()=>{}} onAttemptSolve={()=>{}} />)
+                                    : <p className="text-sm text-slate-500 italic">No completed puzzles.</p>
                             )}
                         </div>
                     </div>
@@ -1324,145 +1402,69 @@ const PresenterView: React.FC = () => {
             </div>
         </div>
 
-        {/* Center Column */}
-        <div className="flex-1 flex flex-col overflow-y-auto p-4 bg-slate-800">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-2xl font-bold text-slate-100">{currentRoom.name}</h2>
-            {hasSolvedState && (
-                <label className={`flex items-center gap-2 text-sm ${currentRoom.isSolved ? 'text-green-400' : 'text-slate-400'} ${roomSolveIsLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`} title={roomSolveIsLocked ? `Locked by: ${roomSolveLockingPuzzleName}` : ''}>
-                    <span>Solved</span>
-                    <input
-                        type="checkbox"
-                        checked={currentRoom.isSolved}
-                        onChange={(e) => handleToggleRoomSolved(currentRoom.id, e.target.checked)}
-                        className="sr-only peer"
-                        disabled={roomSolveIsLocked}
-                    />
-                    <div className="relative w-11 h-6 bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600 peer-disabled:opacity-50"></div>
-                </label>
-            )}
-          </div>
-
-          <div className="flex-1 overflow-y-auto pr-2 -mr-2 space-y-4">
-             <div className="p-4 bg-slate-900/50 rounded-lg">
-                <h3 className="font-semibold text-slate-300 mb-2">Room Description</h3>
-                <div className="text-slate-300">
-                    <MarkdownRenderer content={currentRoom.isSolved && currentRoom.solvedNotes ? currentRoom.solvedNotes : currentRoom.notes} />
-                </div>
-            </div>
-            
-            {/* Puzzles */}
-            <div>
-              <div className="flex rounded-lg bg-slate-700/50 p-1 mb-2">
-                  <button onClick={() => setActivePuzzleTab('open')} className={`flex-1 text-center text-sm px-3 py-1.5 rounded-md transition-colors ${activePuzzleTab === 'open' ? 'bg-slate-600 shadow-sm font-semibold' : 'text-slate-300 hover:bg-slate-600/50'}`}>Open ({openPuzzles.length})</button>
-                  <button onClick={() => setActivePuzzleTab('complete')} className={`flex-1 text-center text-sm px-3 py-1.5 rounded-md transition-colors ${activePuzzleTab === 'complete' ? 'bg-slate-600 shadow-sm font-semibold' : 'text-slate-300 hover:bg-slate-600/50'}`}>Complete ({completedPuzzles.length})</button>
-              </div>
-              <div className="space-y-2">
-                  {activePuzzleTab === 'open' ? (
-                      openPuzzles.length > 0 ? openPuzzles.map(puzzle => (
-                          <PuzzleItem key={puzzle.id} puzzle={puzzle} onToggle={handleTogglePuzzle} onToggleImage={handleTogglePuzzleImage} onAttemptSolve={handleAttemptSolve} isLocked={lockingPuzzlesByPuzzleId.has(puzzle.id)} lockingPuzzleName={lockingPuzzlesByPuzzleId.get(puzzle.id)} />
-                      )) : <p className="text-sm text-slate-500 italic p-4 text-center">No open puzzles.</p>
-                  ) : (
-                      completedPuzzles.length > 0 ? completedPuzzles.map(puzzle => (
-                          <PuzzleItem key={puzzle.id} puzzle={puzzle} onToggle={handleTogglePuzzle} onToggleImage={handleTogglePuzzleImage} onAttemptSolve={handleAttemptSolve} />
-                      )) : <p className="text-sm text-slate-500 italic p-4 text-center">No completed puzzles.</p>
-                  )}
-              </div>
-            </div>
-            
-            {/* Actions */}
-            <div>
-              <div className="flex rounded-lg bg-slate-700/50 p-1 mb-2">
-                  <button onClick={() => setActiveActionTab('open')} className={`flex-1 text-center text-sm px-3 py-1.5 rounded-md transition-colors ${activeActionTab === 'open' ? 'bg-slate-600 shadow-sm font-semibold' : 'text-slate-300 hover:bg-slate-600/50'}`}>Open ({openActions.length})</button>
-                  <button onClick={() => setActiveActionTab('complete')} className={`flex-1 text-center text-sm px-3 py-1.5 rounded-md transition-colors ${activeActionTab === 'complete' ? 'bg-slate-600 shadow-sm font-semibold' : 'text-slate-300 hover:bg-slate-600/50'}`}>Complete ({completedActions.length})</button>
-              </div>
-              <div className="space-y-2">
-                {activeActionTab === 'open' ? (
-                    openActions.length > 0 ? openActions.map(action => (
-                        <ActionItem key={action.id} action={action} onToggleImage={handleToggleActionImage} onToggleComplete={handleToggleActionComplete} isLocked={lockingPuzzlesByActionId.has(action.id)} lockingPuzzleName={lockingPuzzlesByActionId.get(action.id)} />
-                    )) : <p className="text-sm text-slate-500 italic p-4 text-center">No open actions.</p>
-                ) : (
-                    completedActions.length > 0 ? completedActions.map(action => (
-                       <ActionItem key={action.id} action={action} onToggleImage={handleToggleActionImage} onToggleComplete={handleToggleActionComplete} />
-                    )) : <p className="text-sm text-slate-500 italic p-4 text-center">No completed actions.</p>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* Right Column */}
         {showRightColumn && (
-          <div className="w-80 bg-slate-900/50 p-4 flex flex-col border-l border-slate-700">
-            <div className="flex-1 overflow-y-auto pr-2 -mr-2 space-y-6">
-              {soundtrack && (
-                <div>
-                  <h3 className="text-lg font-semibold text-slate-300 mb-2">Soundtrack</h3>
-                  <div className="p-3 bg-slate-700/50 rounded-lg space-y-2">
-                    <p className="text-sm font-semibold truncate text-center">{game.soundtrack?.[soundtrack.currentTrackIndex]?.name || 'Unknown Track'}</p>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-slate-400 font-mono">{formatTime(progress)}</span>
-                      <input type="range" min="0" max={duration || 0} value={progress} onChange={handleSoundtrackSeek} className="w-full h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-brand-500 [&::-webkit-slider-thumb]:rounded-full"/>
-                      <span className="text-xs text-slate-400 font-mono">{formatTime(duration)}</span>
+            <div className="w-80 bg-slate-900/50 p-4 flex flex-col border-l border-slate-700 space-y-6">
+                {showObjectsSection && (
+                    <div className="space-y-3">
+                        <h3 className="text-lg font-semibold text-slate-300">Objects in Room</h3>
+                        <div className="grid grid-cols-2 gap-2">
+                            {roomObjects.map(obj => (
+                                <ObjectItem key={obj.id} obj={obj} onToggle={handleToggleObject} lockingPuzzleName={lockingPuzzlesByObjectId.get(obj.id)} onToggleInRoomImage={handleToggleInRoomImage} variant="mini" />
+                            ))}
+                        </div>
                     </div>
-                    <div className="flex justify-center items-center gap-2">
-                      <button onClick={handleSoundtrackPrev} className="p-2 hover:bg-slate-600 rounded-full"><Icon as="prev" className="w-5 h-5" /></button>
-                      <button onClick={handleSoundtrackRewind} className="p-2 hover:bg-slate-600 rounded-full"><Icon as="rewind" className="w-5 h-5" /></button>
-                      <button onClick={handleSoundtrackPlayPause} className="p-3 bg-brand-600 hover:bg-brand-700 rounded-full text-white">
-                        <Icon as={soundtrack.isPlaying ? 'stop' : 'play'} className="w-5 h-5" />
-                      </button>
-                      <button onClick={handleSoundtrackFadeOut} disabled={isFadingOut} className="p-2 hover:bg-slate-600 rounded-full disabled:opacity-50" title="Fade Out">
-                        <Icon as="stop" className="w-5 h-5" />
-                      </button>
-                      <button onClick={handleSoundtrackNext} className="p-2 hover:bg-slate-600 rounded-full"><Icon as="next" className="w-5 h-5" /></button>
+                )}
+                {(game?.soundboard || []).length > 0 && (
+                    <div className="space-y-3 flex-1 min-h-0 flex flex-col">
+                        <h3 className="text-lg font-semibold text-slate-300">Sound Board</h3>
+                        <div className="grid grid-cols-2 gap-2 overflow-y-auto pr-2 -mr-2">
+                            {game.soundboard?.map(clip => {
+                                const clipState = soundboardClips.get(clip.id);
+                                const isPlaying = clipState?.isPlaying || false;
+                                return (
+                                    <button
+                                        key={clip.id}
+                                        onClick={() => handlePlaySoundboardClip(clip.id)}
+                                        className={`w-full flex items-center gap-3 text-left p-2 rounded-lg transition-colors ${isPlaying ? 'bg-brand-600 text-white' : 'bg-slate-700/50 hover:bg-slate-700'}`}
+                                    >
+                                        <Icon as={isPlaying ? 'stop' : 'play'} className="w-5 h-5 flex-shrink-0" />
+                                        <span className="truncate text-sm font-semibold">{clip.name}</span>
+                                    </button>
+                                )
+                            })}
+                        </div>
                     </div>
-                    <div className="flex items-center gap-2 pt-2">
-                        <Icon as="audio" className="w-4 h-4 text-slate-400" />
-                        <input type="range" min="0" max="1" step="0.05" value={soundtrack.volume} onChange={e => handleSoundtrackVolumeChange(parseFloat(e.target.value))} className="w-full h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-brand-500 [&::-webkit-slider-thumb]:rounded-full" />
-                    </div>
-                  </div>
-                </div>
-              )}
-              {game?.soundboard && game.soundboard.length > 0 && (
-                <div>
-                  <h3 className="text-lg font-semibold text-slate-300 mb-2">Soundboard</h3>
-                  <div className="grid grid-cols-2 gap-2">
-                    {game.soundboard.map(clipInfo => {
-                      const clipState = soundboardClips.get(clipInfo.id);
-                      if (!clipState) return null;
-                      return (
-                        <button key={clipInfo.id} onClick={() => handlePlaySoundboardClip(clipInfo.id)} className={`p-2 rounded-md text-sm truncate transition-colors ${clipState.isPlaying ? 'bg-brand-500 text-white' : 'bg-slate-700 hover:bg-slate-600'}`}>
-                          {clipInfo.name}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-              )}
-              {showObjectsSection && (
-                 <div>
-                    <h3 className="text-lg font-semibold text-slate-300 mb-2">Available to Pick Up</h3>
-                    <div className="space-y-2">
-                        {roomObjects.map(obj => (
-                            <ObjectItem 
-                                key={obj.id}
-                                obj={obj}
-                                onToggle={handleToggleObject}
-                                lockingPuzzleName={lockingPuzzlesByObjectId.get(obj.id)}
-                                onToggleInRoomImage={handleToggleInRoomImage}
-                                variant="mini"
-                            />
-                        ))}
-                    </div>
-                </div>
-              )}
+                )}
+                {soundtrack && (
+                     <div className="space-y-3">
+                        <h3 className="text-lg font-semibold text-slate-300">Soundtrack</h3>
+                        <div className="p-3 bg-slate-800/70 rounded-lg">
+                            <p className="font-semibold text-center truncate">{game?.soundtrack?.[soundtrack.currentTrackIndex]?.name || 'Unknown Track'}</p>
+                            <div className="flex items-center gap-4 mt-3">
+                                <button onClick={handleSoundtrackPrev} disabled={soundtrack.elements.length < 2} title="Previous Track" className="p-2 disabled:opacity-30"><Icon as="prev" className="w-5 h-5"/></button>
+                                <button onClick={handleSoundtrackRewind} title="Rewind to Start" className="p-2 disabled:opacity-30"><Icon as="rewind" className="w-5 h-5"/></button>
+                                <button onClick={handleSoundtrackPlayPause} className="p-3 bg-brand-600 rounded-full text-white shadow-lg"><Icon as={soundtrack.isPlaying ? 'stop' : 'play'} className="w-6 h-6"/></button>
+                                <button onClick={handleSoundtrackFadeOut} disabled={isFadingOut || !soundtrack.isPlaying} title="Fade Out & Stop" className="p-2 disabled:opacity-30"><Icon as="close" className="w-5 h-5"/></button>
+                                <button onClick={handleSoundtrackNext} disabled={soundtrack.elements.length < 2} title="Next Track" className="p-2 disabled:opacity-30"><Icon as="next" className="w-5 h-5"/></button>
+                            </div>
+                             <div className="flex items-center gap-2 text-xs text-slate-400 mt-3">
+                                <span>{formatTime(progress)}</span>
+                                <input type="range" min="0" max={duration || 0} value={progress} onChange={handleSoundtrackSeek} className="w-full h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-brand-500 [&::-webkit-slider-thumb]:rounded-full" />
+                                <span>{formatTime(duration)}</span>
+                            </div>
+                             <div className="flex items-center gap-2 text-xs text-slate-400 mt-2">
+                                 <Icon as="audio" className="w-4 h-4" />
+                                 <input type="range" min="0" max="1" step="0.05" value={soundtrack.volume} onChange={(e) => handleSoundtrackVolumeChange(parseFloat(e.target.value))} className="w-full h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-brand-500 [&::-webkit-slider-thumb]:rounded-full" />
+                            </div>
+                        </div>
+                     </div>
+                )}
             </div>
-          </div>
         )}
       </main>
     </div>
   );
 };
 
-// FIX: Add default export to the PresenterView component.
 export default PresenterView;
