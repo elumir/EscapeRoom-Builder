@@ -514,7 +514,7 @@ const Editor: React.FC = () => {
   }
 
   const addPuzzle = () => {
-    const newPuzzle: Puzzle = { id: generateUUID(), name: 'New Puzzle', answer: '', isSolved: false, unsolvedText: '', solvedText: '', image: null, sound: null, showImageOverlay: false, lockedObjectIds: [], discardObjectIds: [], lockedRoomIds: [], lockedPuzzleIds: [], lockedRoomSolveIds: [], lockedActionIds: [], completedActionIds: [], autoAddLockedObjects: false, lockedActNumbers: [], isGlobal: false };
+    const newPuzzle: Puzzle = { id: generateUUID(), name: 'New Puzzle', answer: '', isSolved: false, unsolvedText: '', solvedText: '', image: null, sound: null, showImageOverlay: false, lockedObjectIds: [], discardObjectIds: [], lockedRoomIds: [], lockedPuzzleIds: [], lockedRoomSolveIds: [], lockedActionIds: [], completedActionIds: [], autoAddLockedObjects: false, lockedActNumbers: [] };
     const newPuzzles = [...editingRoomPuzzles, newPuzzle];
     setEditingRoomPuzzles(newPuzzles);
     
@@ -1658,12 +1658,6 @@ const Editor: React.FC = () => {
                                 className="w-full font-mono px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
                             />
                         </div>
-                    </div>
-                    <div className="pt-2">
-                        <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700">
-                            <input type="checkbox" className="rounded border-slate-400 text-brand-600 focus:ring-brand-500" checked={modalPuzzleData.isGlobal || false} onChange={e => handleModalPuzzleChange('isGlobal', e.target.checked)} />
-                            Make this a global puzzle (available in all rooms)
-                        </label>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
@@ -2818,12 +2812,7 @@ const Editor: React.FC = () => {
                                     <Icon as="reorder" className="w-5 h-5 text-slate-400 dark:text-slate-500" />
                                 </div>
                                 <div className="flex-grow min-w-0">
-                                  <div className="flex items-center">
-                                    <p className="font-semibold truncate">{puzzle.name || <span className="italic text-slate-500">Untitled Puzzle</span>}</p>
-                                    {puzzle.isGlobal && (
-                                      <span className="ml-2 text-xs font-semibold bg-sky-100 text-sky-800 dark:bg-sky-900/50 dark:text-sky-300 px-1.5 py-0.5 rounded-full flex-shrink-0">Global</span>
-                                    )}
-                                  </div>
+                                  <p className="font-semibold truncate">{puzzle.name || <span className="italic text-slate-500">Untitled Puzzle</span>}</p>
                                   {locks && (
                                     <div className="flex items-center gap-1 text-xs text-red-500 mt-1" title={`Locked by: ${locks.join(', ')}`}>
                                       <Icon as="lock" className="w-3 h-3"/>
