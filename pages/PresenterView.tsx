@@ -1364,14 +1364,115 @@ const PresenterView: React.FC = () => {
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-6">
                 <div className="bg-slate-900/50 border border-slate-700 p-4 rounded-lg">
-                  {/* NOTE: File content was truncated here. */}
+                  <h3 className="font-semibold text-slate-300 mb-2">Room Description</h3>
+                  <div className="text-slate-300 prose prose-invert max-w-none prose-p:my-2 prose-strong:text-slate-200">
+                    <MarkdownRenderer content={currentRoom.isSolved && currentRoom.solvedNotes ? currentRoom.solvedNotes : currentRoom.notes} />
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-xl font-bold">Player Actions</h3>
+                    <div className="flex rounded-lg bg-slate-700/50 p-1 text-sm">
+                        <button onClick={() => setActiveActionTab('open')} className={`px-3 py-1 rounded-md ${activeActionTab === 'open' ? 'bg-slate-600' : ''}`}>Open ({openActions.length})</button>
+                        <button onClick={() => setActiveActionTab('complete')} className={`px-3 py-1 rounded-md ${activeActionTab === 'complete' ? 'bg-slate-600' : ''}`}>Complete ({completedActions.length})</button>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    {activeActionTab === 'open' && (openActions.length > 0 ? openActions.map(action => (
+                        <ActionItem key={action.id} action={action} onToggleImage={handleToggleActionImage} onToggleComplete={handleToggleActionComplete} isLocked={lockingPuzzlesByActionId.has(action.id)} lockingPuzzleName={lockingPuzzlesByActionId.get(action.id)} />
+                    )) : <p className="text-slate-500 italic">No open actions.</p>)}
+                    {activeActionTab === 'complete' && (completedActions.length > 0 ? completedActions.map(action => (
+                        <ActionItem key={action.id} action={action} onToggleImage={handleToggleActionImage} onToggleComplete={handleToggleActionComplete} />
+                    )) : <p className="text-slate-500 italic">No completed actions.</p>)}
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-xl font-bold">Puzzles</h3>
+                     <div className="flex rounded-lg bg-slate-700/50 p-1 text-sm">
+                        <button onClick={() => setActivePuzzleTab('open')} className={`px-3 py-1 rounded-md ${activePuzzleTab === 'open' ? 'bg-slate-600' : ''}`}>Open ({openPuzzles.length})</button>
+                        <button onClick={() => setActivePuzzleTab('complete')} className={`px-3 py-1 rounded-md ${activePuzzleTab === 'complete' ? 'bg-slate-600' : ''}`}>Complete ({completedPuzzles.length})</button>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    {activePuzzleTab === 'open' && (openPuzzles.length > 0 ? openPuzzles.map(puzzle => (
+                        <PuzzleItem key={puzzle.id} puzzle={puzzle} onToggle={handleTogglePuzzle} onToggleImage={handleTogglePuzzleImage} onAttemptSolve={handleAttemptSolve} isLocked={lockingPuzzlesByPuzzleId.has(puzzle.id)} lockingPuzzleName={lockingPuzzlesByPuzzleId.get(puzzle.id)} />
+                    )) : <p className="text-slate-500 italic">No open puzzles.</p>)}
+                    {activePuzzleTab === 'complete' && (completedPuzzles.length > 0 ? completedPuzzles.map(puzzle => (
+                        <PuzzleItem key={puzzle.id} puzzle={puzzle} onToggle={handleTogglePuzzle} onToggleImage={handleTogglePuzzleImage} onAttemptSolve={handleAttemptSolve} />
+                    )) : <p className="text-slate-500 italic">No completed puzzles.</p>)}
+                  </div>
                 </div>
             </div>
         </div>
-        </main>
+        
+        {/* Right Column */}
+        {showRightColumn && (
+          <div className="w-96 bg-slate-900/50 p-4 flex flex-col border-l border-slate-700 overflow-y-auto">
+            <div className="space-y-6">
+              {showObjectsSection && (
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-300 mb-2">Available to Pick Up</h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    {roomObjects.map(obj => (
+                        <ObjectItem key={obj.id} obj={obj} onToggle={handleToggleObject} lockingPuzzleName={lockingPuzzlesByObjectId.get(obj.id)} onToggleInRoomImage={handleToggleInRoomImage} variant="mini" />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {soundtrack && (
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-300 mb-2">Soundtrack</h3>
+                  <div className="p-3 bg-slate-800 rounded-lg space-y-3">
+                    <p className="font-semibold text-center truncate">{game.soundtrack?.[soundtrack.currentTrackIndex]?.name || 'Unknown Track'}</p>
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs text-slate-400 font-mono">{formatTime(progress)}</span>
+                        <input type="range" min="0" max={duration || 0} value={progress} onChange={handleSoundtrackSeek} className="w-full h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-brand-500 [&::-webkit-slider-thumb]:rounded-full" />
+                        <span className="text-xs text-slate-400 font-mono">{formatTime(duration)}</span>
+                    </div>
+                    <div className="flex justify-center items-center gap-2">
+                        <button onClick={handleSoundtrackPrev} className="p-2 hover:bg-slate-700 rounded-full"><Icon as="prev" className="w-5 h-5" /></button>
+                        <button onClick={handleSoundtrackRewind} className="p-2 hover:bg-slate-700 rounded-full"><Icon as="rewind" className="w-5 h-5" /></button>
+                        <button onClick={handleSoundtrackPlayPause} className="p-3 bg-brand-600 text-white rounded-full hover:bg-brand-700">{soundtrack.isPlaying ? <Icon as="stop" className="w-5 h-5" /> : <Icon as="play" className="w-5 h-5" />}</button>
+                        <button onClick={handleSoundtrackFadeOut} disabled={isFadingOut} className="p-2 hover:bg-slate-700 rounded-full disabled:opacity-50">Fade</button>
+                        <button onClick={handleSoundtrackNext} className="p-2 hover:bg-slate-700 rounded-full"><Icon as="next" className="w-5 h-5" /></button>
+                    </div>
+                     <div className="flex items-center gap-2">
+                        <Icon as="audio" className="w-4 h-4 text-slate-400" />
+                        <input type="range" min="0" max="1" step="0.05" value={soundtrack.volume} onChange={(e) => handleSoundtrackVolumeChange(parseFloat(e.target.value))} className="w-full h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-slate-400 [&::-webkit-slider-thumb]:rounded-full" />
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {game.soundboard && game.soundboard.length > 0 && (
+                 <div>
+                    <h3 className="text-lg font-semibold text-slate-300 mb-2">Sound Board</h3>
+                    <div className="grid grid-cols-3 gap-2">
+                        {game.soundboard.map(clip => {
+                            const clipState = soundboardClips.get(clip.id);
+                            return (
+                                <button
+                                    key={clip.id}
+                                    onClick={() => handlePlaySoundboardClip(clip.id)}
+                                    className={`p-2 rounded-md text-center text-xs transition-colors ${clipState?.isPlaying ? 'bg-brand-600 text-white animate-pulse' : 'bg-slate-700 hover:bg-slate-600'}`}
+                                >
+                                    {clip.name}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </main>
     </div>
   );
 };
 
-// FIX: Add default export to the PresenterView component.
 export default PresenterView;
