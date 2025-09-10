@@ -344,7 +344,6 @@ const PresenterView: React.FC = () => {
 
   const isPresentationWindowOpen = presentationWindow && !presentationWindow.closed;
 
-  const channelName = `game-${id}`;
   const postMessage = useBroadcastChannel<BroadcastMessage>(channelName, () => {});
 
   useEffect(() => {
@@ -678,32 +677,20 @@ const PresenterView: React.FC = () => {
   };
 
   const handleTogglePuzzleImage = (puzzleId: string, newState: boolean) => {
-    if (!game || !game.rooms[currentRoomIndex]) return;
-    const currentRoomId = game.rooms[currentRoomIndex].id;
+    if (!game) return;
 
     const updatedGame = {
         ...game,
-        rooms: game.rooms.map(room => {
-            const newActions = (room.actions || []).map(a => ({ ...a, showImageOverlay: false }));
-            const newObjects = room.objects.map(o => ({ ...o, showImageOverlay: false }));
-            
-            if (room.id !== currentRoomId) {
-                return { ...room, actions: newActions, objects: newObjects };
-            }
-            
-            const newPuzzles = room.puzzles.map(p => {
+        rooms: game.rooms.map(room => ({
+            ...room,
+            puzzles: room.puzzles.map(p => {
                 if (p.id === puzzleId) return { ...p, showImageOverlay: newState };
                 if (newState) return { ...p, showImageOverlay: false };
                 return p;
-            });
-            
-            return {
-                ...room,
-                puzzles: newPuzzles,
-                actions: newActions,
-                objects: newObjects
-            };
-        })
+            }),
+            actions: (room.actions || []).map(a => ({ ...a, showImageOverlay: false })),
+            objects: room.objects.map(o => ({ ...o, showImageOverlay: false })),
+        }))
     };
     updateAndBroadcast(updatedGame);
   };
@@ -1083,17 +1070,29 @@ const PresenterView: React.FC = () => {
     !lockingPuzzlesByObjectId.has(o.id)
   );
   
+  const hasAudio = !!soundtrack || (game?.soundboard && game.soundboard.length > 0);
+  const showObjectsSection = !game.hideAvailableObjects && roomObjects.length > 0;
+  const showRightColumn = hasAudio || showObjectsSection;
+
+  const visiblePuzzles = useMemo(() => {
+    if (!game || !currentRoom) return [];
+    const globalPuzzles = game.rooms.flatMap(r => r.puzzles).filter(p => p.isGlobal);
+    const uniqueGlobalPuzzles = Array.from(new Map(globalPuzzles.map(p => [p.id, p])).values());
+    const currentRoomPuzzles = currentRoom.puzzles.filter(p => !p.isGlobal);
+    return [...uniqueGlobalPuzzles, ...currentRoomPuzzles];
+  }, [game, currentRoom]);
+
   const openActions = (currentRoom?.actions || []).filter(action => 
     !action.isComplete && 
     !lockingPuzzlesByActionId.has(action.id)
   );
   const completedActions = (currentRoom?.actions || []).filter(action => action.isComplete);
   
-  const openPuzzles = (currentRoom?.puzzles || []).filter(puzzle => 
+  const openPuzzles = visiblePuzzles.filter(puzzle => 
     !puzzle.isSolved && 
     !lockingPuzzlesByPuzzleId.has(puzzle.id)
   );
-  const completedPuzzles = (currentRoom?.puzzles || []).filter(puzzle => puzzle.isSolved);
+  const completedPuzzles = visiblePuzzles.filter(puzzle => puzzle.isSolved);
 
   const roomsForSelectedAct = roomsByAct[selectedAct] || [];
   const roomSolveIsLocked = lockingPuzzlesByRoomSolveId.has(currentRoom.id);
@@ -1102,10 +1101,6 @@ const PresenterView: React.FC = () => {
   const inventoryList1 = combinedInventoryObjects.filter(obj => (obj.inventorySlot || 1) === 1);
   const inventoryList2 = combinedInventoryObjects.filter(obj => obj.inventorySlot === 2);
   
-  const hasAudio = !!soundtrack || (game?.soundboard && game.soundboard.length > 0);
-  const showObjectsSection = !game.hideAvailableObjects && roomObjects.length > 0;
-  const showRightColumn = hasAudio || showObjectsSection;
-
   return (
     <div className="h-screen bg-slate-800 text-white flex flex-col">
       {isResetModalOpen && (
@@ -1156,315 +1151,23 @@ const PresenterView: React.FC = () => {
                       <input
                           type="text"
                           value={submittedAnswer}
-                          onChange={e => {
-                              setSubmittedAnswer(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''));
-                              if (solveError) setSolveError(null);
-                          }}
-                          className="w-full px-4 py-2 font-mono tracking-widest text-lg border border-slate-600 rounded-lg bg-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+                          onChange={e => setSubmittedAnswer(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''))}
+                          placeholder="Enter answer here"
+                          className="w-full font-mono text-center px-4 py-2 border border-slate-600 rounded-lg bg-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500"
                           autoFocus
                       />
-                      {solveError && (
-                          <p className="text-red-400 text-sm mt-2">{solveError}</p>
-                      )}
+                      {solveError && <p className="text-red-400 mt-2 text-sm">{solveError}</p>}
                       <div className="mt-6 flex justify-end gap-4">
                           <button type="button" onClick={() => setPuzzleToSolve(null)} className="px-4 py-2 bg-slate-600 text-slate-200 rounded-lg hover:bg-slate-500 transition-colors">Cancel</button>
-                          <button type="submit" className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors">Submit</button>
+                          <button type="submit" className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors">Submit</button>
                       </div>
                   </form>
               </div>
           </div>
       )}
-      {solvedPuzzleInfo && (
-          <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-              <div className="bg-slate-800 p-8 rounded-lg shadow-2xl w-full max-w-md border border-slate-700 text-center">
-                  <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-600 mb-4">
-                      <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                      </svg>
-                  </div>
-                  <h2 className="text-2xl font-bold mb-4 text-green-400">
-                    {solvedPuzzleInfo.answer ? 'Correct!' : 'Complete'}
-                  </h2>
-                  {solvedPuzzleInfo.solvedText && (
-                      <blockquote className="mb-6 p-4 bg-slate-700/50 border-l-4 border-slate-600 text-slate-300 italic text-left">
-                          <MarkdownRenderer content={solvedPuzzleInfo.solvedText} />
-                      </blockquote>
-                  )}
-                  <button 
-                      type="button" 
-                      onClick={handleCloseSolvedModal} 
-                      className="px-6 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors"
-                  >
-                      Close
-                  </button>
-              </div>
-          </div>
-      )}
-
-      <header className="flex-shrink-0 bg-slate-900 shadow-md p-2 flex justify-between items-center z-10">
-        <div className="flex items-center gap-4">
-          <button onClick={() => setIsResetModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-slate-600 text-slate-200 rounded-lg hover:bg-slate-500 transition-colors">
-            <Icon as="restart" className="w-5 h-5" /> Reset
-          </button>
-          <h1 className="text-xl font-bold text-brand-400 p-2">{game.title}</h1>
-        </div>
-        <div className="flex items-center gap-2">
-          {isPresentationWindowOpen ? (
-            <button onClick={handleCloseGameWindow} className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-300 shadow">
-              <Icon as="close" className="w-5 h-5" /> Close Window
-            </button>
-          ) : (
-            <button onClick={handleOpenGameWindow} className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors duration-300 shadow">
-              <Icon as="present" className="w-5 h-5" /> Open Window
-            </button>
-          )}
-        </div>
-      </header>
-
-      <main className="flex flex-1 overflow-hidden">
-        {/* Left Column */}
-        <div className="w-80 bg-slate-900/50 p-4 flex flex-col border-r border-slate-700">
-            <div className="flex-shrink-0 mb-4">
-                <div className="flex rounded-lg bg-slate-700/50 p-1">
-                    <button onClick={() => { setActiveTab('rooms'); setShowInventoryNotification(false); }} className={`relative flex-1 text-center text-sm px-3 py-1.5 rounded-md transition-colors ${activeTab === 'rooms' ? 'bg-slate-600 shadow-sm font-semibold' : 'text-slate-300 hover:bg-slate-600/50'}`}>Rooms</button>
-                    <button onClick={() => { setActiveTab('inventory'); setShowInventoryNotification(false); }} className={`relative flex-1 text-center text-sm px-3 py-1.5 rounded-md transition-colors ${activeTab === 'inventory' ? 'bg-slate-600 shadow-sm font-semibold' : 'text-slate-300 hover:bg-slate-600/50'}`}>
-                        Inventory
-                        {showInventoryNotification && <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-brand-400 ring-2 ring-slate-800" />}
-                    </button>
-                    <button onClick={() => { setActiveTab('discarded'); setShowInventoryNotification(false); }} className={`relative flex-1 text-center text-sm px-3 py-1.5 rounded-md transition-colors ${activeTab === 'discarded' ? 'bg-slate-600 shadow-sm font-semibold' : 'text-slate-300 hover:bg-slate-600/50'}`}>Discarded</button>
-                </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto pr-2 -mr-2">
-                {activeTab === 'rooms' && (
-                    <div className="space-y-2">
-                        <div className="flex justify-between items-center mb-2">
-                            <button onClick={handlePrevAct} disabled={!canGoToPrevAct} className="p-2 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-700 rounded-full" title={isPrevActLocked ? `Locked by: ${prevActLockingPuzzleName}` : `Go to previous act`}>
-                                <Icon as="prev" className="w-5 h-5" />
-                            </button>
-                            <h2 className="text-lg font-semibold text-slate-300">Act {selectedAct}</h2>
-                            <button onClick={handleNextAct} disabled={!canGoToNextAct} className="p-2 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-700 rounded-full" title={isNextActLocked ? `Locked by: ${nextActLockingPuzzleName}` : `Go to next act`}>
-                                <Icon as="next" className="w-5 h-5" />
-                            </button>
-                        </div>
-                        {roomsForSelectedAct.map(room => {
-                            const isLocked = lockingPuzzlesByRoomId.has(room.id);
-                            return (
-                                <button
-                                    key={room.id}
-                                    onClick={() => !isLocked && goToRoom(room.originalIndex)}
-                                    disabled={isLocked}
-                                    className={`w-full text-left p-2 rounded-lg transition-colors flex items-center gap-2 ${room.originalIndex === currentRoomIndex ? 'bg-brand-900/50' : 'hover:bg-slate-700'} ${isLocked ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                                    title={isLocked ? `Locked by: ${lockingPuzzlesByRoomId.get(room.id)}` : room.name}
-                                >
-                                    {isLocked && <Icon as="lock" className="w-4 h-4 text-red-400 flex-shrink-0" />}
-                                    <span className="truncate">{room.name}</span>
-                                </button>
-                            )
-                        })}
-                    </div>
-                )}
-                {activeTab === 'inventory' && (
-                    <div className="space-y-4">
-                        <div className="flex justify-between items-center">
-                            <h2 className="text-lg font-semibold text-slate-300">Inventory</h2>
-                             <button onClick={handleToggleAllInventoryDescriptions} className="flex items-center gap-2 px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 rounded-md">
-                                <Icon as={areAllDescriptionsVisible ? "description-slash" : "description"} className="w-4 h-4"/>
-                                {areAllDescriptionsVisible ? "Hide All" : "Show All"}
-                            </button>
-                        </div>
-
-                        {game.inventoryLayout === 'dual' ? (
-                            <div className="space-y-4">
-                                <div>
-                                    <div className="flex justify-between items-center mb-2">
-                                        <h3 className="font-semibold text-slate-400">{game.inventory1Title || 'Inventory 1'}</h3>
-                                        <button onClick={() => handleAddCustomItem(1)} className="p-1 hover:bg-slate-700 rounded-full text-slate-400" title="Add custom item"><Icon as="plus" className="w-4 h-4"/></button>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        {inventoryList1.length > 0 ? inventoryList1.map(obj => (
-                                            <ObjectItem key={obj.id} obj={obj} onToggle={obj.id.startsWith('custom-') ? handleToggleCustomItem : handleToggleObject} showVisibilityToggle onToggleDescription={handleToggleDescriptionVisibility} isDescriptionVisible={visibleDescriptionIds.has(obj.id)} onToggleImage={handleToggleObjectImage} />
-                                        )) : <p className="col-span-2 text-sm text-slate-500 italic">Empty</p>}
-                                    </div>
-                                </div>
-                                 <div>
-                                    <div className="flex justify-between items-center mb-2">
-                                        <h3 className="font-semibold text-slate-400">{game.inventory2Title || 'Inventory 2'}</h3>
-                                        <button onClick={() => handleAddCustomItem(2)} className="p-1 hover:bg-slate-700 rounded-full text-slate-400" title="Add custom item"><Icon as="plus" className="w-4 h-4"/></button>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        {inventoryList2.length > 0 ? inventoryList2.map(obj => (
-                                            <ObjectItem key={obj.id} obj={obj} onToggle={obj.id.startsWith('custom-') ? handleToggleCustomItem : handleToggleObject} showVisibilityToggle onToggleDescription={handleToggleDescriptionVisibility} isDescriptionVisible={visibleDescriptionIds.has(obj.id)} onToggleImage={handleToggleObjectImage} />
-                                        )) : <p className="col-span-2 text-sm text-slate-500 italic">Empty</p>}
-                                    </div>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-2 gap-2">
-                                 <button onClick={() => handleAddCustomItem(1)} className="col-span-2 w-full flex items-center justify-center gap-2 px-4 py-2 bg-slate-700/50 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors text-sm">Add Custom Item</button>
-                                {combinedInventoryObjects.length > 0 ? combinedInventoryObjects.map(obj => (
-                                    <ObjectItem key={obj.id} obj={obj} onToggle={obj.id.startsWith('custom-') ? handleToggleCustomItem : handleToggleObject} showVisibilityToggle onToggleDescription={handleToggleDescriptionVisibility} isDescriptionVisible={visibleDescriptionIds.has(obj.id)} onToggleImage={handleToggleObjectImage} />
-                                )) : <p className="col-span-2 text-sm text-slate-500 italic text-center pt-4">Inventory is empty</p>}
-                            </div>
-                        )}
-                    </div>
-                )}
-                 {activeTab === 'discarded' && (
-                    <div className="space-y-4">
-                        <h2 className="text-lg font-semibold text-slate-300">Discarded Items</h2>
-                         <div className="grid grid-cols-2 gap-2">
-                            {combinedDiscardedObjects.length > 0 ? combinedDiscardedObjects.map(obj => (
-                               <ObjectItem key={obj.id} obj={{...obj, showInInventory: false}} onToggle={obj.id.startsWith('custom-') ? handleToggleCustomItem : handleToggleObject} lockingPuzzleName={lockingPuzzlesByObjectId.get(obj.id)} />
-                            )) : <p className="col-span-2 text-sm text-slate-500 italic text-center pt-4">No items have been discarded</p>}
-                         </div>
-                    </div>
-                )}
-            </div>
-        </div>
-
-        {/* Center Column */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-            <div className="flex-shrink-0 p-4 border-b border-slate-700">
-                <div className="flex justify-between items-start">
-                    <h2 className="text-2xl font-bold">{currentRoom.name}</h2>
-                    {hasSolvedState && (
-                        <label className={`flex items-center gap-2 text-sm ${currentRoom.isSolved ? 'text-green-400' : 'text-slate-400'} ${roomSolveIsLocked ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`} title={roomSolveIsLocked ? `Locked by: ${roomSolveLockingPuzzleName}` : "Toggle solved state"}>
-                            <span>Solved</span>
-                            <input
-                                type="checkbox"
-                                checked={currentRoom.isSolved}
-                                onChange={e => handleToggleRoomSolved(currentRoom.id, e.target.checked)}
-                                className="sr-only peer"
-                                disabled={roomSolveIsLocked}
-                            />
-                            <div className="relative w-11 h-6 bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
-                        </label>
-                    )}
-                </div>
-            </div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-6">
-                <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
-                    <div className="border-b border-slate-700 pb-3 mb-4">
-                        <h3 className="font-semibold text-slate-300 text-lg">{currentRoom.isSolved ? 'Solved Description' : 'Room Description'}</h3>
-                    </div>
-                    <div className="prose prose-invert max-w-none prose-p:text-slate-300">
-                        <MarkdownRenderer content={currentRoom.isSolved ? currentRoom.solvedNotes : currentRoom.notes} />
-                    </div>
-                </div>
-
-                 {(currentRoom?.actions || []).length > 0 && (
-                    <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
-                        <div className="flex justify-between items-center border-b border-slate-700 pb-3 mb-4">
-                            <h3 className="font-semibold text-slate-300 text-lg">Player Actions & Host Responses</h3>
-                            <div className="flex rounded-lg bg-slate-700/50 p-1 text-xs">
-                                <button onClick={() => setActiveActionTab('open')} className={`px-2 py-1 rounded-md ${activeActionTab === 'open' ? 'bg-slate-600' : 'hover:bg-slate-600/50'}`}>Open ({openActions.length})</button>
-                                <button onClick={() => setActiveActionTab('complete')} className={`px-2 py-1 rounded-md ${activeActionTab === 'complete' ? 'bg-slate-600' : 'hover:bg-slate-600/50'}`}>Complete ({completedActions.length})</button>
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            {activeActionTab === 'open' && (
-                                openActions.length > 0 
-                                    ? openActions.map(action => <ActionItem key={action.id} action={action} onToggleImage={handleToggleActionImage} onToggleComplete={handleToggleActionComplete} />)
-                                    : <p className="text-sm text-slate-500 italic">No open actions.</p>
-                            )}
-                            {activeActionTab === 'complete' && (
-                                completedActions.length > 0 
-                                    ? completedActions.map(action => <ActionItem key={action.id} action={action} onToggleImage={handleToggleActionImage} onToggleComplete={handleToggleActionComplete} />)
-                                    : <p className="text-sm text-slate-500 italic">No completed actions.</p>
-                            )}
-                        </div>
-                    </div>
-                 )}
-
-                {(currentRoom?.puzzles || []).length > 0 && (
-                    <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
-                        <div className="flex justify-between items-center border-b border-slate-700 pb-3 mb-4">
-                            <h3 className="font-semibold text-slate-300 text-lg">Puzzles</h3>
-                            <div className="flex rounded-lg bg-slate-700/50 p-1 text-xs">
-                            <button onClick={() => setActivePuzzleTab('open')} className={`px-2 py-1 rounded-md ${activePuzzleTab === 'open' ? 'bg-slate-600' : 'hover:bg-slate-600/50'}`}>Open ({openPuzzles.length})</button>
-                            <button onClick={() => setActivePuzzleTab('complete')} className={`px-2 py-1 rounded-md ${activePuzzleTab === 'complete' ? 'bg-slate-600' : 'hover:bg-slate-600/50'}`}>Complete ({completedPuzzles.length})</button>
-                            </div>
-                        </div>
-                        <div className="space-y-4">
-                            {activePuzzleTab === 'open' && (
-                                openPuzzles.length > 0 
-                                    ? openPuzzles.map(puzzle => <PuzzleItem key={puzzle.id} puzzle={puzzle} onToggle={handleTogglePuzzle} onToggleImage={handleTogglePuzzleImage} onAttemptSolve={handleAttemptSolve} />)
-                                    : <p className="text-sm text-slate-500 italic">No open puzzles.</p>
-                            )}
-                            {activePuzzleTab === 'complete' && (
-                                completedPuzzles.length > 0 
-                                    ? completedPuzzles.map(puzzle => <PuzzleItem key={puzzle.id} puzzle={puzzle} onToggle={()=>{}} onToggleImage={()=>{}} onAttemptSolve={()=>{}} />)
-                                    : <p className="text-sm text-slate-500 italic">No completed puzzles.</p>
-                            )}
-                        </div>
-                    </div>
-                )}
-            </div>
-        </div>
-
-        {/* Right Column */}
-        {showRightColumn && (
-            <div className="w-80 bg-slate-900/50 p-4 flex flex-col border-l border-slate-700 space-y-6">
-                {showObjectsSection && (
-                    <div className="space-y-3">
-                        <h3 className="text-lg font-semibold text-slate-300">Objects in Room</h3>
-                        <div className="grid grid-cols-2 gap-2">
-                            {roomObjects.map(obj => (
-                                <ObjectItem key={obj.id} obj={obj} onToggle={handleToggleObject} lockingPuzzleName={lockingPuzzlesByObjectId.get(obj.id)} onToggleInRoomImage={handleToggleInRoomImage} variant="mini" />
-                            ))}
-                        </div>
-                    </div>
-                )}
-                {(game?.soundboard || []).length > 0 && (
-                    <div className="space-y-3 flex-1 min-h-0 flex flex-col">
-                        <h3 className="text-lg font-semibold text-slate-300">Sound Board</h3>
-                        <div className="grid grid-cols-2 gap-2 overflow-y-auto pr-2 -mr-2">
-                            {game.soundboard?.map(clip => {
-                                const clipState = soundboardClips.get(clip.id);
-                                const isPlaying = clipState?.isPlaying || false;
-                                return (
-                                    <button
-                                        key={clip.id}
-                                        onClick={() => handlePlaySoundboardClip(clip.id)}
-                                        className={`w-full flex items-center gap-3 text-left p-2 rounded-lg transition-colors ${isPlaying ? 'bg-brand-600 text-white' : 'bg-slate-700/50 hover:bg-slate-700'}`}
-                                    >
-                                        <Icon as={isPlaying ? 'stop' : 'play'} className="w-5 h-5 flex-shrink-0" />
-                                        <span className="truncate text-sm font-semibold">{clip.name}</span>
-                                    </button>
-                                )
-                            })}
-                        </div>
-                    </div>
-                )}
-                {soundtrack && (
-                     <div className="space-y-3">
-                        <h3 className="text-lg font-semibold text-slate-300">Soundtrack</h3>
-                        <div className="p-3 bg-slate-800/70 rounded-lg">
-                            <p className="font-semibold text-center truncate">{game?.soundtrack?.[soundtrack.currentTrackIndex]?.name || 'Unknown Track'}</p>
-                            <div className="flex items-center gap-4 mt-3">
-                                <button onClick={handleSoundtrackPrev} disabled={soundtrack.elements.length < 2} title="Previous Track" className="p-2 disabled:opacity-30"><Icon as="prev" className="w-5 h-5"/></button>
-                                <button onClick={handleSoundtrackRewind} title="Rewind to Start" className="p-2 disabled:opacity-30"><Icon as="rewind" className="w-5 h-5"/></button>
-                                <button onClick={handleSoundtrackPlayPause} className="p-3 bg-brand-600 rounded-full text-white shadow-lg"><Icon as={soundtrack.isPlaying ? 'stop' : 'play'} className="w-6 h-6"/></button>
-                                <button onClick={handleSoundtrackFadeOut} disabled={isFadingOut || !soundtrack.isPlaying} title="Fade Out & Stop" className="p-2 disabled:opacity-30"><Icon as="close" className="w-5 h-5"/></button>
-                                <button onClick={handleSoundtrackNext} disabled={soundtrack.elements.length < 2} title="Next Track" className="p-2 disabled:opacity-30"><Icon as="next" className="w-5 h-5"/></button>
-                            </div>
-                             <div className="flex items-center gap-2 text-xs text-slate-400 mt-3">
-                                <span>{formatTime(progress)}</span>
-                                <input type="range" min="0" max={duration || 0} value={progress} onChange={handleSoundtrackSeek} className="w-full h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-brand-500 [&::-webkit-slider-thumb]:rounded-full" />
-                                <span>{formatTime(duration)}</span>
-                            </div>
-                             <div className="flex items-center gap-2 text-xs text-slate-400 mt-2">
-                                 <Icon as="audio" className="w-4 h-4" />
-                                 <input type="range" min="0" max="1" step="0.05" value={soundtrack.volume} onChange={(e) => handleSoundtrackVolumeChange(parseFloat(e.target.value))} className="w-full h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-brand-500 [&::-webkit-slider-thumb]:rounded-full" />
-                            </div>
-                        </div>
-                     </div>
-                )}
-            </div>
-        )}
-      </main>
     </div>
   );
 };
 
+// FIX: Add default export to the PresenterView component to resolve import errors.
 export default PresenterView;
