@@ -514,7 +514,7 @@ const Editor: React.FC = () => {
   }
 
   const addPuzzle = () => {
-    const newPuzzle: Puzzle = { id: generateUUID(), name: 'New Puzzle', answer: '', isSolved: false, unsolvedText: '', solvedText: '', image: null, sound: null, showImageOverlay: false, lockedObjectIds: [], discardObjectIds: [], lockedRoomIds: [], lockedPuzzleIds: [], lockedRoomSolveIds: [], lockedActionIds: [], completedActionIds: [], autoAddLockedObjects: false, lockedActNumbers: [] };
+    const newPuzzle: Puzzle = { id: generateUUID(), name: 'New Puzzle', answer: '', isSolved: false, unsolvedText: '', solvedText: '', image: null, sound: null, showImageOverlay: false, lockedObjectIds: [], discardObjectIds: [], lockedRoomIds: [], lockedPuzzleIds: [], lockedRoomSolveIds: [], lockedActionIds: [], completedActionIds: [], autoAddLockedObjects: false, lockedActNumbers: [], isGlobal: false };
     const newPuzzles = [...editingRoomPuzzles, newPuzzle];
     setEditingRoomPuzzles(newPuzzles);
     
@@ -1584,7 +1584,7 @@ const Editor: React.FC = () => {
                                     src={`${API_BASE_URL}/assets/${modalObjectData.inRoomImage}`}
                                     alt={modalObjectData.name}
                                     onMouseDown={handleDragMouseDown}
-                                    className={`absolute transition-opacity ${isDragging ? 'opacity-75 cursor-grabbing' : 'cursor-grab'}`}
+                                    className={`absolute transition-opacity ${isDragging ? 'opacity-75 cursor-grabbing' : 'cursor-grabbing'}`}
                                     style={{
                                         left: `${(modalObjectData.x ?? 0.5) * 100}%`,
                                         top: `${(modalObjectData.y ?? 0.5) * 100}%`,
@@ -1658,6 +1658,17 @@ const Editor: React.FC = () => {
                                 className="w-full font-mono px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
                             />
                         </div>
+                    </div>
+                    <div className="pt-2">
+                        <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700">
+                            <input
+                                type="checkbox"
+                                className="w-4 h-4 rounded border-slate-400 text-brand-600 shadow-sm focus:ring-brand-500"
+                                checked={modalPuzzleData.isGlobal ?? false}
+                                onChange={(e) => handleModalPuzzleChange('isGlobal', e.target.checked)}
+                            />
+                            <span>Make this a global puzzle (available in all rooms if not locked)</span>
+                        </label>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
