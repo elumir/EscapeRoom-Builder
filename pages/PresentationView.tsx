@@ -130,12 +130,17 @@ const PresentationView: React.FC = () => {
         .filter(Boolean);
 
     const inRoomObjects = room.objects
-        .filter(obj => 
-            obj.showInRoomImage && 
-            obj.inRoomImage && 
-            !obj.showInInventory &&
-            !(obj.isPresenterHidden ?? false)
-        );
+        .filter(obj => {
+            // An object's visibility is determined first by the presenter's override,
+            // and then falls back to its initial state from the editor.
+            const isVisible = obj.isPresenterHidden === undefined
+                ? (obj.showInRoomImage ?? true)
+                : !obj.isPresenterHidden;
+
+            return isVisible && 
+                   obj.inRoomImage && 
+                   !obj.showInInventory;
+        });
 
     return {
       inventoryObjects,

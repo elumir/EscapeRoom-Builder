@@ -51,7 +51,12 @@ const ObjectItem: React.FC<{
     const colorClass = migrateObjectColorClass(obj.nameColor);
     const textColorClass = colorClass.includes('text-') ? '' : 'text-white';
     const isLocked = !!lockingPuzzleName;
-    const isPresenterVisible = !(obj.isPresenterHidden ?? false);
+
+    // Determine current visibility by checking the presenter override first,
+    // then falling back to the initial state from the editor.
+    const isCurrentlyVisible = obj.isPresenterHidden === undefined
+      ? (obj.showInRoomImage ?? true)
+      : !obj.isPresenterHidden;
 
     if (variant === 'mini') {
         return (
@@ -66,16 +71,16 @@ const ObjectItem: React.FC<{
                     <div className="flex items-center gap-1">
                         {onToggleInRoomImage && obj.inRoomImage && (
                             <button
-                                onClick={() => onToggleInRoomImage(obj.id, isPresenterVisible)}
+                                onClick={() => onToggleInRoomImage(obj.id, isCurrentlyVisible)}
                                 disabled={isLocked}
                                 className={`p-1 rounded-full transition-colors ${
-                                    isPresenterVisible 
+                                    isCurrentlyVisible 
                                         ? 'bg-sky-500 text-white hover:bg-sky-600' 
                                         : 'bg-white/20 text-white hover:bg-white/40'
                                 } disabled:bg-white/10 disabled:cursor-not-allowed flex-shrink-0`}
-                                title={isPresenterVisible ? "Hide in-room image" : "Show in-room image"}
+                                title={isCurrentlyVisible ? "Hide in-room image" : "Show in-room image"}
                             >
-                                <Icon as={isPresenterVisible ? 'eye' : 'eye-slash'} className="w-3 h-3"/>
+                                <Icon as={isCurrentlyVisible ? 'eye' : 'eye-slash'} className="w-3 h-3"/>
                             </button>
                         )}
                         {(obj.isPickupable ?? true) && (
