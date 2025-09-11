@@ -1,20 +1,142 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Escape Builder
 
-# Run and deploy your AI Studio app
+An application to create, edit, and present interactive, room-based games. Features a presenter mode with a separate control window for managing dynamic elements like puzzles, object inventory, and layered maps.
 
-This contains everything you need to run your app locally.
+## Table of Contents
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Running the Application](#running-the-application)
+- [Building for Production](#building-for-production)
 
-View your app in AI Studio: https://ai.studio/apps/drive/1a3OEYdsDlsT2nzwbqnv-8lBYwzwLyUSi
+## Features
 
-## Run Locally
+-   Interactive game creation with rooms, objects, puzzles, and actions.
+-   Dual-window presenter and presentation views for live gameplay.
+-   Asset management for images, audio, and custom fonts.
+-   Layered and room-specific map displays.
+-   Customizable inventory (single or dual), appearance, and object behavior.
+-   Secure user authentication with Auth0.
 
-**Prerequisites:**  Node.js
+## Tech Stack
 
+-   **Frontend**: React, TypeScript, Vite, Tailwind CSS
+-   **Backend**: Node.js, Express
+-   **Database**: MySQL
+-   **Authentication**: Auth0
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## Prerequisites
+
+Before you begin, ensure you have the following installed:
+
+-   Node.js (v18 or later recommended)
+-   npm (comes with Node.js)
+-   MySQL Server
+
+## Installation
+
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/your-username/escape-builder.git
+    cd escape-builder
+    ```
+
+2.  **Install dependencies:**
+    This project uses a single `package.json` for both server and client dependencies.
+    ```bash
+    npm install
+    ```
+
+## Configuration
+
+### 1. Database Setup
+
+1.  Connect to your MySQL server.
+2.  Create a new database for the application. For example:
+    ```sql
+    CREATE DATABASE escape_builder_db;
+    ```
+3.  Use the new database:
+    ```sql
+    USE escape_builder_db;
+    ```
+4.  Execute the SQL commands from `database-setup.txt` to create the required tables (`presentations` and `assets`).
+
+### 2. Auth0 Setup
+
+This application uses Auth0 for user authentication. You will need to create a "Regular Web Application" in your Auth0 dashboard.
+
+1.  **Create an Application**:
+    -   Go to your Auth0 Dashboard > Applications > Applications and click "Create Application".
+    -   Choose "Regular Web Application" and give it a name (e.g., "Escape Builder").
+
+2.  **Configure Application URIs**:
+    -   In your new application's "Settings" tab, configure the following URLs. Replace `http://localhost:8080` with your actual base URL if it's different.
+        -   **Allowed Callback URLs**: `http://localhost:8080/game/callback`
+        -   **Allowed Logout URLs**: `http://localhost:8080/game`
+
+3.  **Note your credentials**:
+    -   You will need the **Domain**, **Client ID**, and **Client Secret** for the environment variables below.
+
+### 3. Environment Variables
+
+1.  Create a `.env` file in the root directory of the project.
+2.  Copy the following variables into the file and replace the placeholder values with your own configuration.
+
+    ```env
+    # Server Configuration
+    PORT=8080
+
+    # Database Configuration
+    DB_HOST=localhost
+    DB_USER=your_db_user
+    DB_PASSWORD=your_db_password
+    DB_NAME=escape_builder_db
+    DB_PORT=3306
+
+    # Auth0 Configuration
+    # Replace with your Auth0 application's settings
+    AUTH0_BASE_URL=http://localhost:8080
+    AUTH0_ISSUER_BASE_URL=https://your-tenant.us.auth0.com
+    AUTH0_CLIENT_ID=your_client_id
+    AUTH0_CLIENT_SECRET=your_client_secret
+    AUTH0_SECRET=a_long_random_string_for_session_encryption
+    ```
+    **Note**: `AUTH0_SECRET` should be a long, random, and secret string used to encrypt the session cookie.
+
+## Running the Application
+
+### Development Mode
+
+In development, the Vite server will handle hot-reloading for the frontend and proxy API requests to the Node.js backend.
+
+1.  **Start the backend server:**
+    ```bash
+    npm start
+    ```
+    This will start the Express server on the port defined in your `.env` file (e.g., 8080).
+
+2.  **Start the frontend development server:**
+    In a separate terminal, run:
+    ```bash
+    npm run dev
+    ```
+    This will start the Vite dev server, typically on port 5173. You can access the application at `http://localhost:5173/game/`.
+
+### Production Mode
+
+In production, the Express server serves both the API and the static, optimized frontend files.
+
+1.  **Build the frontend application:**
+    ```bash
+    npm run build
+    ```
+    This command compiles the React application into a `build` directory.
+
+2.  **Start the production server:**
+    ```bash
+    npm start
+    ```
+    The server will now serve the complete application from the URL defined in your `AUTH0_BASE_URL` (e.g., `http://localhost:8080/game/`).
