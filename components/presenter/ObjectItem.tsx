@@ -66,7 +66,7 @@ const ObjectItem: React.FC<{
                     <div className="flex items-center gap-1">
                         {onToggleInRoomImage && obj.inRoomImage && (
                             <button
-                                onClick={() => onToggleInRoomImage(obj.id, !isPresenterVisible)}
+                                onClick={() => onToggleInRoomImage(obj.id, isPresenterVisible)}
                                 disabled={isLocked}
                                 className={`p-1 rounded-full transition-colors ${
                                     isPresenterVisible 
