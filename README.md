@@ -10,6 +10,7 @@ An application to create, edit, and present interactive, room-based games. Featu
 - [Configuration](#configuration)
 - [Running the Application](#running-the-application)
 - [Building for Production](#building-for-production)
+- [Running in Production](#running-in-production)
 
 ## Features
 
@@ -125,18 +126,51 @@ In development, the Vite server will handle hot-reloading for the frontend and p
     ```
     This will start the Vite dev server, typically on port 5173. You can access the application at `http://localhost:5173/game/`.
 
-### Production Mode
+## Building for Production
 
-In production, the Express server serves both the API and the static, optimized frontend files.
+Before deploying, you must create an optimized production build of the frontend.
 
-1.  **Build the frontend application:**
+```bash
+npm run build
+```
+This command compiles the React application into a `build` directory, which will be served by the Express server.
+
+## Running in Production
+
+After building the application, you can run it in production mode.
+
+### Option 1: Using `npm start`
+
+The simplest way to run the production server is with the `start` script. The Express server will serve both the API and the static frontend files from the `build` directory.
+
+```bash
+npm start
+```
+The server will now serve the complete application from the URL defined in your `AUTH0_BASE_URL` (e.g., `http://localhost:8080/game/`).
+
+### Option 2: Using PM2 (Recommended)
+
+For more robust production deployments, it's recommended to use a process manager like [PM2](https://pm2.keymetrics.io/) to keep your application alive, manage logs, and enable clustering.
+
+1.  **Install PM2 globally:**
     ```bash
-    npm run build
+    npm install pm2 -g
     ```
-    This command compiles the React application into a `build` directory.
 
-2.  **Start the production server:**
+2.  **Start the server with PM2:**
     ```bash
-    npm start
+    pm2 start server.js --name "escape-builder"
     ```
-    The server will now serve the complete application from the URL defined in your `AUTH0_BASE_URL` (e.g., `http://localhost:8080/game/`).
+
+3.  **Useful PM2 Commands:**
+    -   `pm2 list`: List all running applications.
+    -   `pm2 logs escape-builder`: View real-time logs for the app.
+    -   `pm2 restart escape-builder`: Restart the app.
+    -   `pm2 stop escape-builder`: Stop the app.
+    -   `pm2 delete escape-builder`: Stop and remove the app from PM2's list.
+
+4.  **Enable Startup on Reboot:**
+    To ensure your app restarts automatically after a server reboot, run `pm2 startup`. PM2 will provide a command you need to copy and execute. After that, save the current process list:
+    ```bash
+    pm2 save
+    ```
