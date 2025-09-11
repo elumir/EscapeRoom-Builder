@@ -125,7 +125,7 @@ const PresentationView: React.FC = () => {
     const visibleMapImages = (game.mapDisplayMode === 'room-specific')
       ? [room.mapImage].filter(Boolean)
       : game.rooms
-        .filter(r => game.visitedRoomIds.includes(r.id))
+        .filter(r => (game.visitedRoomIds || []).includes(r.id))
         .map(r => r.mapImage)
         .filter(Boolean);
 
