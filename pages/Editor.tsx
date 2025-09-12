@@ -55,7 +55,7 @@ const Editor: React.FC = () => {
   const [isAssetManagerOpen, setIsAssetManagerOpen] = useState(false);
   const [deletingAssetId, setDeletingAssetId] = useState<string | null>(null);
   const [editingAssetName, setEditingAssetName] = useState<{ id: string; name: string } | null>(null);
-  const [puzzleModalState, setPuzzleModalState] = useState<{ puzzle: Puzzle; index: number } | null>(null);
+  const [puzzleModalState, setPuzzleModalState] = useState<{ puzzle: Puzzle; index: number; isNew?: boolean } | null>(null);
   const [modalPuzzleData, setModalPuzzleData] = useState<Puzzle | null>(null);
   const [openModalPuzzleObjectsDropdown, setOpenModalPuzzleObjectsDropdown] = useState(false);
   const [openModalPuzzleDiscardObjectsDropdown, setOpenModalPuzzleDiscardObjectsDropdown] = useState(false);
@@ -73,10 +73,10 @@ const Editor: React.FC = () => {
   const [modalPuzzleActionsSearch, setModalPuzzleActionsSearch] = useState('');
   const [modalPuzzleCompletedActionsSearch, setModalPuzzleCompletedActionsSearch] = useState('');
   const [modalPuzzleActsSearch, setModalPuzzleActsSearch] = useState('');
-  const [actionModalState, setActionModalState] = useState<{ action: Action; index: number } | null>(null);
+  const [actionModalState, setActionModalState] = useState<{ action: Action; index: number; isNew?: boolean } | null>(null);
   const [modalActionData, setModalActionData] = useState<Action | null>(null);
   const [collapsedActs, setCollapsedActs] = useState<Record<number, boolean>>({});
-  const [objectModalState, setObjectModalState] = useState<{ object: InventoryObject; index: number } | null>(null);
+  const [objectModalState, setObjectModalState] = useState<{ object: InventoryObject; index: number; isNew?: boolean } | null>(null);
   const [modalObjectData, setModalObjectData] = useState<InventoryObject | null>(null);
   const [draggedPuzzleIndex, setDraggedPuzzleIndex] = useState<number | null>(null);
   const [dropTargetPuzzleIndex, setDropTargetPuzzleIndex] = useState<number | null>(null);
@@ -561,7 +561,7 @@ const Editor: React.FC = () => {
     setEditingRoomObjects(newObjects);
     
     const newObjIndex = newObjects.length - 1;
-    setObjectModalState({ object: { ...newObject }, index: newObjIndex });
+    setObjectModalState({ object: { ...newObject }, index: newObjIndex, isNew: true });
   }
 
   const deleteObject = (index: number) => {
@@ -580,7 +580,7 @@ const Editor: React.FC = () => {
     setEditingRoomPuzzles(newPuzzles);
     
     const newPuzzleIndex = newPuzzles.length - 1;
-    setPuzzleModalState({ puzzle: { ...newPuzzle }, index: newPuzzleIndex });
+    setPuzzleModalState({ puzzle: { ...newPuzzle }, index: newPuzzleIndex, isNew: true });
     setModalPuzzleObjectsSearch('');
     setModalPuzzleDiscardObjectsSearch('');
     setModalPuzzlePuzzlesSearch('');
@@ -612,7 +612,7 @@ const Editor: React.FC = () => {
     setEditingRoomActions(newActions);
     
     const newActionIndex = newActions.length - 1;
-    setActionModalState({ action: { ...newAction }, index: newActionIndex });
+    setActionModalState({ action: { ...newAction }, index: newActionIndex, isNew: true });
   };
 
   const handleModalActionChange = (field: keyof Action, value: string | boolean | null) => {
@@ -649,6 +649,13 @@ const Editor: React.FC = () => {
       updateLocalGame({ ...game, rooms: newRooms });
       
       setActionModalState(null);
+  };
+  
+  const handleCancelActionFromModal = () => {
+    if (actionModalState?.isNew) {
+        setEditingRoomActions(prev => prev.filter((_, i) => i !== actionModalState.index));
+    }
+    setActionModalState(null);
   };
 
   const deleteAction = (index: number) => {
@@ -706,6 +713,13 @@ const Editor: React.FC = () => {
     setPuzzleModalState(null);
   };
 
+  const handleCancelPuzzleFromModal = () => {
+    if (puzzleModalState?.isNew) {
+      setEditingRoomPuzzles(prev => prev.filter((_, i) => i !== puzzleModalState.index));
+    }
+    setPuzzleModalState(null);
+  };
+
   const handleModalObjectChange = (field: keyof InventoryObject, value: string | boolean | null | number) => {
     setModalObjectData(prevData => {
         if (!prevData) return prevData;
@@ -742,6 +756,13 @@ const Editor: React.FC = () => {
       updateLocalGame({ ...game, rooms: newRooms });
       
       setObjectModalState(null);
+  };
+  
+  const handleCancelObjectFromModal = () => {
+    if (objectModalState?.isNew) {
+      setEditingRoomObjects(prev => prev.filter((_, i) => i !== objectModalState.index));
+    }
+    setObjectModalState(null);
   };
 
   const handleOpenPlacementModal = () => {
@@ -1515,7 +1536,7 @@ const Editor: React.FC = () => {
             <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-2xl w-full max-w-2xl flex flex-col">
                 <div className="flex-shrink-0 flex justify-between items-center mb-4 pb-4 border-b border-slate-200 dark:border-slate-700">
                     <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">{texts.modals.object.title}</h2>
-                    <button onClick={() => setObjectModalState(null)} className="p-1.5 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700">
+                    <button onClick={handleCancelObjectFromModal} className="p-1.5 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700">
                         <Icon as="close" className="w-5 h-5" />
                     </button>
                 </div>
@@ -1742,7 +1763,7 @@ const Editor: React.FC = () => {
                     </div>
                 </div>
                 <div className="flex-shrink-0 mt-6 pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-4">
-                    <button onClick={() => setObjectModalState(null)} className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">{texts.modals.common.cancel}</button>
+                    <button onClick={handleCancelObjectFromModal} className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">{texts.modals.common.cancel}</button>
                     <button onClick={handleSaveObjectFromModal} className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors">{texts.modals.object.saveAndClose}</button>
                 </div>
             </div>
@@ -1824,7 +1845,7 @@ const Editor: React.FC = () => {
             <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-2xl w-full max-w-4xl h-[90vh] flex flex-col">
                 <div className="flex-shrink-0 flex justify-between items-center mb-4 pb-4 border-b border-slate-200 dark:border-slate-700">
                     <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">{texts.modals.puzzle.title} {modalPuzzleData.name}</h2>
-                    <button onClick={() => setPuzzleModalState(null)} className="p-1.5 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700">
+                    <button onClick={handleCancelPuzzleFromModal} className="p-1.5 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700">
                         <Icon as="close" className="w-5 h-5" />
                     </button>
                 </div>
@@ -2412,7 +2433,7 @@ const Editor: React.FC = () => {
                     </div>
                 </div>
                 <div className="flex-shrink-0 mt-6 pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-4">
-                    <button onClick={() => setPuzzleModalState(null)} className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">{texts.modals.common.cancel}</button>
+                    <button onClick={handleCancelPuzzleFromModal} className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">{texts.modals.common.cancel}</button>
                     <button onClick={handleSavePuzzleFromModal} className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors">{texts.modals.puzzle.saveAndClose}</button>
                 </div>
             </div>
@@ -2423,7 +2444,7 @@ const Editor: React.FC = () => {
             <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-2xl w-full max-w-2xl flex flex-col">
                 <div className="flex-shrink-0 flex justify-between items-center mb-4 pb-4 border-b border-slate-200 dark:border-slate-700">
                     <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">{texts.modals.action.title}</h2>
-                    <button onClick={() => setActionModalState(null)} className="p-1.5 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700">
+                    <button onClick={handleCancelActionFromModal} className="p-1.5 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700">
                         <Icon as="close" className="w-5 h-5" />
                     </button>
                 </div>
@@ -2521,7 +2542,7 @@ const Editor: React.FC = () => {
                     </div>
                 </div>
                 <div className="flex-shrink-0 mt-6 pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-4">
-                    <button onClick={() => setActionModalState(null)} className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">{texts.modals.common.cancel}</button>
+                    <button onClick={handleCancelActionFromModal} className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">{texts.modals.common.cancel}</button>
                     <button onClick={handleSaveActionFromModal} className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors">{texts.modals.action.saveAndClose}</button>
                 </div>
             </div>
@@ -2967,7 +2988,7 @@ const Editor: React.FC = () => {
                                 <div className="flex justify-between items-start">
                                     <p className="font-semibold flex-1 min-w-0 break-words">{obj.name || <span className="italic text-slate-500">{texts.editor.dynamicContent.untitledObject}</span>}</p>
                                     <div className="flex items-center gap-1 flex-shrink-0 ml-2">
-                                      <button onClick={() => setObjectModalState({ object: { ...obj }, index })} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title={texts.editor.dynamicContent.editObject}>
+                                      <button onClick={() => setObjectModalState({ object: { ...obj }, index, isNew: false })} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title={texts.editor.dynamicContent.editObject}>
                                         <Icon as="edit" className="w-4 h-4" />
                                       </button>
                                       <button onClick={() => deleteObject(index)} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title={texts.editor.dynamicContent.deleteObject}>
@@ -3049,7 +3070,7 @@ const Editor: React.FC = () => {
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-1 flex-shrink-0">
-                                  <button onClick={() => setActionModalState({ action: { ...action }, index })} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title={texts.editor.dynamicContent.editAction}>
+                                  <button onClick={() => setActionModalState({ action: { ...action }, index, isNew: false })} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title={texts.editor.dynamicContent.editAction}>
                                     <Icon as="edit" className="w-4 h-4" />
                                   </button>
                                   <button onClick={(e) => handleDeleteAction(e, index)} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title={texts.editor.dynamicContent.deleteAction}>
@@ -3104,7 +3125,7 @@ const Editor: React.FC = () => {
                                 </div>
                             </div>
                             <div className="flex items-center gap-1 flex-shrink-0">
-                              <button onClick={() => setPuzzleModalState({ puzzle: { ...puzzle }, index })} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title={texts.editor.dynamicContent.editPuzzle}>
+                              <button onClick={() => setPuzzleModalState({ puzzle: { ...puzzle }, index, isNew: false })} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title={texts.editor.dynamicContent.editPuzzle}>
                                 <Icon as="edit" className="w-4 h-4" />
                               </button>
                               <button onClick={(e) => handleDeletePuzzle(e, index)} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title={texts.editor.dynamicContent.deletePuzzle}>
