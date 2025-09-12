@@ -29,7 +29,7 @@
     "roomEditor": {
       "actsLabel": "Act(s):",
       "actsHelpTitle": "What are Acts?",
-      "actsHelpText": "Acts allow you to structure your game's narrative and progression.\n\n- Group rooms together: Assign rooms to the same Act to create distinct sections of your game.\n- Control flow: Use puzzles to lock and unlock entire Acts, guiding players through the story.\n- Presenter view: The presenter can easily navigate between Acts to manage the game.",
+      "actsHelpText": "Acts allow you to group rooms together and control the flow of your game.\n\nYou can lock later Acts until a specific puzzle in an earlier Act is solved.\n\nThis is useful for creating multi-part games or preventing players from accessing later stages prematurely.",
       "newActPlaceholder": "New Act #",
       "roomImage": "Room Image",
       "mapImage": "Map Image",
@@ -147,3 +147,149 @@
         "title": "Appearance",
         "globalBgColor": "Global Background Color",
         "globalBgColorDescription": "Overrides individual room colors. Unselect to use per-room settings.",
+        "mapDisplayMode": "Map Display Mode",
+        "layeredMaps": "Layered Maps",
+        "roomSpecificMap": "Room-Specific Map"
+      },
+      "soundtrack": {
+        "title": "Soundtrack",
+        "playbackMode": "Playback Mode",
+        "sequential": "Sequential",
+        "shuffle": "Shuffle",
+        "loopCurrent": "Loop Current",
+        "volume": "Volume:",
+        "tracks": "Tracks",
+        "addTrack": "Add Track"
+      },
+      "soundboard": {
+        "title": "Sound Board",
+        "clips": "Clips",
+        "addClip": "Add Clip"
+      },
+      "fonts": {
+        "title": "Fonts",
+        "customFonts": "Custom Fonts",
+        "uploadFont": "Upload Font File (.ttf, .otf, .woff, .woff2)",
+        "activeFont": "Active Font",
+        "defaultFont": "Default (System Font)"
+      },
+      "danger": {
+        "title": "Danger Zone",
+        "deleteGame": "Delete This Game",
+        "deleteWarning": "Once you delete this game, there is no going back. Please be certain. All associated rooms, puzzles, objects, and assets will be permanently removed.",
+        "deleteButton": "Delete Game Permanently"
+      }
+    },
+    "alerts": {
+      "visibilityFailed": "Could not update game visibility. Please try again.",
+      "soundAlreadyAdded": "This sound clip has already been added to the sound board.",
+      "audioUploadFailed": "Failed to upload audio file. Please try again.",
+      "fontUploadFailed": "Failed to upload font file. Please try again.",
+      "deleteFontConfirm": "Are you sure you want to delete this font?",
+      "deleteFontFailed": "Failed to delete font.",
+      "deleteGameConfirm": "Are you absolutely sure you want to delete this game? This action is permanent and cannot be undone.",
+      "deleteGameFailed": "Failed to delete game. Please try again."
+    }
+  },
+  "modals": {
+    "resetAndPresent": {
+      "title": "Start Presentation",
+      "description": "Do you want to reset all puzzles, inventory, and visited rooms to their default state before starting?",
+      "cancelButton": "Cancel",
+      "presentCurrentStateButton": "Present with Current State",
+      "presentResetButton": "Reset and Present"
+    },
+    "textEditor": {
+      "editRoomDescription": "Edit Room Description",
+      "editSolvedDescription": "Edit Solved Description",
+      "saveAndClose": "Save & Close"
+    },
+    "assetLibrary": {
+      "imageTitle": "Image Library",
+      "audioTitle": "Audio Library",
+      "select": "Select",
+      "noImages": "No image assets uploaded for this game yet.",
+      "noAudio": "No audio assets uploaded for this game yet.",
+      "uploadNewAudio": "Upload New Audio File"
+    },
+    "assetManager": {
+      "title": "Asset Manager",
+      "done": "Done",
+      "deleteTooltip": "Delete asset",
+      "editTooltip": "Click to edit name",
+      "noAssets": "No assets uploaded for this game yet."
+    },
+    "object": {
+      "title": "Edit Object",
+      "nameLabel": "Object Name",
+      "namePlaceholder": "e.g., A small, tarnished brass key",
+      "nameColorLabel": "Name Color",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "e.g., A description of the object for the presenter.",
+      "isPickupableLabel": "Allow players to pick up this item",
+      "isPickupableHelp": "This item will be visible in the room (if an \"In Room Image\" is set) but cannot be added to the inventory. It can still be part of a puzzle or action.",
+      "targetInventoryLabel": "Target Inventory",
+      "closeUpImageLabel": "Close-up Image (Optional)",
+      "inRoomImageLabel": "In Room Image (Optional)",
+      "initiallyVisibleLabel": "Initially Visible",
+      "placementLabel": "In Room Image Placement",
+      "placementButton": "Object Placement",
+      "fadeLabel": "Fade in/out when shown/hidden by presenter",
+      "saveAndClose": "Save & Close"
+    },
+    "placement": {
+      "title": "Object Placement",
+      "description": "Drag the object to position it. Use the slider to resize.",
+      "noRoomImage": "No room image to display",
+      "sidebarPreviewTitle": "Sidebar Preview",
+      "sidebarPreviewDescription": "This area is reserved for the sidebar in the game view to ensure accurate object placement.",
+      "sizeLabel": "Size",
+      "done": "Done"
+    },
+    "puzzle": {
+      "title": "Edit Puzzle:",
+      "nameLabel": "Puzzle Name",
+      "answerLabel": "Answer (optional)",
+      "globalLabel": "Global Puzzle (show in all rooms in presenter view once unlocked)",
+      "unsolvedTextLabel": "Unsolved Text",
+      "solvedTextLabel": "Solved Text",
+      "imageLabel": "Image",
+      "soundLabel": "Sound",
+      "clearSound": "Clear Sound",
+      "lockedElementsTitle": "Locked elements",
+      "lockedElementsDescription": "Elements that are locked until puzzle is solved.",
+      "lockedObjects": "Locked Objects",
+      "lockedActions": "Locked Actions",
+      "lockedPuzzles": "Locked Puzzles",
+      "lockedRooms": "Locked Rooms",
+      "lockedRoomSolves": "Locked Room Solves",
+      "lockedActs": "Locked Acts",
+      "searchPlaceholder": "Search...",
+      "noRoomsWithSolvedState": "No rooms with a defined Solved State found.",
+      "lockedByTitle": "Locked by",
+      "lockedByDescription": "Puzzles that must be solved before this one becomes available.",
+      "notLocked": "This puzzle is not locked by any other puzzle.",
+      "whenSolvedTitle": "When solved",
+      "whenSolvedDescription": "What happens when the puzzle is solved.",
+      "discardedObjects": "Objects discarded",
+      "completedActions": "Actions completed",
+      "autoAddObjects": "Automatically add locked objects to inventory upon solving.",
+      "saveAndClose": "Save & Close"
+    },
+    "action": {
+      "title": "Edit Action",
+      "nameLabel": "Action Name",
+      "namePlaceholder": "e.g., Look under the rug",
+      "descriptionLabel": "Description / Host Response",
+      "descriptionPlaceholder": "e.g., You lift the corner of the rug and find a small, tarnished brass key.",
+      "imageLabel": "Image (Full Screen Overlay)",
+      "soundLabel": "Sound",
+      "hideCompleteButton": "Hide complete button and have a puzzle complete it automatically.",
+      "saveAndClose": "Save & Close"
+    },
+    "common": {
+      "cancel": "Cancel",
+      "gotIt": "Got it"
+    }
+  }
+}
