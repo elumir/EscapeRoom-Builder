@@ -11,7 +11,7 @@ const formatTime = (seconds: number) => {
     return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
 };
 
-const AudioPreviewPlayer: React.FC<{ assetId: string }> = ({ assetId }) => {
+const AudioPreviewPlayer: React.FC<{ assetId: string; variant?: 'full' | 'simple' }> = ({ assetId, variant = 'full' }) => {
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [progress, setProgress] = useState(0);
@@ -77,17 +77,25 @@ const AudioPreviewPlayer: React.FC<{ assetId: string }> = ({ assetId }) => {
     };
     
     if (isLoading) {
-        return <div className="text-sm text-slate-500 dark:text-slate-400 p-2">Loading audio preview...</div>;
+        return <div className="text-sm text-slate-500 dark:text-slate-400 p-2">Loading...</div>;
+    }
+
+    if (variant === 'simple') {
+        return (
+            <button
+                onClick={handlePlayPause}
+                title={isPlaying ? "Stop" : "Play"}
+                className="p-2 bg-slate-200 dark:bg-slate-700 rounded-full hover:bg-slate-300 dark:hover:bg-slate-600 flex-shrink-0"
+            >
+                <Icon as={isPlaying ? 'stop' : 'play'} className="h-5 w-5" />
+            </button>
+        );
     }
 
     return (
         <div className="flex items-center gap-3 w-full bg-slate-100 dark:bg-slate-700/50 p-2 rounded-lg">
-            <button onClick={handlePlayPause} title={isPlaying ? "Pause" : "Play"} className="p-2 bg-slate-200 dark:bg-slate-700 rounded-full hover:bg-slate-300 dark:hover:bg-slate-600 flex-shrink-0">
-                {isPlaying ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M5.5 3.5A1.5 1.5 0 017 5v10a1.5 1.5 0 01-3 0V5a1.5 1.5 0 011.5-1.5zM12.5 3.5A1.5 1.5 0 0114 5v10a1.5 1.5 0 01-3 0V5a1.5 1.5 0 011.5-1.5z" /></svg>
-                ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" /></svg>
-                )}
+            <button onClick={handlePlayPause} title={isPlaying ? "Stop" : "Play"} className="p-2 bg-slate-200 dark:bg-slate-700 rounded-full hover:bg-slate-300 dark:hover:bg-slate-600 flex-shrink-0">
+                <Icon as={isPlaying ? 'stop' : 'play'} className="h-5 w-5" />
             </button>
             <button onClick={handleRewind} title="Rewind to Start" className="p-2 bg-slate-200 dark:bg-slate-700 rounded-full hover:bg-slate-300 dark:hover:bg-slate-600 flex-shrink-0">
                <Icon as="rewind" className="h-5 w-5" />
