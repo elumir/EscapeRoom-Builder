@@ -88,6 +88,7 @@ const Settings: React.FC = () => {
             const newTrack: SoundtrackTrack = { id: asset.id, name: asset.name };
             const newSoundtrack = [...(game.soundtrack || []), newTrack];
             updateGame({ ...game, soundtrack: newSoundtrack });
+            setIsAssetModalOpen(false);
         } else if (assetModalTarget === 'soundboard') {
             if (game.soundboard?.some(clip => clip.id === assetId)) {
                 alert('This sound clip has already been added to the sound board.');
@@ -95,10 +96,9 @@ const Settings: React.FC = () => {
                 const newClip: SoundboardClip = { id: asset.id, name: asset.name };
                 const newSoundboard = [...(game.soundboard || []), newClip];
                 updateGame({ ...game, soundboard: newSoundboard });
+                setIsAssetModalOpen(false);
             }
         }
-        
-        setIsAssetModalOpen(false);
     };
 
     const handleAudioUpload = async (file: File) => {
@@ -113,7 +113,7 @@ const Settings: React.FC = () => {
                 handleSelectAsset(newAsset.id);
             }
             
-            setIsAssetModalOpen(false);
+            // Let handleSelectAsset control closing the modal
     
         } catch (error) {
             console.error("Audio upload failed:", error);
