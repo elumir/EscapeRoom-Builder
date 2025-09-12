@@ -1351,10 +1351,10 @@ const PresenterView: React.FC = () => {
                                         <h3 className="font-semibold text-slate-400">{game.inventory1Title || 'Inventory 1'}</h3>
                                         <button onClick={() => handleAddCustomItem(1)} className="p-1 hover:bg-slate-700 rounded-full text-slate-400" title="Add custom item"><Icon as="plus" className="w-4 h-4"/></button>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-2">
+                                    <div className="grid grid-cols-1 gap-2">
                                         {inventoryList1.length > 0 ? inventoryList1.map(obj => (
                                             <ObjectItem key={obj.id} obj={obj} onToggle={obj.id.startsWith('custom-') ? handleToggleCustomItem : handleToggleObject} showVisibilityToggle onToggleDescription={handleToggleDescriptionVisibility} isDescriptionVisible={visibleDescriptionIds.has(obj.id)} onToggleImage={handleToggleObjectImage} />
-                                        )) : <p className="col-span-2 text-sm text-slate-500 italic">Empty</p>}
+                                        )) : <p className="text-sm text-slate-500 italic">Empty</p>}
                                     </div>
                                 </div>
                                  <div>
@@ -1362,19 +1362,19 @@ const PresenterView: React.FC = () => {
                                         <h3 className="font-semibold text-slate-400">{game.inventory2Title || 'Inventory 2'}</h3>
                                         <button onClick={() => handleAddCustomItem(2)} className="p-1 hover:bg-slate-700 rounded-full text-slate-400" title="Add custom item"><Icon as="plus" className="w-4 h-4"/></button>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-2">
+                                    <div className="grid grid-cols-1 gap-2">
                                         {inventoryList2.length > 0 ? inventoryList2.map(obj => (
                                             <ObjectItem key={obj.id} obj={obj} onToggle={obj.id.startsWith('custom-') ? handleToggleCustomItem : handleToggleObject} showVisibilityToggle onToggleDescription={handleToggleDescriptionVisibility} isDescriptionVisible={visibleDescriptionIds.has(obj.id)} onToggleImage={handleToggleObjectImage} />
-                                        )) : <p className="col-span-2 text-sm text-slate-500 italic">Empty</p>}
+                                        )) : <p className="text-sm text-slate-500 italic">Empty</p>}
                                     </div>
                                 </div>
                             </div>
                         ) : (
-                            <div className="grid grid-cols-2 gap-2">
-                                 <button onClick={() => handleAddCustomItem(1)} className="col-span-2 w-full flex items-center justify-center gap-2 px-4 py-2 bg-slate-700/50 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors text-sm">Add Custom Item</button>
+                            <div className="grid grid-cols-1 gap-2">
+                                 <button onClick={() => handleAddCustomItem(1)} className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-slate-700/50 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors text-sm">Add Custom Item</button>
                                 {combinedInventoryObjects.length > 0 ? combinedInventoryObjects.map(obj => (
                                     <ObjectItem key={obj.id} obj={obj} onToggle={obj.id.startsWith('custom-') ? handleToggleCustomItem : handleToggleObject} showVisibilityToggle onToggleDescription={handleToggleDescriptionVisibility} isDescriptionVisible={visibleDescriptionIds.has(obj.id)} onToggleImage={handleToggleObjectImage} />
-                                )) : <p className="col-span-2 text-sm text-slate-500 italic text-center pt-4">Inventory is empty</p>}
+                                )) : <p className="text-sm text-slate-500 italic text-center pt-4">Inventory is empty</p>}
                             </div>
                         )}
                     </div>
@@ -1382,10 +1382,10 @@ const PresenterView: React.FC = () => {
                  {activeTab === 'discarded' && (
                     <div className="space-y-4">
                         <h2 className="text-lg font-semibold text-slate-300">Discarded Items</h2>
-                         <div className="grid grid-cols-2 gap-2">
+                         <div className="grid grid-cols-1 gap-2">
                             {combinedDiscardedObjects.length > 0 ? combinedDiscardedObjects.map(obj => (
                                <ObjectItem key={obj.id} obj={{...obj, showInInventory: false}} onToggle={obj.id.startsWith('custom-') ? handleToggleCustomItem : handleToggleObject} lockingPuzzleName={lockingPuzzlesByObjectId.get(obj.id)} />
-                            )) : <p className="col-span-2 text-sm text-slate-500 italic text-center pt-4">No items have been discarded</p>}
+                            )) : <p className="text-sm text-slate-500 italic text-center pt-4">No items have been discarded</p>}
                          </div>
                     </div>
                 )}
