@@ -86,6 +86,7 @@ const Editor: React.FC = () => {
   const [placementModalData, setPlacementModalData] = useState<{ initialX: number, initialY: number, initialSize: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isActDropdownOpen, setIsActDropdownOpen] = useState(false);
+  const [isActsHelpOpen, setIsActsHelpOpen] = useState(false);
   const [newActNumber, setNewActNumber] = useState('');
 
   const objectRemoveDropdownRef = useRef<HTMLDivElement>(null);
@@ -1251,6 +1252,31 @@ const Editor: React.FC = () => {
   return (
     <div className="flex flex-col h-screen bg-slate-200 dark:bg-slate-900">
        <FontLoader gameId={id} />
+       {isActsHelpOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm"
+          onClick={() => setIsActsHelpOpen(false)}
+        >
+            <div 
+              className="bg-white dark:bg-slate-800 p-8 rounded-lg shadow-2xl w-full max-w-md"
+              onClick={e => e.stopPropagation()}
+            >
+                <h2 className="text-2xl font-bold mb-4 text-slate-800 dark:text-slate-200">{texts.editor.roomEditor.actsHelpTitle}</h2>
+                <p className="text-slate-600 dark:text-slate-400 mb-6 whitespace-pre-line">
+                  {texts.editor.roomEditor.actsHelpText}
+                </p>
+                <div className="mt-6 flex justify-end">
+                    <button 
+                        type="button" 
+                        onClick={() => setIsActsHelpOpen(false)} 
+                        className="px-6 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors"
+                    >
+                        {texts.modals.common.gotIt}
+                    </button>
+                </div>
+            </div>
+        </div>
+      )}
        {isResetModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white dark:bg-slate-800 p-8 rounded-lg shadow-2xl w-full max-w-lg">
@@ -2633,35 +2659,44 @@ const Editor: React.FC = () => {
                   onChange={e => setEditingRoomName(e.target.value)}
                   className="text-2xl font-bold bg-transparent focus:bg-white dark:focus:bg-slate-800 outline-none rounded-md px-2 py-1 flex-grow"
               />
-              <div className="relative" ref={actDropdownRef}>
-                  <button onClick={() => setIsActDropdownOpen(prev => !prev)} className="flex items-center gap-2 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 text-sm">
-                      <span className="text-slate-500 dark:text-slate-400">{texts.editor.roomEditor.actsLabel}</span>
-                      <span className="font-semibold">{editingRoomActs.join(', ')}</span>
-                      <Icon as="chevron-down" className={`w-4 h-4 transition-transform ${isActDropdownOpen ? 'rotate-180' : ''}`} />
-                  </button>
-                  {isActDropdownOpen && (
-                      <div className="absolute z-10 mt-1 w-64 right-0 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg">
-                          <div className="p-2 space-y-1 max-h-48 overflow-y-auto">
-                              {allActs.map(act => (
-                                  <label key={act} className="flex items-center gap-2 text-sm p-1.5 rounded cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700">
-                                      <input type="checkbox" checked={editingRoomActs.includes(act)} onChange={() => handleActToggle(act)} className="w-4 h-4 rounded border-slate-400 text-brand-600 shadow-sm focus:ring-brand-500" />
-                                      {texts.editor.roomsList.actPrefix} {act}
-                                  </label>
-                              ))}
-                          </div>
-                          <form onSubmit={handleAddNewAct} className="p-2 border-t border-slate-200 dark:border-slate-700 flex gap-2">
-                              <input
-                                  type="number"
-                                  value={newActNumber}
-                                  onChange={e => setNewActNumber(e.target.value)}
-                                  placeholder={texts.editor.roomEditor.newActPlaceholder}
-                                  min="1"
-                                  className="w-full px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded bg-slate-50 dark:bg-slate-700"
-                              />
-                              <button type="submit" className="p-2 bg-brand-600 text-white rounded hover:bg-brand-700"><Icon as="plus" className="w-4 h-4" /></button>
-                          </form>
-                      </div>
-                  )}
+              <div className="flex items-center gap-1">
+                <div className="relative" ref={actDropdownRef}>
+                    <button onClick={() => setIsActDropdownOpen(prev => !prev)} className="flex items-center gap-2 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 text-sm">
+                        <span className="text-slate-500 dark:text-slate-400">{texts.editor.roomEditor.actsLabel}</span>
+                        <span className="font-semibold">{editingRoomActs.join(', ')}</span>
+                        <Icon as="chevron-down" className={`w-4 h-4 transition-transform ${isActDropdownOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    {isActDropdownOpen && (
+                        <div className="absolute z-10 mt-1 w-64 right-0 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg">
+                            <div className="p-2 space-y-1 max-h-48 overflow-y-auto">
+                                {allActs.map(act => (
+                                    <label key={act} className="flex items-center gap-2 text-sm p-1.5 rounded cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700">
+                                        <input type="checkbox" checked={editingRoomActs.includes(act)} onChange={() => handleActToggle(act)} className="w-4 h-4 rounded border-slate-400 text-brand-600 shadow-sm focus:ring-brand-500" />
+                                        {texts.editor.roomsList.actPrefix} {act}
+                                    </label>
+                                ))}
+                            </div>
+                            <form onSubmit={handleAddNewAct} className="p-2 border-t border-slate-200 dark:border-slate-700 flex gap-2">
+                                <input
+                                    type="number"
+                                    value={newActNumber}
+                                    onChange={e => setNewActNumber(e.target.value)}
+                                    placeholder={texts.editor.roomEditor.newActPlaceholder}
+                                    min="1"
+                                    className="w-full px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded bg-slate-50 dark:bg-slate-700"
+                                />
+                                <button type="submit" className="p-2 bg-brand-600 text-white rounded hover:bg-brand-700"><Icon as="plus" className="w-4 h-4" /></button>
+                            </form>
+                        </div>
+                    )}
+                </div>
+                <button
+                    onClick={() => setIsActsHelpOpen(true)}
+                    className="p-1.5 text-slate-400 dark:text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full"
+                    title="What are Acts?"
+                >
+                    <Icon as="question-mark" className="w-5 h-5" />
+                </button>
               </div>
           </div>
           
