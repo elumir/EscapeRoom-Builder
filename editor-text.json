@@ -130,8 +130,7 @@
         "discardBehavior": "Discarded Object Behavior",
         "discardDescription": "Choose what happens when an object is removed from the presenter's inventory.",
         "moveToDiscard": "Move to Discard Pile",
-        "returnToRoom": "Return to Original Room",
-        "hideAvailableObjects": "Hide the \"Available to Pick Up\" section for the presenter."
+        "returnToRoom": "Return to Original Room"
       },
       "sharing": {
         "title": "Sharing & Visibility",
@@ -149,7 +148,8 @@
         "globalBgColorDescription": "Overrides individual room colors. Unselect to use per-room settings.",
         "mapDisplayMode": "Map Display Mode",
         "layeredMaps": "Layered Maps",
-        "roomSpecificMap": "Room-Specific Map"
+        "roomSpecificMap": "Room-Specific Map",
+        "hideAvailableObjects": "Hide the \"Available to Pick Up\" section for the presenter."
       },
       "soundtrack": {
         "title": "Soundtrack",

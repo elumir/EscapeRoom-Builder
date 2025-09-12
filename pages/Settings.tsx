@@ -427,12 +427,6 @@ const Settings: React.FC = () => {
                                         </button>
                                     </div>
                                 </div>
-                                <div>
-                                    <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer">
-                                      <input type="checkbox" className="rounded border-slate-400 text-brand-600 focus:ring-brand-500" checked={game.hideAvailableObjects || false} onChange={e => handleGamePropertyChange('hideAvailableObjects', e.target.checked)} />
-                                      {texts.settings.sections.general.hideAvailableObjects}
-                                    </label>
-                                </div>
                             </div>
                         </div>
                     )}
@@ -508,6 +502,12 @@ const Settings: React.FC = () => {
                                              {texts.settings.sections.appearance.roomSpecificMap}
                                          </button>
                                      </div>
+                                </div>
+                                <div>
+                                    <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer">
+                                      <input type="checkbox" className="rounded border-slate-400 text-brand-600 focus:ring-brand-500" checked={game.hideAvailableObjects || false} onChange={e => handleGamePropertyChange('hideAvailableObjects', e.target.checked)} />
+                                      {texts.settings.sections.appearance.hideAvailableObjects}
+                                    </label>
                                 </div>
                             </div>
                         </div>
