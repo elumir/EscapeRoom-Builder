@@ -29,13 +29,13 @@
     "roomEditor": {
       "actsLabel": "Act(s):",
       "actsHelpTitle": "What are Acts?",
-      "actsHelpText": "Acts allow you to group rooms together and control the flow of your game.\n\nYou can lock later Acts until a specific puzzle in an earlier Act is solved.\n\nThis is useful for creating multi-part games or preventing players from accessing later stages prematurely.",
+      "actsHelpText": "Acts allow you to group rooms together and control the flow of your game.\n\nYou can lock later Acts until a specific puzzle in an earlier Act is solved.\n\nThis is useful for creating multi-part games or preventing players from accessing later stages prematurely.\n\nA room can be part of more than one Act, in effect, appearing in multiple Acts, retaining information from previous Acts.",
       "newActPlaceholder": "New Act #",
       "roomImage": "Room Image",
       "mapImage": "Map Image",
       "solvedStateImage": "Solved State Image",
       "uploadImage": "Upload Image",
-      "displayFullscreen": "Display main room image full-screen (hides sidebar).",
+      "displayFullscreen": "Display Room Image full-screen (hides sidebar).",
       "roomDescription": "Room Description",
       "solvedDescription": "Solved Description",
       "editFullscreen": "Edit in fullscreen",
@@ -53,7 +53,7 @@
       "objectsSelected": "objects selected",
       "searchAllObjects": "Search all game objects...",
       "noMatchingObjects": "No matching objects found.",
-      "objectRemovePlaceholder": "Optional text to show players when objects are removed."
+      "objectRemovePlaceholder": "Text to show players when objects are removed. [Optional]"
     },
     "dynamicContent": {
       "objectsTitle": "Objects in this Room",
@@ -196,8 +196,8 @@
       "title": "Start Presentation",
       "description": "Do you want to reset all puzzles, inventory, and visited rooms to their default state before starting?",
       "cancelButton": "Cancel",
-      "presentCurrentStateButton": "Present with Current State",
-      "presentResetButton": "Reset and Present"
+      "presentCurrentStateButton": "Start Current State",
+      "presentResetButton": "Reset & Start"
     },
     "textEditor": {
       "editRoomDescription": "Edit Room Description",
@@ -257,7 +257,7 @@
       "soundLabel": "Sound",
       "clearSound": "Clear Sound",
       "lockedElementsTitle": "Locked elements",
-      "lockedElementsDescription": "Elements that are locked until puzzle is solved.",
+      "lockedElementsDescription": "Locked elements are inaccessible until puzzle is solved.",
       "lockedObjects": "Locked Objects",
       "lockedActions": "Locked Actions",
       "lockedPuzzles": "Locked Puzzles",
@@ -284,7 +284,7 @@
       "descriptionPlaceholder": "e.g., You lift the corner of the rug and find a small, tarnished brass key.",
       "imageLabel": "Image (Full Screen Overlay)",
       "soundLabel": "Sound",
-      "hideCompleteButton": "Hide complete button and have a puzzle complete it automatically.",
+      "hideCompleteButton": "Hide complete button. An existing puzzle will complete it automatically when solved.",
       "saveAndClose": "Save & Close"
     },
     "common": {
