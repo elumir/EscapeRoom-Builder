@@ -130,7 +130,7 @@ const PresentationView: React.FC = () => {
         .filter(Boolean);
 
     const inRoomObjects = room.objects
-        .filter(obj => obj.inRoomImage && !obj.showInInventory);
+        .filter(obj => obj.inRoomImage && !obj.showInInventory && !obj.wasEverInInventory);
 
     return {
       inventoryObjects,
