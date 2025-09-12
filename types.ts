@@ -80,7 +80,7 @@ export interface Room {
   notes: string;
   backgroundColor: string;
   isFullScreenImage: boolean;
-  act: number;
+  acts: number[];
   objects: InventoryObject[];
   puzzles: Puzzle[];
   actions: Action[];
