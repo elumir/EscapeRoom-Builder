@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import * as gameService from '../services/presentationService';
@@ -164,7 +165,8 @@ const Dashboard: React.FC = () => {
         notes: '', 
         backgroundColor: '#eee', 
         isFullScreenImage: false,
-        act: 1,
+        // FIX: The `Room` type expects `acts` (an array of numbers), not `act`.
+        acts: [1],
         objects: [],
         puzzles: [],
         actions: [],
@@ -173,6 +175,8 @@ const Dashboard: React.FC = () => {
         solvedNotes: '',
         objectRemoveIds: [],
         objectRemoveText: '',
+        transitionType: 'none',
+        transitionDuration: 1,
     };
 
     const renderHeaderButtons = () => {

@@ -33,7 +33,7 @@ const Editor: React.FC = () => {
   const [selectedRoomIndex, setSelectedRoomIndex] = useState(0);
   const [editingGameTitle, setEditingGameTitle] = useState('');
   const [editingRoomName, setEditingRoomName] = useState('');
-  const [editingRoomAct, setEditingRoomAct] = useState(1);
+  const [editingRoomActs, setEditingRoomActs] = useState([1]);
   const [editingRoomNotes, setEditingRoomNotes] = useState('');
   const [editingRoomSolvedNotes, setEditingRoomSolvedNotes] = useState('');
   const [editingRoomObjectRemoveText, setEditingRoomObjectRemoveText] = useState('');
@@ -82,6 +82,8 @@ const Editor: React.FC = () => {
   const [isPlacementModalOpen, setIsPlacementModalOpen] = useState<boolean>(false);
   const [placementModalData, setPlacementModalData] = useState<{ initialX: number, initialY: number, initialSize: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [isActDropdownOpen, setIsActDropdownOpen] = useState(false);
+  const [newActNumber, setNewActNumber] = useState('');
 
   const objectRemoveDropdownRef = useRef<HTMLDivElement>(null);
   const modalObjectsDropdownRef = useRef<HTMLDivElement>(null);
@@ -106,6 +108,7 @@ const Editor: React.FC = () => {
   const dragOffsetRef = useRef({ x: 0, y: 0 });
   const dragImageSizeRef = useRef({ width: 0, height: 0 });
   const autosaveTimeoutRef = useRef<number | null>(null);
+  const actDropdownRef = useRef<HTMLDivElement>(null);
 
   const { objectLockMap, puzzleLockMap, actionLockMap } = useMemo(() => {
     const objectLockMap = new Map<string, string[]>();
@@ -149,7 +152,7 @@ const Editor: React.FC = () => {
               setEditingRoomName(currentRoom.name);
               setEditingRoomNotes(currentRoom.notes);
               setEditingRoomSolvedNotes(currentRoom.solvedNotes || '');
-              setEditingRoomAct(currentRoom.act || 1);
+              setEditingRoomActs(currentRoom.acts || [1]);
               setEditingRoomObjectRemoveText(currentRoom.objectRemoveText || '');
               setEditingRoomObjects(currentRoom.objects || []);
               setEditingRoomPuzzles(currentRoom.puzzles || []);
@@ -203,6 +206,9 @@ const Editor: React.FC = () => {
         if (modalActsDropdownRef.current && !modalActsDropdownRef.current.contains(event.target as Node)) {
             setOpenModalPuzzleActsDropdown(false);
             setModalPuzzleActsSearch('');
+        }
+        if (actDropdownRef.current && !actDropdownRef.current.contains(event.target as Node)) {
+            setIsActDropdownOpen(false);
         }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -277,7 +283,7 @@ const Editor: React.FC = () => {
   useDebouncedUpdater(editingRoomName, 'name');
   useDebouncedUpdater(editingRoomNotes, 'notes');
   useDebouncedUpdater(editingRoomSolvedNotes, 'solvedNotes');
-  useDebouncedUpdater(editingRoomAct, 'act');
+  useDebouncedUpdater(editingRoomActs, 'acts');
   useDebouncedUpdater(editingRoomObjectRemoveText, 'objectRemoveText');
   
   useEffect(() => {
@@ -301,7 +307,7 @@ const Editor: React.FC = () => {
     setEditingRoomName(room.name || '');
     setEditingRoomNotes(room.notes || '');
     setEditingRoomSolvedNotes(room.solvedNotes || '');
-    setEditingRoomAct(room.act || 1);
+    setEditingRoomActs(room.acts || [1]);
     setEditingRoomObjectRemoveText(room.objectRemoveText || '');
     setEditingRoomObjects(room.objects || []);
     setEditingRoomPuzzles(room.puzzles || []);
@@ -310,8 +316,8 @@ const Editor: React.FC = () => {
 
   const addRoom = () => {
     if (!game) return;
-    const latestAct = game.rooms.length > 0 ? Math.max(...game.rooms.map(r => r.act || 1)) : 1;
-    const newRoom: RoomType = { id: generateUUID(), name: `Room ${game.rooms.length + 1}`, image: null, mapImage: null, notes: '', backgroundColor: '#000000', isFullScreenImage: false, act: latestAct, objectRemoveIds: [], objectRemoveText: '', objects: [], puzzles: [], actions: [], isSolved: false, solvedImage: null, solvedNotes: '', transitionType: 'none', transitionDuration: 1 };
+    const latestAct = game.rooms.length > 0 ? Math.max(1, ...game.rooms.flatMap(r => r.acts || [])) : 1;
+    const newRoom: RoomType = { id: generateUUID(), name: `Room ${game.rooms.length + 1}`, image: null, mapImage: null, notes: '', backgroundColor: '#000000', isFullScreenImage: false, acts: [latestAct], objectRemoveIds: [], objectRemoveText: '', objects: [], puzzles: [], actions: [], isSolved: false, solvedImage: null, solvedNotes: '', transitionType: 'none', transitionDuration: 1 };
     const newRooms = [...game.rooms, newRoom];
     updateLocalGame({ ...game, rooms: newRooms });
     selectRoom(newRooms.length - 1, newRooms);
@@ -1109,16 +1115,25 @@ const Editor: React.FC = () => {
 
   const COLORS = ['#000000', '#ffffff', '#f87171', '#fbbf24', '#34d399', '#60a5fa', '#a78bfa'];
 
-  const roomsByAct = useMemo(() => {
-    if (!game) return {};
-    return game.rooms.reduce((acc, room, index) => {
-        const act = room.act || 1;
-        if (!acc[act]) {
-            acc[act] = [];
+  const { singleActRoomsByAct, multiActRooms } = useMemo(() => {
+    const singleActRoomsByAct: Record<number, (RoomType & { originalIndex: number })[]> = {};
+    const multiActRooms: (RoomType & { originalIndex: number })[] = [];
+    if (!game) return { singleActRoomsByAct, multiActRooms };
+
+    game.rooms.forEach((room, index) => {
+        const roomWithIndex = { ...room, originalIndex: index };
+        if (room.acts && room.acts.length > 1) {
+            multiActRooms.push(roomWithIndex);
+        } else {
+            const act = (room.acts && room.acts[0]) || 1;
+            if (!singleActRoomsByAct[act]) {
+                singleActRoomsByAct[act] = [];
+            }
+            singleActRoomsByAct[act].push(roomWithIndex);
         }
-        acc[act].push({ ...room, originalIndex: index });
-        return acc;
-    }, {} as Record<number, (RoomType & { originalIndex: number })[]>);
+    });
+    multiActRooms.sort((a, b) => a.name.localeCompare(b.name));
+    return { singleActRoomsByAct, multiActRooms };
   }, [game]);
 
   const allGameObjects = useMemo(() => {
@@ -1133,8 +1148,30 @@ const Editor: React.FC = () => {
 
   const allGameActs = useMemo(() => {
     if (!game) return [];
-    return [...new Set(game.rooms.map(r => r.act || 1))].sort((a,b) => a - b);
+    return [...new Set(game.rooms.flatMap(r => r.acts || []))].sort((a,b) => a - b);
   }, [game]);
+
+  const handleActToggle = (act: number, checked: boolean) => {
+      let newActs: number[];
+      if (checked) {
+          newActs = [...editingRoomActs, act].sort((a, b) => a - b);
+      } else {
+          newActs = editingRoomActs.filter(a => a !== act);
+      }
+      // A room must belong to at least one act
+      if (newActs.length > 0) {
+          setEditingRoomActs(newActs);
+      }
+  };
+
+  const handleAddNewAct = () => {
+      const actNum = parseInt(newActNumber, 10);
+      if (actNum > 0 && !allGameActs.includes(actNum) && !editingRoomActs.includes(actNum)) {
+          const newActs = [...editingRoomActs, actNum].sort((a, b) => a - b);
+          setEditingRoomActs(newActs);
+      }
+      setNewActNumber('');
+  };
 
   const renderSaveStatusIndicator = () => {
         switch (saveStatus) {
@@ -2435,7 +2472,7 @@ const Editor: React.FC = () => {
             </div>
           </div>
           <div ref={roomsContainerRef} className="flex-1 overflow-y-auto space-y-2 pr-2 -mr-2">
-              {Object.entries(roomsByAct).map(([act, rooms]) => {
+              {Object.entries(singleActRoomsByAct).sort(([a], [b]) => parseInt(a, 10) - parseInt(b, 10)).map(([act, rooms]) => {
                   const actNumber = parseInt(act, 10);
                   const isCollapsed = collapsedActs[actNumber];
                   return (
@@ -2476,6 +2513,30 @@ const Editor: React.FC = () => {
                       </div>
                   );
               })}
+              {multiActRooms.length > 0 && (
+                <div className="border-t border-slate-200 dark:border-slate-700">
+                    <h3 className="font-semibold text-slate-500 dark:text-slate-400 py-2">Multi-Act Rooms</h3>
+                    {multiActRooms.map(room => (
+                        <div
+                            key={room.id}
+                            className={`p-2 rounded-lg cursor-pointer group flex items-center gap-2 mb-2 relative
+                                ${room.originalIndex === selectedRoomIndex ? 'bg-brand-100 dark:bg-brand-900/50' : 'hover:bg-slate-100 dark:hover:bg-slate-700'}
+                            `}
+                            onClick={() => selectRoom(room.originalIndex)}
+                        >
+                            <div className="w-5 h-5 flex-shrink-0"></div>
+                            <div className="flex-grow flex justify-between items-center min-w-0">
+                                <span className="truncate">{room.name}</span>
+                                <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button onClick={(e) => { e.stopPropagation(); handleDuplicateRoom(room.originalIndex); }} className="p-1 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title="Duplicate Room">
+                                        <Icon as="duplicate" className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+              )}
           </div>
         </div>
 
@@ -2488,15 +2549,34 @@ const Editor: React.FC = () => {
                   onChange={e => setEditingRoomName(e.target.value)}
                   className="text-2xl font-bold bg-transparent focus:bg-white dark:focus:bg-slate-800 outline-none rounded-md px-2 py-1 flex-grow"
               />
-              <div className="flex items-center gap-2">
-                  <label className="text-sm font-medium text-slate-500 dark:text-slate-400">Act:</label>
-                  <input
-                      type="number"
-                      value={editingRoomAct}
-                      onChange={e => setEditingRoomAct(Math.max(1, parseInt(e.target.value, 10) || 1))}
-                      min="1"
-                      className="w-16 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
-                  />
+              <div ref={actDropdownRef} className="relative">
+                  <button onClick={() => setIsActDropdownOpen(prev => !prev)} className="px-3 py-1.5 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm flex items-center gap-2">
+                    <span>Acts: {editingRoomActs.join(', ')}</span>
+                    <Icon as="chevron-down" className={`w-4 h-4 transition-transform ${isActDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  {isActDropdownOpen && (
+                      <div className="absolute z-20 right-0 mt-1 w-48 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg p-2 space-y-1">
+                          {allGameActs.map(act => (
+                              <label key={act} className="flex items-center gap-2 text-sm p-1 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 rounded">
+                                  <input type="checkbox" checked={editingRoomActs.includes(act)} onChange={e => handleActToggle(act, e.target.checked)} disabled={editingRoomActs.length === 1 && editingRoomActs.includes(act)} className="disabled:opacity-50"/>
+                                  Act {act}
+                              </label>
+                          ))}
+                          <div className="border-t border-slate-200 dark:border-slate-600 pt-2 mt-2">
+                              <div className="flex items-center gap-1">
+                                  <input
+                                      type="number"
+                                      value={newActNumber}
+                                      onChange={e => setNewActNumber(e.target.value)}
+                                      onKeyDown={e => e.key === 'Enter' && handleAddNewAct()}
+                                      placeholder="New Act #"
+                                      className="w-full text-xs px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700"
+                                  />
+                                  <button onClick={handleAddNewAct} className="p-1.5 bg-brand-500 text-white rounded hover:bg-brand-600"><Icon as="plus" className="w-3.5 h-3.5"/></button>
+                              </div>
+                          </div>
+                      </div>
+                  )}
               </div>
           </div>
           
