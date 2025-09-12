@@ -31,7 +31,7 @@ const Editor: React.FC = () => {
   const [selectedRoomIndex, setSelectedRoomIndex] = useState(0);
   const [editingGameTitle, setEditingGameTitle] = useState('');
   const [editingRoomName, setEditingRoomName] = useState('');
-  const [editingRoomAct, setEditingRoomAct] = useState('1');
+  const [editingRoomAct, setEditingRoomAct] = useState(1);
   const [editingRoomNotes, setEditingRoomNotes] = useState('');
   const [editingRoomSolvedNotes, setEditingRoomSolvedNotes] = useState('');
   const [editingRoomObjectRemoveText, setEditingRoomObjectRemoveText] = useState('');
@@ -146,7 +146,7 @@ const Editor: React.FC = () => {
               setEditingRoomName(currentRoom.name);
               setEditingRoomNotes(currentRoom.notes);
               setEditingRoomSolvedNotes(currentRoom.solvedNotes || '');
-              setEditingRoomAct((currentRoom.acts || [1]).join(', '));
+              setEditingRoomAct(currentRoom.act || 1);
               setEditingRoomObjectRemoveText(currentRoom.objectRemoveText || '');
               setEditingRoomObjects(currentRoom.objects || []);
               setEditingRoomPuzzles(currentRoom.puzzles || []);
@@ -241,30 +241,9 @@ const Editor: React.FC = () => {
   useDebouncedUpdater(editingRoomName, 'name');
   useDebouncedUpdater(editingRoomNotes, 'notes');
   useDebouncedUpdater(editingRoomSolvedNotes, 'solvedNotes');
+  useDebouncedUpdater(editingRoomAct, 'act');
   useDebouncedUpdater(editingRoomObjectRemoveText, 'objectRemoveText');
   
-  useEffect(() => {
-    if (game) {
-        const handler = setTimeout(() => {
-            const currentRoom = game.rooms[selectedRoomIndex];
-            const newActs = editingRoomAct
-                .split(',')
-                .map(s => parseInt(s.trim(), 10))
-                .filter(n => !isNaN(n) && n > 0);
-            
-            const uniqueActs = [...new Set(newActs)].sort((a, b) => a - b);
-            const finalActs = uniqueActs.length > 0 ? uniqueActs : [1];
-
-            if (currentRoom && JSON.stringify(currentRoom.acts) !== JSON.stringify(finalActs)) {
-                const newRooms = [...game.rooms];
-                newRooms[selectedRoomIndex] = { ...currentRoom, acts: finalActs };
-                updateGame({ ...game, rooms: newRooms });
-            }
-        }, 500);
-        return () => clearTimeout(handler);
-    }
-  }, [editingRoomAct, selectedRoomIndex, game, updateGame]);
-
   useEffect(() => {
     setModalPuzzleData(puzzleModalState ? puzzleModalState.puzzle : null);
   }, [puzzleModalState]);
@@ -286,7 +265,7 @@ const Editor: React.FC = () => {
     setEditingRoomName(room.name || '');
     setEditingRoomNotes(room.notes || '');
     setEditingRoomSolvedNotes(room.solvedNotes || '');
-    setEditingRoomAct((room.acts || [1]).join(', '));
+    setEditingRoomAct(room.act || 1);
     setEditingRoomObjectRemoveText(room.objectRemoveText || '');
     setEditingRoomObjects(room.objects || []);
     setEditingRoomPuzzles(room.puzzles || []);
@@ -295,8 +274,8 @@ const Editor: React.FC = () => {
 
   const addRoom = () => {
     if (!game) return;
-    const latestAct = game.rooms.length > 0 ? Math.max(...game.rooms.flatMap(r => r.acts || [1])) : 1;
-    const newRoom: RoomType = { id: generateUUID(), name: `Room ${game.rooms.length + 1}`, image: null, mapImage: null, notes: '', backgroundColor: '#000000', isFullScreenImage: false, acts: [latestAct], objectRemoveIds: [], objectRemoveText: '', objects: [], puzzles: [], actions: [], isSolved: false, solvedImage: null, solvedNotes: '', transitionType: 'none', transitionDuration: 1 };
+    const latestAct = game.rooms.length > 0 ? Math.max(...game.rooms.map(r => r.act || 1)) : 1;
+    const newRoom: RoomType = { id: generateUUID(), name: `Room ${game.rooms.length + 1}`, image: null, mapImage: null, notes: '', backgroundColor: '#000000', isFullScreenImage: false, act: latestAct, objectRemoveIds: [], objectRemoveText: '', objects: [], puzzles: [], actions: [], isSolved: false, solvedImage: null, solvedNotes: '', transitionType: 'none', transitionDuration: 1 };
     const newRooms = [...game.rooms, newRoom];
     updateGame({ ...game, rooms: newRooms });
     selectRoom(newRooms.length - 1, newRooms);
@@ -1094,28 +1073,16 @@ const Editor: React.FC = () => {
 
   const COLORS = ['#000000', '#ffffff', '#f87171', '#fbbf24', '#34d399', '#60a5fa', '#a78bfa'];
 
-  const { singleActRoomsByAct, multiActRooms } = useMemo(() => {
-    if (!game) return { singleActRoomsByAct: {}, multiActRooms: [] };
-
-    const singleActRoomsByAct: Record<number, (RoomType & { originalIndex: number })[]> = {};
-    const multiActRooms: (RoomType & { originalIndex: number })[] = [];
-
-    game.rooms.forEach((room, index) => {
-        const roomWithIndex = { ...room, originalIndex: index };
-        if (room.acts && room.acts.length > 1) {
-            multiActRooms.push(roomWithIndex);
-        } else {
-            const act = (room.acts && room.acts.length > 0) ? room.acts[0] : 1;
-            if (!singleActRoomsByAct[act]) {
-                singleActRoomsByAct[act] = [];
-            }
-            singleActRoomsByAct[act].push(roomWithIndex);
+  const roomsByAct = useMemo(() => {
+    if (!game) return {};
+    return game.rooms.reduce((acc, room, index) => {
+        const act = room.act || 1;
+        if (!acc[act]) {
+            acc[act] = [];
         }
-    });
-
-    multiActRooms.sort((a, b) => a.name.localeCompare(b.name));
-
-    return { singleActRoomsByAct, multiActRooms };
+        acc[act].push({ ...room, originalIndex: index });
+        return acc;
+    }, {} as Record<number, (RoomType & { originalIndex: number })[]>);
   }, [game]);
 
   const allGameObjects = useMemo(() => {
@@ -1130,7 +1097,7 @@ const Editor: React.FC = () => {
 
   const allGameActs = useMemo(() => {
     if (!game) return [];
-    return [...new Set(game.rooms.flatMap(r => r.acts || [1]))].sort((a,b) => a - b);
+    return [...new Set(game.rooms.map(r => r.act || 1))].sort((a,b) => a - b);
   }, [game]);
 
   if (status === 'loading') {
@@ -2398,7 +2365,7 @@ const Editor: React.FC = () => {
             </div>
           </div>
           <div ref={roomsContainerRef} className="flex-1 overflow-y-auto space-y-2 pr-2 -mr-2">
-              {Object.entries(singleActRoomsByAct).sort(([a], [b]) => parseInt(a, 10) - parseInt(b, 10)).map(([act, rooms]) => {
+              {Object.entries(roomsByAct).map(([act, rooms]) => {
                   const actNumber = parseInt(act, 10);
                   const isCollapsed = collapsedActs[actNumber];
                   return (
@@ -2439,32 +2406,6 @@ const Editor: React.FC = () => {
                       </div>
                   );
               })}
-              {multiActRooms.length > 0 && (
-                <div className="border-t border-slate-200 dark:border-slate-700">
-                    <div className="w-full text-left font-semibold text-slate-500 dark:text-slate-400 py-2">
-                        <span>Multi-Acts</span>
-                    </div>
-                    {multiActRooms.map(room => (
-                        <div
-                            key={room.id}
-                            className={`p-2 rounded-lg cursor-pointer group flex items-center gap-2 mb-2
-                                ${room.originalIndex === selectedRoomIndex ? 'bg-brand-100 dark:bg-brand-900/50' : 'hover:bg-slate-100 dark:hover:bg-slate-700'}`
-                            }
-                            onClick={() => selectRoom(room.originalIndex)}
-                        >
-                            <div className="w-5 h-5 flex-shrink-0"></div>
-                            <div className="flex-grow flex justify-between items-center min-w-0">
-                              <span className="truncate">{room.name}</span>
-                              <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button onClick={(e) => { e.stopPropagation(); handleDuplicateRoom(room.originalIndex); }} className="p-1 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title="Duplicate Room">
-                                  <Icon as="duplicate" className="w-4 h-4" />
-                                </button>
-                              </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-              )}
           </div>
         </div>
 
@@ -2478,14 +2419,13 @@ const Editor: React.FC = () => {
                   className="text-2xl font-bold bg-transparent focus:bg-white dark:focus:bg-slate-800 outline-none rounded-md px-2 py-1 flex-grow"
               />
               <div className="flex items-center gap-2">
-                  <label className="text-sm font-medium text-slate-500 dark:text-slate-400">Act(s):</label>
+                  <label className="text-sm font-medium text-slate-500 dark:text-slate-400">Act:</label>
                   <input
-                      type="text"
+                      type="number"
                       value={editingRoomAct}
-                      onChange={e => setEditingRoomAct(e.target.value)}
-                      pattern="^[0-9, ]*$"
-                      title="Enter act numbers separated by commas"
-                      className="w-24 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
+                      onChange={e => setEditingRoomAct(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                      min="1"
+                      className="w-16 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
                   />
               </div>
           </div>

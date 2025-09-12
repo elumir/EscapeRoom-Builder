@@ -613,36 +613,895 @@ const PresenterView: React.FC = () => {
             newIsSolvedState = true;
         }
         
-        return { ...room, objects: newObjects, puzzles: newPuzzles, isSolved: newIsSolvedState, actions: newActions };
+        return { ...room, objects: newObjects, puzzles: newPuzzles, actions: newActions, isSolved: newIsSolvedState };
     });
-
-    updateAndBroadcast({ ...game, rooms: updatedRooms });
+    
+    const updatedGame = { ...game, rooms: updatedRooms };
+    updateAndBroadcast(updatedGame);
   };
   
-  // FIX: This file was truncated and malformed. The component function was not closed and did not return a value.
-  // I have added the necessary closing braces, a default export, and standard loading/error states.
-  // The main UI for the presenter view is missing from the file, so this component currently returns null in its success state.
-  const currentRoom = game?.rooms[currentRoomIndex];
+  const handleAttemptSolve = (puzzleId: string) => {
+    if (!game) return;
+    for (const room of game.rooms) {
+        const puzzle = room.puzzles.find(p => p.id === puzzleId);
+        if (puzzle) {
+            setPuzzleToSolve(puzzle);
+            setSubmittedAnswer('');
+            setSolveError(null);
+            break;
+        }
+    }
+  };
+
+  const handleSubmitAnswer = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!puzzleToSolve) return;
+
+    if (submittedAnswer === puzzleToSolve.answer) {
+        handleTogglePuzzle(puzzleToSolve.id, true);
+        setSolvedPuzzleInfo(puzzleToSolve);
+        setPuzzleToSolve(null);
+    } else {
+        setSolveError('Incorrect answer. Please try again.');
+        setSubmittedAnswer('');
+    }
+  };
+
+  const handleCloseSolvedModal = () => {
+    if (!game || !solvedPuzzleInfo) return;
+
+    // Create a new game state with the puzzle image overlay turned off.
+    const updatedGame = {
+        ...game,
+        rooms: game.rooms.map(room => {
+            // Find the room containing the puzzle
+            const puzzleIndex = room.puzzles.findIndex(p => p.id === solvedPuzzleInfo.id);
+            if (puzzleIndex === -1) {
+                return room; // Not in this room
+            }
+
+            // Create a new puzzles array with the updated puzzle
+            const newPuzzles = [...room.puzzles];
+            newPuzzles[puzzleIndex] = { ...newPuzzles[puzzleIndex], showImageOverlay: false };
+
+            return { ...room, puzzles: newPuzzles };
+        })
+    };
+
+    // Update state and broadcast to the presentation view
+    updateAndBroadcast(updatedGame);
+
+    // Close the modal
+    setSolvedPuzzleInfo(null);
+  };
+
+  const handleTogglePuzzleImage = (puzzleId: string, newState: boolean) => {
+    if (!game || !game.rooms[currentRoomIndex]) return;
+    const currentRoomId = game.rooms[currentRoomIndex].id;
+
+    const updatedGame = {
+        ...game,
+        rooms: game.rooms.map(room => {
+            const newActions = (room.actions || []).map(a => ({ ...a, showImageOverlay: false }));
+            const newObjects = room.objects.map(o => ({ ...o, showImageOverlay: false }));
+            
+            if (room.id !== currentRoomId) {
+                return { ...room, actions: newActions, objects: newObjects };
+            }
+            
+            const newPuzzles = room.puzzles.map(p => {
+                if (p.id === puzzleId) return { ...p, showImageOverlay: newState };
+                if (newState) return { ...p, showImageOverlay: false };
+                return p;
+            });
+            
+            return {
+                ...room,
+                puzzles: newPuzzles,
+                actions: newActions,
+                objects: newObjects
+            };
+        })
+    };
+    updateAndBroadcast(updatedGame);
+  };
+
+  const handleToggleActionImage = (actionId: string, newState: boolean) => {
+    if (!game || !game.rooms[currentRoomIndex]) return;
+    
+    const updatedGame = {
+        ...game,
+        rooms: game.rooms.map(room => {
+            const newPuzzles = room.puzzles.map(p => ({ ...p, showImageOverlay: false }));
+            const newObjects = room.objects.map(o => ({ ...o, showImageOverlay: false }));
+            const newActions = (room.actions || []).map(a => {
+                if (a.id === actionId) return { ...a, showImageOverlay: newState };
+                if (newState) return { ...a, showImageOverlay: false };
+                return a;
+            });
+
+            return {
+                ...room,
+                puzzles: newPuzzles,
+                actions: newActions,
+                objects: newObjects,
+            };
+        })
+    };
+    updateAndBroadcast(updatedGame);
+  };
+
+  const handleToggleObjectImage = (objectId: string, newState: boolean) => {
+    if (!game) return;
+
+    const updatedGame = {
+        ...game,
+        rooms: game.rooms.map(room => ({
+            ...room,
+            puzzles: room.puzzles.map(p => ({ ...p, showImageOverlay: false })),
+            actions: (room.actions || []).map(a => ({ ...a, showImageOverlay: false })),
+            objects: room.objects.map(obj => {
+                if (obj.id === objectId) return { ...obj, showImageOverlay: newState };
+                if (newState) return { ...obj, showImageOverlay: false };
+                return obj;
+            })
+        }))
+    };
+    updateAndBroadcast(updatedGame);
+  };
+
+  const handleToggleInRoomImage = (objectId: string, newState: boolean) => {
+      if (!game) return;
+
+      const updatedGame = {
+          ...game,
+          rooms: game.rooms.map(room => ({
+              ...room,
+              objects: room.objects.map(obj => {
+                  if (obj.id === objectId) {
+                      return { ...obj, isPresenterHidden: newState };
+                  }
+                  return obj;
+              })
+          }))
+      };
+      updateAndBroadcast(updatedGame);
+  };
+
+  const handleToggleActionComplete = (actionId: string, newState: boolean) => {
+    if (!game) return;
+
+    const updatedGame = {
+        ...game,
+        rooms: game.rooms.map(room => ({
+            ...room,
+            actions: (room.actions || []).map(action => {
+                if (action.id === actionId) {
+                    const updatedAction = { ...action, isComplete: newState };
+                    // If the action is being marked as complete (hidden), also hide its image overlay.
+                    if (newState) {
+                        updatedAction.showImageOverlay = false;
+                    }
+                    return updatedAction;
+                }
+                return action;
+            })
+        }))
+    };
+    updateAndBroadcast(updatedGame);
+  };
+  
+  const handleToggleDescriptionVisibility = (objectId: string) => {
+      setVisibleDescriptionIds(prev => {
+          const newSet = new Set(prev);
+          if (newSet.has(objectId)) {
+              newSet.delete(objectId);
+          } else {
+              newSet.add(objectId);
+          }
+          return newSet;
+      });
+  };
+
+  const handleToggleRoomSolved = (roomId: string, newState: boolean) => {
+    if (!game) return;
+    const updatedGame = {
+        ...game,
+        rooms: game.rooms.map(r => (r.id === roomId ? { ...r, isSolved: newState } : r))
+    };
+    updateAndBroadcast(updatedGame);
+  };
+
+  const handleRestartGame = async () => {
+    if (!game) return;
+
+    const resetGame: Game = {
+        ...game,
+        rooms: game.rooms.map(room => ({
+            ...room,
+            isSolved: false,
+            objects: room.objects.map(obj => ({
+                ...obj,
+                showInInventory: false,
+                wasEverInInventory: false,
+                showImageOverlay: false,
+                addedToInventoryTimestamp: undefined,
+                isPresenterHidden: undefined,
+            })),
+            puzzles: room.puzzles.map(p => ({
+                ...p,
+                isSolved: false,
+                showImageOverlay: false,
+            })),
+            actions: (room.actions || []).map(a => ({
+                ...a,
+                showImageOverlay: false,
+                isComplete: false,
+            })),
+        })),
+        visitedRoomIds: game.rooms.length > 0 ? [game.rooms[0].id] : [],
+    };
+    
+    setCustomItems([]); // Also clear custom items on reset
+    setCurrentRoomIndex(0);
+    postMessage({ type: 'GOTO_ROOM', roomIndex: 0 });
+    
+    await updateAndBroadcast(resetGame);
+    
+    setIsResetModalOpen(false);
+  };
+  
+  const handleOpenGameWindow = () => {
+    if (!id) return;
+    const screenWidth = window.screen.availWidth;
+    const screenHeight = window.screen.availHeight;
+    const aspectRatio = 16 / 9;
+
+    let width, height;
+
+    width = screenWidth / 2;
+    height = width / aspectRatio;
+
+    if (height > screenHeight / 2) {
+        height = screenHeight / 2;
+        width = height * aspectRatio;
+    }
+
+    width = Math.floor(width);
+    height = Math.floor(height);
+
+    const left = Math.floor((window.screen.availWidth - width) / 2);
+    const top = Math.floor((window.screen.availHeight - height) / 2);
+
+    const features = `width=${width},height=${height},left=${left},top=${top},location=no,menubar=no,toolbar=no,status=no`;
+    
+    const gameUrl = `/game/present/${id}`;
+    
+    const win = window.open(gameUrl, 'Game', features);
+    setPresentationWindow(win);
+  };
+
+  const handleCloseGameWindow = () => {
+    if (presentationWindow) {
+        presentationWindow.close();
+    }
+  };
+
+  const roomsByAct = useMemo(() => {
+    if (!game) return {};
+    return game.rooms.reduce((acc, room, index) => {
+        const act = room.act || 1;
+        if (!acc[act]) {
+            acc[act] = [];
+        }
+        acc[act].push({ ...room, originalIndex: index });
+        return acc;
+    }, {} as Record<number, (RoomType & { originalIndex: number })[]>);
+  }, [game]);
+
+  const availableActs = useMemo(() => {
+    if (!game) return [1];
+    const acts = new Set(game.rooms.map(r => r.act || 1));
+    return Array.from(acts).sort((a, b) => a - b);
+  }, [game]);
+
+  useEffect(() => {
+    if (game?.rooms[currentRoomIndex]) {
+      const currentAct = game.rooms[currentRoomIndex].act || 1;
+      if (availableActs.includes(currentAct)) {
+        setSelectedAct(currentAct);
+      }
+    }
+  }, [currentRoomIndex, game, availableActs]);
+
+  const currentActIndex = availableActs.indexOf(selectedAct);
+
+  const prevActNumber = availableActs[currentActIndex - 1];
+  const isPrevActLocked = lockingPuzzlesByActNumber.has(prevActNumber);
+  const prevActLockingPuzzleName = lockingPuzzlesByActNumber.get(prevActNumber);
+  const canGoToPrevAct = currentActIndex > 0 && !isPrevActLocked;
+  
+  const nextActNumber = availableActs[currentActIndex + 1];
+  const isNextActLocked = lockingPuzzlesByActNumber.has(nextActNumber);
+  const nextActLockingPuzzleName = lockingPuzzlesByActNumber.get(nextActNumber);
+  const canGoToNextAct = currentActIndex < availableActs.length - 1 && !isNextActLocked;
+
+  const handlePrevAct = () => {
+    if (canGoToPrevAct) {
+      const newAct = availableActs[currentActIndex - 1];
+      setSelectedAct(newAct);
+      const roomsForNewAct = roomsByAct[newAct];
+      if (roomsForNewAct && roomsForNewAct.length > 0) {
+        goToRoom(roomsForNewAct[0].originalIndex);
+      }
+    }
+  };
+
+  const handleNextAct = () => {
+    if (canGoToNextAct) {
+      const newAct = availableActs[currentActIndex + 1];
+      setSelectedAct(newAct);
+      const roomsForNewAct = roomsByAct[newAct];
+      if (roomsForNewAct && roomsForNewAct.length > 0) {
+        goToRoom(roomsForNewAct[0].originalIndex);
+      }
+    }
+  };
+  
+  // --- Soundtrack Handlers ---
+  const handleSoundtrackPlayPause = () => {
+    if (!soundtrack) return;
+    setSoundtrack({ ...soundtrack, isPlaying: !soundtrack.isPlaying });
+  };
+
+  const handleTrackChange = useCallback((direction: 'next' | 'prev') => {
+      if (!soundtrack || soundtrack.elements.length < 2) return;
+      const { elements, trackOrder, currentTrackIndex, isPlaying, volume } = soundtrack;
+  
+      const currentPosition = trackOrder.indexOf(currentTrackIndex);
+      const newPosition = direction === 'next'
+          ? (currentPosition + 1) % trackOrder.length
+          : (currentPosition - 1 + trackOrder.length) % trackOrder.length;
+      const newTrackIndex = trackOrder[newPosition];
+      
+      const currentAudio = elements[currentTrackIndex];
+
+      // If not playing, just switch the track index. No fade needed.
+      if (!isPlaying) {
+          currentAudio.currentTime = 0;
+          setSoundtrack(prev => prev ? { ...prev, currentTrackIndex: newTrackIndex } : null);
+          return;
+      }
+      
+      // If playing, fade out the current track and then play the next one.
+      const nextAudio = elements[newTrackIndex];
+  
+      if (fadeIntervalRef.current) {
+        clearInterval(fadeIntervalRef.current);
+      }
+      setIsFadingOut(true);
+  
+      const fadeDuration = 1000; // 1 second fade
+      const steps = 20;
+      const interval = fadeDuration / steps;
+      // Handle case where volume is already 0 to avoid division by zero
+      const volumeStep = currentAudio.volume > 0 ? currentAudio.volume / steps : 0;
+  
+      fadeIntervalRef.current = setInterval(() => {
+          if (currentAudio.volume > volumeStep) {
+              currentAudio.volume -= volumeStep;
+          } else {
+              clearInterval(fadeIntervalRef.current!);
+              fadeIntervalRef.current = null;
+              
+              currentAudio.pause();
+              currentAudio.currentTime = 0;
+              currentAudio.volume = volume; // Reset volume for next time
+  
+              if (nextAudio) {
+                  nextAudio.currentTime = 0;
+                  nextAudio.volume = volume;
+                  nextAudio.play().catch(e => console.error("Playback failed:", e));
+              }
+  
+              setIsFadingOut(false);
+              setSoundtrack(prev => prev ? { ...prev, currentTrackIndex: newTrackIndex } : null);
+          }
+      }, interval);
+  }, [soundtrack]);
+
+  const handleSoundtrackNext = useCallback(() => handleTrackChange('next'), [handleTrackChange]);
+  
+  const handleSoundtrackPrev = useCallback(() => handleTrackChange('prev'), [handleTrackChange]);
+
+  const handleSoundtrackRewind = () => {
+    if (!soundtrack) return;
+    const currentAudio = soundtrack.elements[soundtrack.currentTrackIndex];
+    if (currentAudio) {
+        currentAudio.currentTime = 0;
+    }
+  };
+
+  const handleSoundtrackSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!soundtrack) return;
+    const newTime = Number(e.target.value);
+    const currentAudio = soundtrack.elements[soundtrack.currentTrackIndex];
+    if (currentAudio) {
+        currentAudio.currentTime = newTime;
+        setProgress(newTime);
+    }
+  };
+  
+  const handleSoundtrackVolumeChange = (newVolume: number) => {
+    if (!soundtrack) return;
+    soundtrack.elements.forEach(el => el.volume = newVolume);
+    setSoundtrack({ ...soundtrack, volume: newVolume });
+  };
+
+  const handleSoundtrackFadeOut = () => {
+    if (!soundtrack || isFadingOut || !soundtrack.isPlaying) return;
+
+    if (fadeIntervalRef.current) {
+        clearInterval(fadeIntervalRef.current);
+    }
+
+    setIsFadingOut(true);
+    const currentAudio = soundtrack.elements[soundtrack.currentTrackIndex];
+    const fadeDuration = 1500; // 1.5 seconds
+    const steps = 30;
+    const interval = fadeDuration / steps;
+    const initialVolume = currentAudio.volume;
+    const volumeStep = initialVolume / steps;
+
+    fadeIntervalRef.current = setInterval(() => {
+        if (currentAudio.volume > volumeStep) {
+            currentAudio.volume -= volumeStep;
+        } else {
+            currentAudio.volume = 0;
+            currentAudio.pause();
+            setSoundtrack(prev => (prev ? { ...prev, isPlaying: false } : null));
+
+            currentAudio.volume = soundtrack.volume; // Reset volume for next playback
+
+            clearInterval(fadeIntervalRef.current!);
+            fadeIntervalRef.current = null;
+            setIsFadingOut(false);
+        }
+    }, interval);
+  };
+
+  const handlePlaySoundboardClip = (clipId: string) => {
+    setSoundboardClips(prevClips => {
+        const newMap = new Map(prevClips);
+        const clip = newMap.get(clipId);
+        
+        if (!clip) return prevClips;
+
+        if (clip.isPlaying) {
+            clip.audio.pause();
+            clip.audio.currentTime = 0;
+            newMap.set(clipId, { ...clip, isPlaying: false });
+        } else {
+            clip.audio.currentTime = 0;
+            clip.audio.play().catch(e => console.error("Soundboard clip play failed:", e));
+            newMap.set(clipId, { ...clip, isPlaying: true });
+        }
+
+        return newMap;
+    });
+  };
 
   if (status === 'loading') {
-    return (
-      <div className="w-screen h-screen bg-black flex items-center justify-center text-white">
-        Loading Presentation...
-      </div>
-    );
+    return <div className="h-screen bg-slate-800 text-white flex items-center justify-center">Loading Presenter View...</div>;
   }
-
-  if (status === 'error' || !game || !currentRoom) {
-     return (
-       <div className="w-screen h-screen bg-black flex items-center justify-center text-white">
-         Could not load presentation. It may be private or does not exist.
-       </div>
-     );
+  
+  if (status === 'error' || !game) {
+    return <div className="h-screen bg-slate-800 text-white flex items-center justify-center">Error: Could not load game. It may be private or does not exist.</div>;
   }
+  
+  const currentRoom = game.rooms[currentRoomIndex];
+  const hasSolvedState = currentRoom?.solvedImage || (currentRoom?.solvedNotes && currentRoom.solvedNotes.trim() !== '');
+  
+  const roomObjects = (currentRoom?.objects || []).filter(o => 
+    !o.showInInventory && 
+    !o.wasEverInInventory &&
+    !lockingPuzzlesByObjectId.has(o.id)
+  );
+  
+  const openActions = (currentRoom?.actions || []).filter(action => 
+    !action.isComplete && 
+    !lockingPuzzlesByActionId.has(action.id)
+  );
+  const completedActions = (currentRoom?.actions || []).filter(action => action.isComplete);
+  
+  // Puzzles from the current room
+  const currentRoomPuzzles = currentRoom?.puzzles || [];
 
-  // The main UI for this component is missing from the provided file content.
-  // Returning null to satisfy the component's type contract and fix the compilation error.
-  return null;
+  // Unlocked global puzzles from other rooms
+  const unlockedGlobalPuzzles = game.rooms
+      .filter(room => room.id !== currentRoom.id)
+      .flatMap(room => room.puzzles)
+      .filter(puzzle => 
+          puzzle.isGlobal &&
+          !lockingPuzzlesByPuzzleId.has(puzzle.id)
+      );
+
+  // Combine and deduplicate
+  const combinedPuzzlesMap = new Map<string, Puzzle>();
+  currentRoomPuzzles.forEach(p => combinedPuzzlesMap.set(p.id, p));
+  unlockedGlobalPuzzles.forEach(p => combinedPuzzlesMap.set(p.id, p));
+  const visiblePuzzles = Array.from(combinedPuzzlesMap.values());
+
+  // Now filter into open and complete
+  const openPuzzles = visiblePuzzles.filter(puzzle => 
+    !puzzle.isSolved && 
+    !lockingPuzzlesByPuzzleId.has(puzzle.id)
+  );
+
+  const completedPuzzles = visiblePuzzles.filter(puzzle => puzzle.isSolved);
+
+  const roomsForSelectedAct = roomsByAct[selectedAct] || [];
+  const roomSolveIsLocked = lockingPuzzlesByRoomSolveId.has(currentRoom.id);
+  const roomSolveLockingPuzzleName = lockingPuzzlesByRoomSolveId.get(currentRoom.id);
+
+  const inventoryList1 = combinedInventoryObjects.filter(obj => (obj.inventorySlot || 1) === 1);
+  const inventoryList2 = combinedInventoryObjects.filter(obj => obj.inventorySlot === 2);
+  
+  const hasAudio = !!soundtrack || (game?.soundboard && game.soundboard.length > 0);
+  const showObjectsSection = !game.hideAvailableObjects && roomObjects.length > 0;
+  const showRightColumn = hasAudio || showObjectsSection;
+
+  return (
+    <div className="h-screen bg-slate-800 text-white flex flex-col">
+      {isResetModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+          <div className="bg-slate-800 p-8 rounded-lg shadow-2xl w-full max-w-md border border-slate-700">
+              <h2 className="text-xl font-bold mb-4">Reset Game?</h2>
+              <p className="text-slate-400 mb-6">This will reset all puzzles and inventory to their starting state. This action cannot be undone.</p>
+              <div className="mt-6 flex justify-end gap-4">
+                  <button type="button" onClick={() => setIsResetModalOpen(false)} className="px-4 py-2 bg-slate-600 text-slate-200 rounded-lg hover:bg-slate-500 transition-colors">Cancel</button>
+                  <button type="button" onClick={handleRestartGame} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">Reset</button>
+              </div>
+          </div>
+        </div>
+      )}
+      {objectRemoveModalText && (
+          <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+              <div className="bg-slate-800 p-8 rounded-lg shadow-2xl w-full max-w-md border border-slate-700 text-center">
+                  <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-sky-600 mb-4">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                  </div>
+                  <h2 className="text-2xl font-bold mb-4 text-sky-400">Object(s) Removed</h2>
+                  <blockquote className="mb-6 p-4 bg-slate-700/50 border-l-4 border-slate-600 text-slate-300 italic text-left whitespace-pre-wrap">
+                      {objectRemoveModalText}
+                  </blockquote>
+                  <button 
+                      type="button" 
+                      onClick={() => setObjectRemoveModalText(null)} 
+                      className="px-6 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors"
+                  >
+                      Continue
+                  </button>
+              </div>
+          </div>
+      )}
+      {puzzleToSolve && (
+          <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+              <div className="bg-slate-800 p-8 rounded-lg shadow-2xl w-full max-w-md border border-slate-700">
+                  <h2 className="text-xl font-bold mb-4 text-amber-400">Solving: {puzzleToSolve.name}</h2>
+                   {puzzleToSolve.unsolvedText && (
+                      <blockquote className="mb-6 p-4 bg-slate-700/50 border-l-4 border-slate-600 text-slate-300 italic">
+                          <MarkdownRenderer content={puzzleToSolve.unsolvedText} />
+                      </blockquote>
+                  )}
+                  <p className="text-slate-400 mb-6">Enter the answer provided by the players.</p>
+                  <form onSubmit={handleSubmitAnswer}>
+                      <input
+                          type="text"
+                          value={submittedAnswer}
+                          onChange={e => {
+                              setSubmittedAnswer(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''));
+                              if (solveError) setSolveError(null);
+                          }}
+                          className="w-full px-4 py-2 font-mono tracking-widest text-lg border border-slate-600 rounded-lg bg-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+                          autoFocus
+                      />
+                      {solveError && (
+                          <p className="text-red-400 text-sm mt-2">{solveError}</p>
+                      )}
+                      <div className="mt-6 flex justify-end gap-4">
+                          <button type="button" onClick={() => setPuzzleToSolve(null)} className="px-4 py-2 bg-slate-600 text-slate-200 rounded-lg hover:bg-slate-500 transition-colors">Cancel</button>
+                          <button type="submit" className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors">Submit</button>
+                      </div>
+                  </form>
+              </div>
+          </div>
+      )}
+      {solvedPuzzleInfo && (
+          <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+              <div className="bg-slate-800 p-8 rounded-lg shadow-2xl w-full max-w-md border border-slate-700 text-center">
+                  <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-600 mb-4">
+                      <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                      </svg>
+                  </div>
+                  <h2 className="text-2xl font-bold mb-4 text-green-400">
+                    {solvedPuzzleInfo.answer ? 'Correct!' : 'Complete'}
+                  </h2>
+                  {solvedPuzzleInfo.solvedText && (
+                      <blockquote className="mb-6 p-4 bg-slate-700/50 border-l-4 border-slate-600 text-slate-300 italic text-left">
+                          <MarkdownRenderer content={solvedPuzzleInfo.solvedText} />
+                      </blockquote>
+                  )}
+                  <button 
+                      type="button" 
+                      onClick={handleCloseSolvedModal} 
+                      className="px-6 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors"
+                  >
+                      Close
+                  </button>
+              </div>
+          </div>
+      )}
+
+      <header className="flex-shrink-0 bg-slate-900 shadow-md p-2 flex justify-between items-center z-10">
+        <div className="flex items-center gap-4">
+          <button onClick={() => setIsResetModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-slate-600 text-slate-200 rounded-lg hover:bg-slate-500 transition-colors">
+            <Icon as="restart" className="w-5 h-5" /> Reset
+          </button>
+          <h1 className="text-xl font-bold text-brand-400 p-2">{game.title}</h1>
+        </div>
+        <div className="flex items-center gap-2">
+          {isPresentationWindowOpen ? (
+            <button onClick={handleCloseGameWindow} className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-300 shadow">
+              <Icon as="close" className="w-5 h-5" /> Close Window
+            </button>
+          ) : (
+            <button onClick={handleOpenGameWindow} className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors duration-300 shadow">
+              <Icon as="present" className="w-5 h-5" /> Open Window
+            </button>
+          )}
+        </div>
+      </header>
+
+      <main className="flex flex-1 overflow-hidden">
+        {/* Left Column */}
+        <div className="w-80 bg-slate-900/50 p-4 flex flex-col border-r border-slate-700">
+            <div className="flex-shrink-0 mb-4">
+                <div className="flex rounded-lg bg-slate-700/50 p-1">
+                    <button onClick={() => { setActiveTab('rooms'); setShowInventoryNotification(false); }} className={`relative flex-1 text-center text-sm px-3 py-1.5 rounded-md transition-colors ${activeTab === 'rooms' ? 'bg-slate-600 shadow-sm font-semibold' : 'text-slate-300 hover:bg-slate-600/50'}`}>Rooms</button>
+                    <button onClick={() => { setActiveTab('inventory'); setShowInventoryNotification(false); }} className={`relative flex-1 text-center text-sm px-3 py-1.5 rounded-md transition-colors ${activeTab === 'inventory' ? 'bg-slate-600 shadow-sm font-semibold' : 'text-slate-300 hover:bg-slate-600/50'}`}>
+                        Inventory
+                        {showInventoryNotification && <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-brand-400 ring-2 ring-slate-800" />}
+                    </button>
+                    <button onClick={() => { setActiveTab('discarded'); setShowInventoryNotification(false); }} className={`relative flex-1 text-center text-sm px-3 py-1.5 rounded-md transition-colors ${activeTab === 'discarded' ? 'bg-slate-600 shadow-sm font-semibold' : 'text-slate-300 hover:bg-slate-600/50'}`}>Discarded</button>
+                </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto pr-2 -mr-2">
+                {activeTab === 'rooms' && (
+                    <div className="space-y-2">
+                        <div className="flex justify-between items-center mb-2">
+                            <button onClick={handlePrevAct} disabled={!canGoToPrevAct} className="p-2 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-700 rounded-full" title={isPrevActLocked ? `Locked by: ${prevActLockingPuzzleName}` : `Go to previous act`}>
+                                <Icon as="prev" className="w-5 h-5" />
+                            </button>
+                            <h2 className="text-lg font-semibold text-slate-300">Act {selectedAct}</h2>
+                            <button onClick={handleNextAct} disabled={!canGoToNextAct} className="p-2 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-700 rounded-full" title={isNextActLocked ? `Locked by: ${nextActLockingPuzzleName}` : `Go to next act`}>
+                                <Icon as="next" className="w-5 h-5" />
+                            </button>
+                        </div>
+                        {roomsForSelectedAct.map(room => {
+                            const isLocked = lockingPuzzlesByRoomId.has(room.id);
+                            return (
+                                <button
+                                    key={room.id}
+                                    onClick={() => !isLocked && goToRoom(room.originalIndex)}
+                                    disabled={isLocked}
+                                    className={`w-full text-left p-2 rounded-lg transition-colors flex items-center gap-2 ${room.originalIndex === currentRoomIndex ? 'bg-brand-900/50' : 'hover:bg-slate-700'} ${isLocked ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                                    title={isLocked ? `Locked by: ${lockingPuzzlesByRoomId.get(room.id)}` : room.name}
+                                >
+                                    {isLocked && <Icon as="lock" className="w-4 h-4 text-red-400 flex-shrink-0" />}
+                                    <span className="truncate">{room.name}</span>
+                                </button>
+                            )
+                        })}
+                    </div>
+                )}
+                {activeTab === 'inventory' && (
+                    <div className="space-y-4">
+                        <div className="flex justify-between items-center">
+                            <h2 className="text-lg font-semibold text-slate-300">Inventory</h2>
+                             <button onClick={handleToggleAllInventoryDescriptions} className="flex items-center gap-2 px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 rounded-md">
+                                <Icon as={areAllDescriptionsVisible ? "description-slash" : "description"} className="w-4 h-4"/>
+                                {areAllDescriptionsVisible ? "Hide All" : "Show All"}
+                            </button>
+                        </div>
+
+                        {game.inventoryLayout === 'dual' ? (
+                            <div className="space-y-4">
+                                <div>
+                                    <div className="flex justify-between items-center mb-2">
+                                        <h3 className="font-semibold text-slate-400">{game.inventory1Title || 'Inventory 1'}</h3>
+                                        <button onClick={() => handleAddCustomItem(1)} className="p-1 hover:bg-slate-700 rounded-full text-slate-400" title="Add custom item"><Icon as="plus" className="w-4 h-4"/></button>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {inventoryList1.length > 0 ? inventoryList1.map(obj => (
+                                            <ObjectItem key={obj.id} obj={obj} onToggle={obj.id.startsWith('custom-') ? handleToggleCustomItem : handleToggleObject} showVisibilityToggle onToggleDescription={handleToggleDescriptionVisibility} isDescriptionVisible={visibleDescriptionIds.has(obj.id)} onToggleImage={handleToggleObjectImage} />
+                                        )) : <p className="col-span-2 text-sm text-slate-500 italic">Empty</p>}
+                                    </div>
+                                </div>
+                                 <div>
+                                    <div className="flex justify-between items-center mb-2">
+                                        <h3 className="font-semibold text-slate-400">{game.inventory2Title || 'Inventory 2'}</h3>
+                                        <button onClick={() => handleAddCustomItem(2)} className="p-1 hover:bg-slate-700 rounded-full text-slate-400" title="Add custom item"><Icon as="plus" className="w-4 h-4"/></button>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {inventoryList2.length > 0 ? inventoryList2.map(obj => (
+                                            <ObjectItem key={obj.id} obj={obj} onToggle={obj.id.startsWith('custom-') ? handleToggleCustomItem : handleToggleObject} showVisibilityToggle onToggleDescription={handleToggleDescriptionVisibility} isDescriptionVisible={visibleDescriptionIds.has(obj.id)} onToggleImage={handleToggleObjectImage} />
+                                        )) : <p className="col-span-2 text-sm text-slate-500 italic">Empty</p>}
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-2 gap-2">
+                                 <button onClick={() => handleAddCustomItem(1)} className="col-span-2 w-full flex items-center justify-center gap-2 px-4 py-2 bg-slate-700/50 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors text-sm">Add Custom Item</button>
+                                {combinedInventoryObjects.length > 0 ? combinedInventoryObjects.map(obj => (
+                                    <ObjectItem key={obj.id} obj={obj} onToggle={obj.id.startsWith('custom-') ? handleToggleCustomItem : handleToggleObject} showVisibilityToggle onToggleDescription={handleToggleDescriptionVisibility} isDescriptionVisible={visibleDescriptionIds.has(obj.id)} onToggleImage={handleToggleObjectImage} />
+                                )) : <p className="col-span-2 text-sm text-slate-500 italic text-center pt-4">Inventory is empty</p>}
+                            </div>
+                        )}
+                    </div>
+                )}
+                 {activeTab === 'discarded' && (
+                    <div className="space-y-4">
+                        <h2 className="text-lg font-semibold text-slate-300">Discarded Items</h2>
+                         <div className="grid grid-cols-2 gap-2">
+                            {combinedDiscardedObjects.length > 0 ? combinedDiscardedObjects.map(obj => (
+                               <ObjectItem key={obj.id} obj={{...obj, showInInventory: false}} onToggle={obj.id.startsWith('custom-') ? handleToggleCustomItem : handleToggleObject} lockingPuzzleName={lockingPuzzlesByObjectId.get(obj.id)} />
+                            )) : <p className="col-span-2 text-sm text-slate-500 italic text-center pt-4">No items have been discarded</p>}
+                         </div>
+                    </div>
+                )}
+            </div>
+        </div>
+
+        {/* Center Column */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex-shrink-0 p-4 border-b border-slate-700">
+                <div className="flex justify-between items-start">
+                    <h2 className="text-2xl font-bold">{currentRoom.name}</h2>
+                    {hasSolvedState && (
+                        <label className={`flex items-center gap-2 text-sm ${currentRoom.isSolved ? 'text-green-400' : 'text-slate-400'} ${roomSolveIsLocked ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`} title={roomSolveIsLocked ? `Locked by: ${roomSolveLockingPuzzleName}` : "Toggle solved state"}>
+                            <span>Solved</span>
+                            <input
+                                type="checkbox"
+                                checked={currentRoom.isSolved}
+                                onChange={e => handleToggleRoomSolved(currentRoom.id, e.target.checked)}
+                                className="sr-only peer"
+                                disabled={roomSolveIsLocked}
+                            />
+                            <div className="relative w-11 h-6 bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                        </label>
+                    )}
+                </div>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-6">
+                <div className="bg-slate-900/50 border border-slate-700 p-4 rounded-lg">
+                  <h3 className="font-semibold text-slate-300 mb-2">Room Description</h3>
+                  <div className="text-slate-300 prose prose-invert max-w-none prose-p:my-2 prose-strong:text-slate-200">
+                    <MarkdownRenderer content={currentRoom.isSolved && currentRoom.solvedNotes ? currentRoom.solvedNotes : currentRoom.notes} />
+                  </div>
+                </div>
+
+                {(openActions.length > 0 || completedActions.length > 0) && (
+                    <div className="space-y-4">
+                        <div className="flex justify-between items-center">
+                            <h3 className="text-xl font-bold">Player Actions</h3>
+                            <div className="flex rounded-lg bg-slate-700/50 p-1 text-sm">
+                                <button onClick={() => setActiveActionTab('open')} className={`px-3 py-1 rounded-md ${activeActionTab === 'open' ? 'bg-slate-600' : ''}`}>Open ({openActions.length})</button>
+                                <button onClick={() => setActiveActionTab('complete')} className={`px-3 py-1 rounded-md ${activeActionTab === 'complete' ? 'bg-slate-600' : ''}`}>Complete ({completedActions.length})</button>
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            {activeActionTab === 'open' && (openActions.length > 0 ? openActions.map(action => (
+                                <ActionItem key={action.id} action={action} onToggleImage={handleToggleActionImage} onToggleComplete={handleToggleActionComplete} isLocked={lockingPuzzlesByActionId.has(action.id)} lockingPuzzleName={lockingPuzzlesByActionId.get(action.id)} />
+                            )) : <p className="text-slate-500 italic">No open actions.</p>)}
+                            {activeActionTab === 'complete' && (completedActions.length > 0 ? completedActions.map(action => (
+                                <ActionItem key={action.id} action={action} onToggleImage={handleToggleActionImage} onToggleComplete={handleToggleActionComplete} />
+                            )) : <p className="text-slate-500 italic">No completed actions.</p>)}
+                        </div>
+                    </div>
+                )}
+
+                {(openPuzzles.length > 0 || completedPuzzles.length > 0) && (
+                    <div className="space-y-4">
+                        <div className="flex justify-between items-center">
+                            <h3 className="text-xl font-bold">Puzzles</h3>
+                            <div className="flex rounded-lg bg-slate-700/50 p-1 text-sm">
+                                <button onClick={() => setActivePuzzleTab('open')} className={`px-3 py-1 rounded-md ${activePuzzleTab === 'open' ? 'bg-slate-600' : ''}`}>Open ({openPuzzles.length})</button>
+                                <button onClick={() => setActivePuzzleTab('complete')} className={`px-3 py-1 rounded-md ${activePuzzleTab === 'complete' ? 'bg-slate-600' : ''}`}>Complete ({completedPuzzles.length})</button>
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            {activePuzzleTab === 'open' && (openPuzzles.length > 0 ? openPuzzles.map(puzzle => (
+                                <PuzzleItem key={puzzle.id} puzzle={puzzle} onToggle={handleTogglePuzzle} onToggleImage={handleTogglePuzzleImage} onAttemptSolve={handleAttemptSolve} isLocked={lockingPuzzlesByPuzzleId.has(puzzle.id)} lockingPuzzleName={lockingPuzzlesByPuzzleId.get(puzzle.id)} />
+                            )) : <p className="text-slate-500 italic">No open puzzles.</p>)}
+                            {activePuzzleTab === 'complete' && (completedPuzzles.length > 0 ? completedPuzzles.map(puzzle => (
+                                <PuzzleItem key={puzzle.id} puzzle={puzzle} onToggle={handleTogglePuzzle} onToggleImage={handleTogglePuzzleImage} onAttemptSolve={handleAttemptSolve} />
+                            )) : <p className="text-slate-500 italic">No completed puzzles.</p>)}
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+        
+        {/* Right Column */}
+        {showRightColumn && (
+          <div className="w-96 bg-slate-900/50 p-4 flex flex-col border-l border-slate-700 overflow-y-auto">
+            <div className="space-y-6">
+              {showObjectsSection && (
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-300 mb-2">Available to Pick Up</h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    {roomObjects.map(obj => (
+                        <ObjectItem key={obj.id} obj={obj} onToggle={handleToggleObject} lockingPuzzleName={lockingPuzzlesByObjectId.get(obj.id)} onToggleInRoomImage={handleToggleInRoomImage} variant="mini" />
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {game.soundboard && game.soundboard.length > 0 && (
+                 <div>
+                    <h3 className="text-lg font-semibold text-slate-300 mb-2">Sound Board</h3>
+                    <div className="grid grid-cols-3 gap-2">
+                        {game.soundboard.map(clip => {
+                            const clipState = soundboardClips.get(clip.id);
+                            return (
+                                <button
+                                    key={clip.id}
+                                    onClick={() => handlePlaySoundboardClip(clip.id)}
+                                    className={`p-2 rounded-md text-center text-xs transition-colors ${clipState?.isPlaying ? 'bg-brand-600 text-white animate-pulse' : 'bg-slate-700 hover:bg-slate-600'}`}
+                                >
+                                    {clip.name}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+              )}
+
+              {soundtrack && (
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-300 mb-2">Soundtrack</h3>
+                  <div className="p-3 bg-slate-800 rounded-lg space-y-3">
+                    <p className="font-semibold text-center truncate">{game.soundtrack?.[soundtrack.currentTrackIndex]?.name || 'Unknown Track'}</p>
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs text-slate-400 font-mono">{formatTime(progress)}</span>
+                        <input type="range" min="0" max={duration || 0} value={progress} onChange={handleSoundtrackSeek} className="w-full h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-brand-500 [&::-webkit-slider-thumb]:rounded-full" />
+                        <span className="text-xs text-slate-400 font-mono">{formatTime(duration)}</span>
+                    </div>
+                    <div className="flex justify-center items-center gap-2">
+                        <button onClick={handleSoundtrackPrev} className="p-2 hover:bg-slate-700 rounded-full disabled:opacity-50" disabled={isFadingOut}><Icon as="prev" className="w-5 h-5" /></button>
+                        <button onClick={handleSoundtrackRewind} className="p-2 hover:bg-slate-700 rounded-full disabled:opacity-50" disabled={isFadingOut}><Icon as="rewind" className="w-5 h-5" /></button>
+                        <button onClick={handleSoundtrackPlayPause} className="p-3 bg-brand-600 text-white rounded-full hover:bg-brand-700 disabled:opacity-50" disabled={isFadingOut}>{soundtrack.isPlaying ? <Icon as="stop" className="w-5 h-5" /> : <Icon as="play" className="w-5 h-5" />}</button>
+                        <button onClick={handleSoundtrackFadeOut} disabled={isFadingOut || !soundtrack.isPlaying} className="p-2 hover:bg-slate-700 rounded-full disabled:opacity-50">Fade</button>
+                        <button onClick={handleSoundtrackNext} className="p-2 hover:bg-slate-700 rounded-full disabled:opacity-50" disabled={isFadingOut}><Icon as="next" className="w-5 h-5" /></button>
+                    </div>
+                     <div className="flex items-center gap-2">
+                        <Icon as="audio" className="w-4 h-4 text-slate-400" />
+                        <input type="range" min="0" max="1" step="0.05" value={soundtrack.volume} onChange={(e) => handleSoundtrackVolumeChange(parseFloat(e.target.value))} className="w-full h-1 bg-slate-600 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-slate-400 [&::-webkit-slider-thumb]:rounded-full" />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </main>
+    </div>
+  );
 };
-
+ 
 export default PresenterView;
