@@ -548,7 +548,7 @@ const Editor: React.FC = () => {
   };
 
   const addObject = () => {
-    const newObject: InventoryObject = { id: generateUUID(), name: '', description: '', showInInventory: false, image: null, inRoomImage: null, showInRoomImage: true, showImageOverlay: false, nameColor: null, inventorySlot: 1, x: 0.5, y: 0.5, size: 0.25, isPickupable: true };
+    const newObject: InventoryObject = { id: generateUUID(), name: '', description: '', showInInventory: false, image: null, inRoomImage: null, showInRoomImage: true, showImageOverlay: false, nameColor: null, inventorySlot: 1, x: 0.5, y: 0.5, size: 0.25, isPickupable: true, inRoomImageFade: false };
     const newObjects = [...editingRoomObjects, newObject];
     setEditingRoomObjects(newObjects);
     
@@ -1657,16 +1657,29 @@ const Editor: React.FC = () => {
                           )}
                         </div>
                         {modalObjectData.inRoomImage && (
-                            <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">In Room Image Placement</label>
-                                <button
-                                    type="button"
-                                    onClick={handleOpenPlacementModal}
-                                    className="w-full px-3 py-2 text-sm bg-slate-100 dark:bg-slate-700/50 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600/50 transition-colors flex items-center justify-center gap-2"
-                                >
-                                    <Icon as="hand-expand" className="w-4 h-4" />
-                                    Object Placement
-                                </button>
+                            <div className="md:col-span-2 space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">In Room Image Placement</label>
+                                    <button
+                                        type="button"
+                                        onClick={handleOpenPlacementModal}
+                                        className="w-full px-3 py-2 text-sm bg-slate-100 dark:bg-slate-700/50 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600/50 transition-colors flex items-center justify-center gap-2"
+                                    >
+                                        <Icon as="hand-expand" className="w-4 h-4" />
+                                        Object Placement
+                                    </button>
+                                </div>
+                                <div>
+                                     <label className="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-300 cursor-pointer p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 -ml-2">
+                                        <input
+                                            type="checkbox"
+                                            className="w-4 h-4 rounded border-slate-400 text-brand-600 shadow-sm focus:ring-brand-500"
+                                            checked={modalObjectData.inRoomImageFade ?? false}
+                                            onChange={(e) => handleModalObjectChange('inRoomImageFade', e.target.checked)}
+                                        />
+                                        <span>Fade in/out when shown/hidden by presenter</span>
+                                    </label>
+                                </div>
                             </div>
                         )}
                     </div>

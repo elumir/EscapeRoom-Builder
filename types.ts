@@ -37,6 +37,7 @@ export interface InventoryObject {
   size?: number;
   isPickupable?: boolean;
   isPresenterHidden?: boolean;
+  inRoomImageFade?: boolean;
 }
 
 export interface Puzzle {

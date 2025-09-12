@@ -125,14 +125,19 @@ const Room: React.FC<RoomProps> = React.memo(({
         )}
         {inRoomObjects?.map((obj) => {
             if (!obj.inRoomImage) {
-              return null;
+                return null;
+            }
+            
+            const isVisible = obj.isPresenterHidden === undefined
+                ? (obj.showInRoomImage ?? true)
+                : !obj.isPresenterHidden;
+
+            // If fade is not enabled and the object is hidden, don't render it.
+            if (!obj.inRoomImageFade && !isVisible) {
+                return null;
             }
 
             const size = obj.size ?? 0.25;
-            
-            // This unified logic is now used for all contexts (editor, dashboard, presentation)
-            // to ensure consistent rendering. `size` is relative to the full slide width,
-            // so we adjust the percentage based on whether the image container is full-width or not.
             const widthPercentage = isFullScreenImage ? size * 100 : (size / 0.7) * 100;
 
             const finalStyle: React.CSSProperties = {
@@ -144,12 +149,16 @@ const Room: React.FC<RoomProps> = React.memo(({
                 width: `${widthPercentage}%`,
             };
 
+            const animationClasses = obj.inRoomImageFade
+                ? `transition-opacity duration-1000 ${isVisible ? 'opacity-100' : 'opacity-0'}`
+                : '';
+
             return (
                 <img
                     key={obj.id}
                     src={`${API_BASE_URL}/assets/${obj.inRoomImage}`}
                     alt={obj.name}
-                    className="absolute pointer-events-none"
+                    className={`absolute pointer-events-none ${animationClasses}`}
                     style={finalStyle}
                 />
             );
