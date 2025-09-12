@@ -89,9 +89,13 @@ const Settings: React.FC = () => {
             const newSoundtrack = [...(game.soundtrack || []), newTrack];
             updateGame({ ...game, soundtrack: newSoundtrack });
         } else if (assetModalTarget === 'soundboard') {
-            const newClip: SoundboardClip = { id: asset.id, name: asset.name };
-            const newSoundboard = [...(game.soundboard || []), newClip];
-            updateGame({ ...game, soundboard: newSoundboard });
+            if (game.soundboard?.some(clip => clip.id === assetId)) {
+                alert('This sound clip has already been added to the sound board.');
+            } else {
+                const newClip: SoundboardClip = { id: asset.id, name: asset.name };
+                const newSoundboard = [...(game.soundboard || []), newClip];
+                updateGame({ ...game, soundboard: newSoundboard });
+            }
         }
         
         setIsAssetModalOpen(false);
