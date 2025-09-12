@@ -9,6 +9,7 @@ import Accordion from '../components/Accordion';
 import { generateUUID } from '../utils/uuid';
 import AudioPreviewPlayer from '../components/AudioPreviewPlayer';
 import FontLoader from '../components/FontLoader';
+import * as texts from '../editor-text.json';
 
 type Status = 'loading' | 'success' | 'error';
 type SaveStatus = 'saved' | 'unsaved' | 'saving' | 'error';
@@ -365,10 +366,10 @@ const Editor: React.FC = () => {
 
   const deleteRoom = () => {
     if (!game || game.rooms.length <= 1) {
-      alert("You cannot delete the last room.");
+      alert(texts.editor.roomsList.cannotDeleteLast);
       return;
     };
-    if(window.confirm('Are you sure you want to delete this room?')){
+    if(window.confirm(texts.editor.roomsList.confirmDelete)){
         const newRooms = game.rooms.filter((_, i) => i !== selectedRoomIndex);
         const newIndex = Math.max(0, selectedRoomIndex - 1);
         updateLocalGame({ ...game, rooms: newRooms });
@@ -395,7 +396,7 @@ const Editor: React.FC = () => {
           setAssetLibrary(assets);
       } catch (error) {
           console.error(`${property} upload failed:`, error);
-          alert(`Failed to upload ${property}. Please try again.`);
+          alert(`${texts.editor.alerts.uploadFailed} ${property}. ${texts.editor.alerts.tryAgain}`);
       }
   };
   
@@ -429,7 +430,7 @@ const Editor: React.FC = () => {
 
   const handleDeleteAsset = async (assetId: string) => {
       if (!game || deletingAssetId) return;
-      if (!window.confirm('Are you sure you want to delete this asset? This cannot be undone and will remove the asset from all rooms, puzzles, actions, and the soundtrack.')) return;
+      if (!window.confirm(texts.editor.alerts.deleteAssetConfirm)) return;
 
       setDeletingAssetId(assetId);
       try {
@@ -514,7 +515,7 @@ const Editor: React.FC = () => {
                   }
               }
           } else {
-              alert('Failed to delete asset.');
+              alert(texts.editor.alerts.deleteAssetFailed);
           }
       } catch (error) {
           console.error("Failed to delete asset:", error);
@@ -548,7 +549,7 @@ const Editor: React.FC = () => {
             updateLocalGame({ ...game, soundtrack: newSoundtrack });
         }
     } else {
-        alert('Failed to update asset name.');
+        alert(texts.editor.alerts.updateAssetNameFailed);
     }
     setEditingAssetName(null);
   };
@@ -631,7 +632,7 @@ const Editor: React.FC = () => {
           setAssetLibrary(assets);
       } catch (error) {
           console.error(`Action ${field} upload failed:`, error);
-          alert(`Failed to upload action ${field}. Please try again.`);
+          alert(`${texts.editor.alerts.uploadFailed} action ${field}. ${texts.editor.alerts.tryAgain}`);
       }
   };
 
@@ -686,7 +687,7 @@ const Editor: React.FC = () => {
         setAssetLibrary(assets);
     } catch (error) {
         console.error(`Puzzle ${field} upload failed:`, error);
-        alert(`Failed to upload puzzle ${field}. Please try again.`);
+        alert(`${texts.editor.alerts.uploadFailed} puzzle ${field}. ${texts.editor.alerts.tryAgain}`);
     }
   };
 
@@ -724,7 +725,7 @@ const Editor: React.FC = () => {
           setAssetLibrary(assets);
       } catch (error) {
           console.error(`Object image upload failed:`, error);
-          alert(`Failed to upload object image. Please try again.`);
+          alert(`${texts.editor.alerts.uploadFailed} object image. ${texts.editor.alerts.tryAgain}`);
       }
   };
 
@@ -1209,35 +1210,35 @@ const Editor: React.FC = () => {
                 return (
                     <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
                         <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div>
-                        <span>Saving...</span>
+                        <span>{texts.editor.saveStatus.saving}</span>
                     </div>
                 );
             case 'saved':
                  return (
                     <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
                         <Icon as="check" className="w-4 h-4" />
-                        <span>All changes saved</span>
+                        <span>{texts.editor.saveStatus.saved}</span>
                     </div>
                 );
             case 'unsaved':
-                 return <span className="text-sm text-amber-500 dark:text-amber-400">Unsaved changes</span>;
+                 return <span className="text-sm text-amber-500 dark:text-amber-400">{texts.editor.saveStatus.unsaved}</span>;
             case 'error':
-                 return <span className="text-sm text-red-500 dark:text-red-400">Save failed</span>;
+                 return <span className="text-sm text-red-500 dark:text-red-400">{texts.editor.saveStatus.error}</span>;
             default:
                 return null;
         }
     };
 
   if (status === 'loading') {
-    return <div className="flex items-center justify-center h-screen">Loading game...</div>;
+    return <div className="flex items-center justify-center h-screen">{texts.editor.loading}</div>;
   }
   
   if (status === 'error') {
-     return <div className="flex items-center justify-center h-screen">Error: Game not found or you do not have permission to edit it.</div>;
+     return <div className="flex items-center justify-center h-screen">{texts.editor.error}</div>;
   }
 
   if (!game || !game.rooms[selectedRoomIndex]) {
-    return <div className="flex items-center justify-center h-screen">This game has no rooms.</div>;
+    return <div className="flex items-center justify-center h-screen">{texts.editor.noRooms}</div>;
   }
 
   const currentRoom = game.rooms[selectedRoomIndex];
@@ -1253,9 +1254,9 @@ const Editor: React.FC = () => {
        {isResetModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white dark:bg-slate-800 p-8 rounded-lg shadow-2xl w-full max-w-lg">
-                <h2 className="text-2xl font-bold mb-4 text-slate-800 dark:text-slate-200">Start Presentation</h2>
+                <h2 className="text-2xl font-bold mb-4 text-slate-800 dark:text-slate-200">{texts.modals.resetAndPresent.title}</h2>
                 <p className="text-slate-600 dark:text-slate-400 mb-6">
-                    Do you want to reset all puzzles, inventory, and visited rooms to their default state before starting?
+                    {texts.modals.resetAndPresent.description}
                 </p>
                 <div className="mt-6 flex justify-end gap-4">
                     <button 
@@ -1263,7 +1264,7 @@ const Editor: React.FC = () => {
                         onClick={() => setIsResetModalOpen(false)} 
                         className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
                     >
-                        Cancel
+                        {texts.modals.common.cancel}
                     </button>
                     <a 
                         href={`/game/presenter/${id}`} 
@@ -1272,14 +1273,14 @@ const Editor: React.FC = () => {
                         onClick={() => setIsResetModalOpen(false)}
                         className="px-4 py-2 text-center bg-slate-500 text-white rounded-lg hover:bg-slate-600 transition-colors"
                     >
-                        Present with Current State
+                        {texts.modals.resetAndPresent.presentCurrentStateButton}
                     </a>
                     <button 
                         type="button" 
                         onClick={handleResetAndPresent} 
                         className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors"
                     >
-                        Reset and Present
+                        {texts.modals.resetAndPresent.presentResetButton}
                     </button>
                 </div>
             </div>
@@ -1289,22 +1290,22 @@ const Editor: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60] backdrop-blur-sm">
             <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-2xl w-full max-w-3xl h-[80vh] flex flex-col">
                 <h2 className="text-xl font-bold mb-4 text-slate-800 dark:text-slate-200">
-                    {modalContent.type === 'notes' ? 'Edit Room Description' : 'Edit Solved Description'}
+                    {modalContent.type === 'notes' ? texts.modals.textEditor.editRoomDescription : texts.modals.textEditor.editSolvedDescription}
                 </h2>
                 <div className="flex items-center gap-1 border border-slate-300 dark:border-slate-600 rounded-t-lg bg-slate-50 dark:bg-slate-700/50 p-1">
-                    <button onClick={() => applyModalFormatting('bold')} title="Bold" className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded font-bold">B</button>
-                    <button onClick={() => applyModalFormatting('italic')} title="Italic" className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded italic">I</button>
+                    <button onClick={() => applyModalFormatting('bold')} title={texts.editor.formatting.bold} className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded font-bold">B</button>
+                    <button onClick={() => applyModalFormatting('italic')} title={texts.editor.formatting.italic} className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded italic">I</button>
                     <div className="h-5 w-px bg-slate-300 dark:bg-slate-600 mx-1"></div>
-                    <button onClick={() => applyModalFormatting('highlight', 'y')} title="Highlight Yellow" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
+                    <button onClick={() => applyModalFormatting('highlight', 'y')} title={texts.editor.formatting.highlightYellow} className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
                         <div className="w-4 h-4 rounded-sm bg-yellow-400 border border-yellow-500"></div>
                     </button>
-                    <button onClick={() => applyModalFormatting('highlight', 'c')} title="Highlight Cyan" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
+                    <button onClick={() => applyModalFormatting('highlight', 'c')} title={texts.editor.formatting.highlightCyan} className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
                         <div className="w-4 h-4 rounded-sm bg-cyan-400 border border-cyan-500"></div>
                     </button>
-                    <button onClick={() => applyModalFormatting('highlight', 'm')} title="Highlight Pink" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
+                    <button onClick={() => applyModalFormatting('highlight', 'm')} title={texts.editor.formatting.highlightPink} className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
                         <div className="w-4 h-4 rounded-sm bg-pink-400 border border-pink-500"></div>
                     </button>
-                    <button onClick={() => applyModalFormatting('highlight', 'l')} title="Highlight Lime" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
+                    <button onClick={() => applyModalFormatting('highlight', 'l')} title={texts.editor.formatting.highlightLime} className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
                         <div className="w-4 h-4 rounded-sm bg-lime-400 border border-lime-500"></div>
                     </button>
                 </div>
@@ -1316,7 +1317,7 @@ const Editor: React.FC = () => {
                     autoFocus
                 />
                 <div className="mt-4 flex justify-end gap-4">
-                    <button onClick={() => setModalContent(null)} className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">Cancel</button>
+                    <button onClick={() => setModalContent(null)} className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">{texts.modals.common.cancel}</button>
                     <button 
                         onClick={() => {
                             if (!modalContent) return;
@@ -1329,7 +1330,7 @@ const Editor: React.FC = () => {
                         }} 
                         className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors"
                     >
-                        Save & Close
+                        {texts.modals.textEditor.saveAndClose}
                     </button>
                 </div>
             </div>
@@ -1347,7 +1348,7 @@ const Editor: React.FC = () => {
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-2xl w-full max-w-4xl h-[80vh] flex flex-col">
                     <div className="flex justify-between items-center mb-4">
                         <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">
-                           {isAudioModal ? 'Audio Library' : 'Image Library'}
+                           {isAudioModal ? texts.modals.assetLibrary.audioTitle : texts.modals.assetLibrary.imageTitle}
                         </h2>
                         <button onClick={() => setIsAssetModalOpen(false)} className="p-1.5 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700">
                             <Icon as="close" className="w-5 h-5" />
@@ -1370,7 +1371,7 @@ const Editor: React.FC = () => {
                                         onClick={() => handleSelectAsset(asset.id)}
                                         className="w-full text-center px-3 py-1.5 bg-brand-600 text-white rounded-md text-sm hover:bg-brand-700 transition-colors"
                                     >
-                                        Select
+                                        {texts.modals.assetLibrary.select}
                                     </button>
                                 </div>
                             ))}
@@ -1386,7 +1387,7 @@ const Editor: React.FC = () => {
                                     <div className="aspect-square w-full relative overflow-hidden">
                                         <img src={`${API_BASE_URL}/assets/${asset.id}`} alt={asset.name} className="w-full h-full object-cover"/>
                                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors flex items-center justify-center">
-                                            <p className="text-white font-bold opacity-0 group-hover:opacity-100 transition-opacity">Select</p>
+                                            <p className="text-white font-bold opacity-0 group-hover:opacity-100 transition-opacity">{texts.modals.assetLibrary.select}</p>
                                         </div>
                                     </div>
                                     <div className="p-2 text-center">
@@ -1400,7 +1401,7 @@ const Editor: React.FC = () => {
                       )
                     ) : (
                         <div className="flex-grow flex items-center justify-center text-slate-500 dark:text-slate-400">
-                            <p>No {isAudioModal ? 'audio' : 'image'} assets uploaded for this game yet.</p>
+                            <p>{isAudioModal ? texts.modals.assetLibrary.noAudio : texts.modals.assetLibrary.noImages}</p>
                         </div>
                     )}
                 </div>
@@ -1411,7 +1412,7 @@ const Editor: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60] backdrop-blur-sm">
             <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-2xl w-full max-w-6xl h-[90vh] flex flex-col">
                 <div className="flex justify-between items-center mb-4 pb-4 border-b border-slate-200 dark:border-slate-700">
-                    <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">Asset Manager</h2>
+                    <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">{texts.modals.assetManager.title}</h2>
                     <button onClick={() => setIsAssetManagerOpen(false)} className="p-1.5 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700">
                         <Icon as="close" className="w-5 h-5" />
                     </button>
@@ -1433,7 +1434,7 @@ const Editor: React.FC = () => {
                                             onClick={() => handleDeleteAsset(asset.id)}
                                             disabled={deletingAssetId === asset.id}
                                             className="p-2 bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
-                                            aria-label="Delete asset"
+                                            aria-label={texts.modals.assetManager.deleteTooltip}
                                         >
                                             {deletingAssetId === asset.id ? 
                                               <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -1458,7 +1459,7 @@ const Editor: React.FC = () => {
                                         <p
                                             onClick={() => setEditingAssetName({ id: asset.id, name: asset.name })}
                                             className="text-xs text-slate-600 dark:text-slate-400 break-all cursor-pointer hover:underline"
-                                            title="Click to edit name"
+                                            title={texts.modals.assetManager.editTooltip}
                                         >
                                             {asset.name}
                                         </p>
@@ -1469,7 +1470,7 @@ const Editor: React.FC = () => {
                     </div>
                 ) : (
                     <div className="flex-grow flex items-center justify-center text-slate-500 dark:text-slate-400">
-                        <p>No assets uploaded for this game yet.</p>
+                        <p>{texts.modals.assetManager.noAssets}</p>
                     </div>
                 )}
                 <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-end">
@@ -1477,7 +1478,7 @@ const Editor: React.FC = () => {
                         onClick={() => setIsAssetManagerOpen(false)}
                         className="px-6 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors"
                     >
-                        Done
+                        {texts.modals.assetManager.done}
                     </button>
                 </div>
             </div>
@@ -1487,24 +1488,24 @@ const Editor: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60] backdrop-blur-sm">
             <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-2xl w-full max-w-2xl flex flex-col">
                 <div className="flex-shrink-0 flex justify-between items-center mb-4 pb-4 border-b border-slate-200 dark:border-slate-700">
-                    <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">Edit Object</h2>
+                    <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">{texts.modals.object.title}</h2>
                     <button onClick={() => setObjectModalState(null)} className="p-1.5 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700">
                         <Icon as="close" className="w-5 h-5" />
                     </button>
                 </div>
                 <div className="flex-grow space-y-4 overflow-y-auto pr-2 -mr-2">
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Object Name</label>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{texts.modals.object.nameLabel}</label>
                         <input
                             type="text"
                             value={modalObjectData.name}
                             onChange={(e) => handleModalObjectChange('name', e.target.value)}
-                            placeholder="e.g., A small, tarnished brass key"
+                            placeholder={texts.modals.object.namePlaceholder}
                             className="w-full font-semibold px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Name Color</label>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{texts.modals.object.nameColorLabel}</label>
                         <div className="flex flex-wrap gap-2">
                             {NAME_COLORS.map(color => (
                                 <button
@@ -1520,11 +1521,11 @@ const Editor: React.FC = () => {
                         </div>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Description</label>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{texts.modals.object.descriptionLabel}</label>
                         <textarea
                             value={modalObjectData.description}
                             onChange={(e) => handleModalObjectChange('description', e.target.value)}
-                            placeholder="e.g., A description of the object for the presenter."
+                            placeholder={texts.modals.object.descriptionPlaceholder}
                             rows={5}
                             className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm resize-y"
                         />
@@ -1537,17 +1538,17 @@ const Editor: React.FC = () => {
                                 checked={modalObjectData.isPickupable ?? true}
                                 onChange={(e) => handleModalObjectChange('isPickupable', e.target.checked)}
                             />
-                            <span>Allow players to pick up this item</span>
+                            <span>{texts.modals.object.isPickupableLabel}</span>
                         </label>
                         { (modalObjectData.isPickupable === false) && (
                             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 pl-10">
-                                This item will be visible in the room (if an "In Room Image" is set) but cannot be added to the inventory. It can still be part of a puzzle or action.
+                                {texts.modals.object.isPickupableHelp}
                             </p>
                         )}
                     </div>
                     {game.inventoryLayout === 'dual' && (
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Target Inventory</label>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{texts.modals.object.targetInventoryLabel}</label>
                             <div className="flex rounded-lg bg-slate-100 dark:bg-slate-700/50 p-1 max-w-xs">
                                 <button
                                     onClick={() => handleModalObjectChange('inventorySlot', 1)}
@@ -1574,7 +1575,7 @@ const Editor: React.FC = () => {
                     )}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Close-up Image (Optional)</label>
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{texts.modals.object.closeUpImageLabel}</label>
                           <div className="relative group w-32 h-32 bg-slate-100 dark:bg-slate-700/50 rounded-md border-2 border-dashed border-slate-300 dark:border-slate-600">
                             {modalObjectData.image && (
                               <img src={`${API_BASE_URL}/assets/${modalObjectData.image}`} alt={modalObjectData.name} className="w-full h-full object-cover rounded-md" />
@@ -1585,18 +1586,18 @@ const Editor: React.FC = () => {
                                 <>
                                   <div className="text-center text-slate-400 dark:text-slate-500 group-hover:opacity-0 transition-opacity">
                                     <Icon as="gallery" className="w-10 h-10 mx-auto" />
-                                    <p className="text-xs mt-1">Add Image</p>
+                                    <p className="text-xs mt-1">{texts.editor.roomEditor.uploadImage}</p>
                                   </div>
                                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <div className="pointer-events-none text-white text-center">
-                                      <p className="font-bold text-xs">Upload New</p>
+                                      <p className="font-bold text-xs">{texts.editor.assetUploader.uploadNew}</p>
                                     </div>
                                     <button
                                       onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('modal-object-image'); }}
                                       className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors text-center"
                                     >
                                       <Icon as="gallery" className="w-3.5 h-3.5" />
-                                      From Library
+                                      {texts.editor.assetUploader.fromLibrary}
                                     </button>
                                   </div>
                                 </>
@@ -1607,15 +1608,15 @@ const Editor: React.FC = () => {
                                 <button
                                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('modal-object-image'); }}
                                   className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors"
-                                  title="Select from library"
+                                  title={texts.editor.assetUploader.fromLibrary}
                                 >
                                   <Icon as="gallery" className="w-3.5 h-3.5" />
-                                  Change
+                                  {texts.editor.assetUploader.change}
                                 </button>
                                 <button
                                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleModalObjectChange('image', null); }}
                                   className="pointer-events-auto p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
-                                  title="Clear Image"
+                                  title={texts.editor.assetUploader.clearImage}
                                 >
                                   <Icon as="trash" className="w-4 h-4" />
                                 </button>
@@ -1624,7 +1625,7 @@ const Editor: React.FC = () => {
                           </div>
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">In Room Image (Optional)</label>
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{texts.modals.object.inRoomImageLabel}</label>
                           <div className="relative group w-32 h-32 bg-slate-100 dark:bg-slate-700/50 rounded-md border-2 border-dashed border-slate-300 dark:border-slate-600">
                             {modalObjectData.inRoomImage && (
                               <img src={`${API_BASE_URL}/assets/${modalObjectData.inRoomImage}`} alt={modalObjectData.name} className="w-full h-full object-cover rounded-md" />
@@ -1635,18 +1636,18 @@ const Editor: React.FC = () => {
                                 <>
                                   <div className="text-center text-slate-400 dark:text-slate-500 group-hover:opacity-0 transition-opacity">
                                     <Icon as="gallery" className="w-10 h-10 mx-auto" />
-                                    <p className="text-xs mt-1">Add Image</p>
+                                    <p className="text-xs mt-1">{texts.editor.roomEditor.uploadImage}</p>
                                   </div>
                                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <div className="pointer-events-none text-white text-center">
-                                      <p className="font-bold text-xs">Upload New</p>
+                                      <p className="font-bold text-xs">{texts.editor.assetUploader.uploadNew}</p>
                                     </div>
                                     <button
                                       onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('modal-object-inRoomImage'); }}
                                       className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors text-center"
                                     >
                                       <Icon as="gallery" className="w-3.5 h-3.5" />
-                                      From Library
+                                      {texts.editor.assetUploader.fromLibrary}
                                     </button>
                                   </div>
                                 </>
@@ -1657,15 +1658,15 @@ const Editor: React.FC = () => {
                                 <button
                                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('modal-object-inRoomImage'); }}
                                   className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors"
-                                  title="Select from library"
+                                  title={texts.editor.assetUploader.fromLibrary}
                                 >
                                   <Icon as="gallery" className="w-3.5 h-3.5" />
-                                  Change
+                                  {texts.editor.assetUploader.change}
                                 </button>
                                 <button
                                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleModalObjectChange('inRoomImage', null); }}
                                   className="pointer-events-auto p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
-                                  title="Clear Image"
+                                  title={texts.editor.assetUploader.clearImage}
                                 >
                                   <Icon as="trash" className="w-4 h-4" />
                                 </button>
@@ -1681,7 +1682,7 @@ const Editor: React.FC = () => {
                                           checked={modalObjectData.showInRoomImage ?? true}
                                           onChange={(e) => handleModalObjectChange('showInRoomImage', e.target.checked)}
                                       />
-                                      Initially Visible
+                                      {texts.modals.object.initiallyVisibleLabel}
                                   </label>
                               </div>
                           )}
@@ -1689,14 +1690,14 @@ const Editor: React.FC = () => {
                         {modalObjectData.inRoomImage && (
                             <div className="md:col-span-2 space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">In Room Image Placement</label>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{texts.modals.object.placementLabel}</label>
                                     <button
                                         type="button"
                                         onClick={handleOpenPlacementModal}
                                         className="w-full px-3 py-2 text-sm bg-slate-100 dark:bg-slate-700/50 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600/50 transition-colors flex items-center justify-center gap-2"
                                     >
                                         <Icon as="hand-expand" className="w-4 h-4" />
-                                        Object Placement
+                                        {texts.modals.object.placementButton}
                                     </button>
                                 </div>
                                 <div>
@@ -1707,7 +1708,7 @@ const Editor: React.FC = () => {
                                             checked={modalObjectData.inRoomImageFade ?? false}
                                             onChange={(e) => handleModalObjectChange('inRoomImageFade', e.target.checked)}
                                         />
-                                        <span>Fade in/out when shown/hidden by presenter</span>
+                                        <span>{texts.modals.object.fadeLabel}</span>
                                     </label>
                                 </div>
                             </div>
@@ -1715,8 +1716,8 @@ const Editor: React.FC = () => {
                     </div>
                 </div>
                 <div className="flex-shrink-0 mt-6 pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-4">
-                    <button onClick={() => setObjectModalState(null)} className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">Cancel</button>
-                    <button onClick={handleSaveObjectFromModal} className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors">Save & Close</button>
+                    <button onClick={() => setObjectModalState(null)} className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">{texts.modals.common.cancel}</button>
+                    <button onClick={handleSaveObjectFromModal} className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors">{texts.modals.object.saveAndClose}</button>
                 </div>
             </div>
         </div>
@@ -1725,8 +1726,8 @@ const Editor: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[70] backdrop-blur-sm">
             <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-2xl w-full max-w-5xl flex flex-col">
                 <div className="flex-shrink-0 flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">Object Placement</h2>
-                     <p className="text-sm text-slate-500 dark:text-slate-400">Drag the object to position it. Use the slider to resize.</p>
+                    <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">{texts.modals.placement.title}</h2>
+                     <p className="text-sm text-slate-500 dark:text-slate-400">{texts.modals.placement.description}</p>
                 </div>
                 <div className="w-full aspect-video flex overflow-hidden rounded-md border-2 border-slate-300 dark:border-slate-600">
                     <div
@@ -1737,7 +1738,7 @@ const Editor: React.FC = () => {
                            <img src={`${API_BASE_URL}/assets/${currentRoom.image}`} alt="Room background" className="w-full h-full object-cover pointer-events-none" />
                         ) : (
                            <div className="w-full h-full flex items-center justify-center text-slate-400 dark:text-slate-500">
-                               <span>No room image to display</span>
+                               <span>{texts.modals.placement.noRoomImage}</span>
                            </div>
                         )}
                         {modalObjectData.inRoomImage && (() => {
@@ -1763,14 +1764,14 @@ const Editor: React.FC = () => {
                      {!currentRoom.isFullScreenImage && (
                         <div className="w-[30%] h-full bg-slate-200 dark:bg-slate-800 p-4 flex flex-col items-center justify-center">
                             <div className="text-center text-slate-500 dark:text-slate-400">
-                                <h4 className="font-semibold">Sidebar Preview</h4>
-                                <p className="text-xs mt-2">This area is reserved for the sidebar in the game view to ensure accurate object placement.</p>
+                                <h4 className="font-semibold">{texts.modals.placement.sidebarPreviewTitle}</h4>
+                                <p className="text-xs mt-2">{texts.modals.placement.sidebarPreviewDescription}</p>
                             </div>
                         </div>
                     )}
                 </div>
                  <div className="flex-shrink-0 mt-4 flex items-center gap-4">
-                    <label htmlFor="obj-size" className="text-sm font-medium text-slate-700 dark:text-slate-300">Size</label>
+                    <label htmlFor="obj-size" className="text-sm font-medium text-slate-700 dark:text-slate-300">{texts.modals.placement.sizeLabel}</label>
                     <input
                         id="obj-size"
                         type="range"
@@ -1786,8 +1787,8 @@ const Editor: React.FC = () => {
                     </span>
                  </div>
                  <div className="flex-shrink-0 mt-6 pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-4">
-                    <button onClick={handleCancelPlacement} className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">Cancel</button>
-                    <button onClick={handleSavePlacement} className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors">Done</button>
+                    <button onClick={handleCancelPlacement} className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">{texts.modals.common.cancel}</button>
+                    <button onClick={handleSavePlacement} className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors">{texts.modals.placement.done}</button>
                 </div>
             </div>
         </div>
@@ -1796,7 +1797,7 @@ const Editor: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60] backdrop-blur-sm">
             <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-2xl w-full max-w-4xl h-[90vh] flex flex-col">
                 <div className="flex-shrink-0 flex justify-between items-center mb-4 pb-4 border-b border-slate-200 dark:border-slate-700">
-                    <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">Edit Puzzle: {modalPuzzleData.name}</h2>
+                    <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">{texts.modals.puzzle.title} {modalPuzzleData.name}</h2>
                     <button onClick={() => setPuzzleModalState(null)} className="p-1.5 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700">
                         <Icon as="close" className="w-5 h-5" />
                     </button>
@@ -1804,22 +1805,22 @@ const Editor: React.FC = () => {
                 <div className="flex-grow overflow-y-auto pr-4 -mr-4 space-y-4">
                     <div className="flex items-center gap-4">
                         <div className="flex-1">
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Puzzle Name</label>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{texts.modals.puzzle.nameLabel}</label>
                             <input 
                                 type="text" 
                                 value={modalPuzzleData.name}
                                 onChange={(e) => handleModalPuzzleChange('name', e.target.value)}
-                                placeholder="Puzzle Name"
+                                placeholder={texts.modals.puzzle.nameLabel}
                                 className="w-full font-semibold px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
                             />
                         </div>
                         <div className="flex-1">
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Answer (optional)</label>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{texts.modals.puzzle.answerLabel}</label>
                             <input
                                 type="text"
                                 value={modalPuzzleData.answer}
                                 onChange={(e) => handleModalPuzzleChange('answer', e.target.value)}
-                                placeholder="Answer (optional)"
+                                placeholder={texts.modals.puzzle.answerLabel}
                                 className="w-full font-mono px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
                             />
                         </div>
@@ -1832,46 +1833,46 @@ const Editor: React.FC = () => {
                                 checked={modalPuzzleData.isGlobal || false}
                                 onChange={(e) => handleModalPuzzleChange('isGlobal', e.target.checked)}
                             />
-                            <span>Global Puzzle (show in all rooms in presenter view once unlocked)</span>
+                            <span>{texts.modals.puzzle.globalLabel}</span>
                         </label>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Unsolved Text</label>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{texts.modals.puzzle.unsolvedTextLabel}</label>
                             <div className="flex items-center gap-1 border border-slate-300 dark:border-slate-600 rounded-t-lg bg-slate-50 dark:bg-slate-700/50 p-1">
-                                <button onClick={() => applyModalTextFormatting('bold', puzzleUnsolvedTextareaRef, modalPuzzleData.unsolvedText, (v) => handleModalPuzzleChange('unsolvedText', v))} title="Bold" className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded font-bold">B</button>
-                                <button onClick={() => applyModalTextFormatting('italic', puzzleUnsolvedTextareaRef, modalPuzzleData.unsolvedText, (v) => handleModalPuzzleChange('unsolvedText', v))} title="Italic" className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded italic">I</button>
+                                <button onClick={() => applyModalTextFormatting('bold', puzzleUnsolvedTextareaRef, modalPuzzleData.unsolvedText, (v) => handleModalPuzzleChange('unsolvedText', v))} title={texts.editor.formatting.bold} className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded font-bold">B</button>
+                                <button onClick={() => applyModalTextFormatting('italic', puzzleUnsolvedTextareaRef, modalPuzzleData.unsolvedText, (v) => handleModalPuzzleChange('unsolvedText', v))} title={texts.editor.formatting.italic} className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded italic">I</button>
                                 <div className="h-5 w-px bg-slate-300 dark:bg-slate-600 mx-1"></div>
-                                <button onClick={() => applyModalTextFormatting('highlight', puzzleUnsolvedTextareaRef, modalPuzzleData.unsolvedText, (v) => handleModalPuzzleChange('unsolvedText', v), 'y')} title="Highlight Yellow" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"><div className="w-4 h-4 rounded-sm bg-yellow-400 border border-yellow-500"></div></button>
-                                <button onClick={() => applyModalTextFormatting('highlight', puzzleUnsolvedTextareaRef, modalPuzzleData.unsolvedText, (v) => handleModalPuzzleChange('unsolvedText', v), 'c')} title="Highlight Cyan" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"><div className="w-4 h-4 rounded-sm bg-cyan-400 border border-cyan-500"></div></button>
-                                <button onClick={() => applyModalTextFormatting('highlight', puzzleUnsolvedTextareaRef, modalPuzzleData.unsolvedText, (v) => handleModalPuzzleChange('unsolvedText', v), 'm')} title="Highlight Pink" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"><div className="w-4 h-4 rounded-sm bg-pink-400 border border-pink-500"></div></button>
-                                <button onClick={() => applyModalTextFormatting('highlight', puzzleUnsolvedTextareaRef, modalPuzzleData.unsolvedText, (v) => handleModalPuzzleChange('unsolvedText', v), 'l')} title="Highlight Lime" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"><div className="w-4 h-4 rounded-sm bg-lime-400 border border-lime-500"></div></button>
+                                <button onClick={() => applyModalTextFormatting('highlight', puzzleUnsolvedTextareaRef, modalPuzzleData.unsolvedText, (v) => handleModalPuzzleChange('unsolvedText', v), 'y')} title={texts.editor.formatting.highlightYellow} className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"><div className="w-4 h-4 rounded-sm bg-yellow-400 border border-yellow-500"></div></button>
+                                <button onClick={() => applyModalTextFormatting('highlight', puzzleUnsolvedTextareaRef, modalPuzzleData.unsolvedText, (v) => handleModalPuzzleChange('unsolvedText', v), 'c')} title={texts.editor.formatting.highlightCyan} className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"><div className="w-4 h-4 rounded-sm bg-cyan-400 border border-cyan-500"></div></button>
+                                <button onClick={() => applyModalTextFormatting('highlight', puzzleUnsolvedTextareaRef, modalPuzzleData.unsolvedText, (v) => handleModalPuzzleChange('unsolvedText', v), 'm')} title={texts.editor.formatting.highlightPink} className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"><div className="w-4 h-4 rounded-sm bg-pink-400 border border-pink-500"></div></button>
+                                <button onClick={() => applyModalTextFormatting('highlight', puzzleUnsolvedTextareaRef, modalPuzzleData.unsolvedText, (v) => handleModalPuzzleChange('unsolvedText', v), 'l')} title={texts.editor.formatting.highlightLime} className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"><div className="w-4 h-4 rounded-sm bg-lime-400 border border-lime-500"></div></button>
                             </div>
                             <textarea 
                                 ref={puzzleUnsolvedTextareaRef}
                                 value={modalPuzzleData.unsolvedText}
                                 onChange={(e) => handleModalPuzzleChange('unsolvedText', e.target.value)}
-                                placeholder="Unsolved Text"
+                                placeholder={texts.modals.puzzle.unsolvedTextLabel}
                                 rows={4}
                                 className="w-full px-3 py-2 border border-t-0 border-slate-300 dark:border-slate-600 rounded-b-md bg-slate-50 dark:bg-slate-700 text-sm resize-y"
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Solved Text</label>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{texts.modals.puzzle.solvedTextLabel}</label>
                             <div className="flex items-center gap-1 border border-slate-300 dark:border-slate-600 rounded-t-lg bg-slate-50 dark:bg-slate-700/50 p-1">
-                                <button onClick={() => applyModalTextFormatting('bold', puzzleSolvedTextareaRef, modalPuzzleData.solvedText, (v) => handleModalPuzzleChange('solvedText', v))} title="Bold" className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded font-bold">B</button>
-                                <button onClick={() => applyModalTextFormatting('italic', puzzleSolvedTextareaRef, modalPuzzleData.solvedText, (v) => handleModalPuzzleChange('solvedText', v))} title="Italic" className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded italic">I</button>
+                                <button onClick={() => applyModalTextFormatting('bold', puzzleSolvedTextareaRef, modalPuzzleData.solvedText, (v) => handleModalPuzzleChange('solvedText', v))} title={texts.editor.formatting.bold} className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded font-bold">B</button>
+                                <button onClick={() => applyModalTextFormatting('italic', puzzleSolvedTextareaRef, modalPuzzleData.solvedText, (v) => handleModalPuzzleChange('solvedText', v))} title={texts.editor.formatting.italic} className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded italic">I</button>
                                 <div className="h-5 w-px bg-slate-300 dark:bg-slate-600 mx-1"></div>
-                                <button onClick={() => applyModalTextFormatting('highlight', puzzleSolvedTextareaRef, modalPuzzleData.solvedText, (v) => handleModalPuzzleChange('solvedText', v), 'y')} title="Highlight Yellow" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"><div className="w-4 h-4 rounded-sm bg-yellow-400 border border-yellow-500"></div></button>
-                                <button onClick={() => applyModalTextFormatting('highlight', puzzleSolvedTextareaRef, modalPuzzleData.solvedText, (v) => handleModalPuzzleChange('solvedText', v), 'c')} title="Highlight Cyan" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"><div className="w-4 h-4 rounded-sm bg-cyan-400 border border-cyan-500"></div></button>
-                                <button onClick={() => applyModalTextFormatting('highlight', puzzleSolvedTextareaRef, modalPuzzleData.solvedText, (v) => handleModalPuzzleChange('solvedText', v), 'm')} title="Highlight Pink" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"><div className="w-4 h-4 rounded-sm bg-pink-400 border border-pink-500"></div></button>
-                                <button onClick={() => applyModalTextFormatting('highlight', puzzleSolvedTextareaRef, modalPuzzleData.solvedText, (v) => handleModalPuzzleChange('solvedText', v), 'l')} title="Highlight Lime" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"><div className="w-4 h-4 rounded-sm bg-lime-400 border border-lime-500"></div></button>
+                                <button onClick={() => applyModalTextFormatting('highlight', puzzleSolvedTextareaRef, modalPuzzleData.solvedText, (v) => handleModalPuzzleChange('solvedText', v), 'y')} title={texts.editor.formatting.highlightYellow} className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"><div className="w-4 h-4 rounded-sm bg-yellow-400 border border-yellow-500"></div></button>
+                                <button onClick={() => applyModalTextFormatting('highlight', puzzleSolvedTextareaRef, modalPuzzleData.solvedText, (v) => handleModalPuzzleChange('solvedText', v), 'c')} title={texts.editor.formatting.highlightCyan} className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"><div className="w-4 h-4 rounded-sm bg-cyan-400 border border-cyan-500"></div></button>
+                                <button onClick={() => applyModalTextFormatting('highlight', puzzleSolvedTextareaRef, modalPuzzleData.solvedText, (v) => handleModalPuzzleChange('solvedText', v), 'm')} title={texts.editor.formatting.highlightPink} className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"><div className="w-4 h-4 rounded-sm bg-pink-400 border border-pink-500"></div></button>
+                                <button onClick={() => applyModalTextFormatting('highlight', puzzleSolvedTextareaRef, modalPuzzleData.solvedText, (v) => handleModalPuzzleChange('solvedText', v), 'l')} title={texts.editor.formatting.highlightLime} className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"><div className="w-4 h-4 rounded-sm bg-lime-400 border border-lime-500"></div></button>
                             </div>
                             <textarea 
                                 ref={puzzleSolvedTextareaRef}
                                 value={modalPuzzleData.solvedText}
                                 onChange={(e) => handleModalPuzzleChange('solvedText', e.target.value)}
-                                placeholder="Solved Text"
+                                placeholder={texts.modals.puzzle.solvedTextLabel}
                                 rows={4}
                                 className="w-full px-3 py-2 border border-t-0 border-slate-300 dark:border-slate-600 rounded-b-md bg-slate-50 dark:bg-slate-700 text-sm resize-y"
                             />
@@ -1879,7 +1880,7 @@ const Editor: React.FC = () => {
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Image</label>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{texts.modals.puzzle.imageLabel}</label>
                             <div className="relative group w-32 h-32 bg-slate-100 dark:bg-slate-700/50 rounded-md border-2 border-dashed border-slate-300 dark:border-slate-600">
                               {modalPuzzleData.image && (
                                 <img src={`${API_BASE_URL}/assets/${modalPuzzleData.image}`} alt={modalPuzzleData.name} className="w-full h-full object-cover rounded-md" />
@@ -1890,38 +1891,38 @@ const Editor: React.FC = () => {
                                   <>
                                     <div className="text-center text-slate-400 dark:text-slate-500 group-hover:opacity-0 transition-opacity">
                                       <Icon as="gallery" className="w-10 h-10 mx-auto" />
-                                      <p className="text-xs mt-1">Add Image</p>
+                                      <p className="text-xs mt-1">{texts.editor.roomEditor.uploadImage}</p>
                                     </div>
                                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                      <div className="pointer-events-none text-white text-center"><p className="font-bold text-xs">Upload New</p></div>
-                                      <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('modal-puzzle-image'); }} className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors text-center"><Icon as="gallery" className="w-3.5 h-3.5" />From Library</button>
+                                      <div className="pointer-events-none text-white text-center"><p className="font-bold text-xs">{texts.editor.assetUploader.uploadNew}</p></div>
+                                      <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('modal-puzzle-image'); }} className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors text-center"><Icon as="gallery" className="w-3.5 h-3.5" />{texts.editor.assetUploader.fromLibrary}</button>
                                     </div>
                                   </>
                                 )}
                               </label>
                               {modalPuzzleData.image && (
                                 <div className="absolute inset-0 bg-black/60 p-1 flex flex-col justify-center items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-                                  <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('modal-puzzle-image'); }} className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors" title="Select from library"><Icon as="gallery" className="w-3.5 h-3.5" />Change</button>
-                                  <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleModalPuzzleChange('image', null); }} className="pointer-events-auto p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors" title="Clear Image"><Icon as="trash" className="w-4 h-4" /></button>
+                                  <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('modal-puzzle-image'); }} className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors" title={texts.editor.assetUploader.fromLibrary}><Icon as="gallery" className="w-3.5 h-3.5" />{texts.editor.assetUploader.change}</button>
+                                  <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleModalPuzzleChange('image', null); }} className="pointer-events-auto p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors" title={texts.editor.assetUploader.clearImage}><Icon as="trash" className="w-4 h-4" /></button>
                                 </div>
                               )}
                             </div>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Sound</label>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{texts.modals.puzzle.soundLabel}</label>
                             {modalPuzzleData.sound ? (
                                 <div className="space-y-2">
                                     <AudioPreviewPlayer assetId={modalPuzzleData.sound} />
-                                    <button onClick={() => handleModalPuzzleFileUpload('sound', null)} className="text-red-500 hover:text-red-700 text-xs px-1">Clear Sound</button>
+                                    <button onClick={() => handleModalPuzzleFileUpload('sound', null)} className="text-red-500 hover:text-red-700 text-xs px-1">{texts.modals.puzzle.clearSound}</button>
                                 </div>
                             ) : (
                                 <div className="flex gap-2">
                                     <label className="flex-1 cursor-pointer text-center px-3 py-2 text-sm bg-slate-100 dark:bg-slate-700/50 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600/50 transition-colors">
-                                        <span>Upload New</span>
+                                        <span>{texts.editor.assetUploader.uploadNew}</span>
                                         <input type="file" accept="audio/*" onChange={(e) => handleModalPuzzleFileUpload('sound', e.target.files?.[0] || null)} className="sr-only"/>
                                     </label>
                                     <button type="button" onClick={(e) => { e.preventDefault(); openAssetLibrary('modal-puzzle-sound'); }} className="flex-1 text-center px-3 py-2 text-sm bg-slate-100 dark:bg-slate-700/50 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600/50 transition-colors">
-                                        From Library
+                                        {texts.editor.assetUploader.fromLibrary}
                                     </button>
                                 </div>
                             )}
@@ -1931,14 +1932,14 @@ const Editor: React.FC = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
                             {/* Column 1: Locked elements */}
                             <div className="space-y-4">
-                                <h3 className="text-base font-semibold text-slate-700 dark:text-slate-300">Locked elements</h3>
-                                <p className="text-xs text-slate-500 dark:text-slate-400 -mt-3">Elements that are locked until puzzle is solved.</p>
+                                <h3 className="text-base font-semibold text-slate-700 dark:text-slate-300">{texts.modals.puzzle.lockedElementsTitle}</h3>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 -mt-3">{texts.modals.puzzle.lockedElementsDescription}</p>
 
                                 {/* Locked Objects */}
                                 <div className="relative" ref={modalObjectsDropdownRef}>
-                                    <h4 className="font-semibold text-sm mb-1 text-slate-600 dark:text-slate-400">Locked Objects</h4>
+                                    <h4 className="font-semibold text-sm mb-1 text-slate-600 dark:text-slate-400">{texts.modals.puzzle.lockedObjects}</h4>
                                     <button type="button" onClick={() => setOpenModalPuzzleObjectsDropdown(prev => !prev)} className="w-full text-left px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 flex justify-between items-center text-sm">
-                                        <span>{`${modalPuzzleData.lockedObjectIds?.length || 0} selected`}</span>
+                                        <span>{`${modalPuzzleData.lockedObjectIds?.length || 0} ${texts.editor.roomEditor.objectsSelected}`}</span>
                                         <Icon as="chevron-down" className={`w-4 h-4 transition-transform ${openModalPuzzleObjectsDropdown ? 'rotate-180' : ''}`} />
                                     </button>
                                     {openModalPuzzleObjectsDropdown && (
@@ -1948,7 +1949,7 @@ const Editor: React.FC = () => {
                                                     type="text"
                                                     value={modalPuzzleObjectsSearch}
                                                     onChange={(e) => setModalPuzzleObjectsSearch(e.target.value)}
-                                                    placeholder="Search objects..."
+                                                    placeholder={texts.modals.puzzle.searchPlaceholder}
                                                     className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
                                                 />
                                             </div>
@@ -2000,9 +2001,9 @@ const Editor: React.FC = () => {
 
                                 {/* Locked Actions */}
                                 <div className="relative" ref={modalActionsDropdownRef}>
-                                    <h4 className="font-semibold text-sm mb-1 text-slate-600 dark:text-slate-400">Locked Actions</h4>
+                                    <h4 className="font-semibold text-sm mb-1 text-slate-600 dark:text-slate-400">{texts.modals.puzzle.lockedActions}</h4>
                                     <button type="button" onClick={() => setOpenModalPuzzleActionsDropdown(prev => !prev)} className="w-full text-left px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 flex justify-between items-center text-sm">
-                                        <span>{`${modalPuzzleData.lockedActionIds?.length || 0} selected`}</span>
+                                        <span>{`${modalPuzzleData.lockedActionIds?.length || 0} ${texts.editor.roomEditor.objectsSelected}`}</span>
                                         <Icon as="chevron-down" className={`w-4 h-4 transition-transform ${openModalPuzzleActionsDropdown ? 'rotate-180' : ''}`} />
                                     </button>
                                     {openModalPuzzleActionsDropdown && (
@@ -2012,7 +2013,7 @@ const Editor: React.FC = () => {
                                                     type="text"
                                                     value={modalPuzzleActionsSearch}
                                                     onChange={(e) => setModalPuzzleActionsSearch(e.target.value)}
-                                                    placeholder="Search actions..."
+                                                    placeholder={texts.modals.puzzle.searchPlaceholder}
                                                     className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
                                                 />
                                             </div>
@@ -2041,7 +2042,7 @@ const Editor: React.FC = () => {
                                                                   });
                                                               }}
                                                             />
-                                                            {action.name || <span className="italic">Untitled Action</span>}
+                                                            {action.name || <span className="italic">{texts.editor.dynamicContent.untitledAction}</span>}
                                                           </label>
                                                         ))}
                                                     </div>
@@ -2054,9 +2055,9 @@ const Editor: React.FC = () => {
                                 
                                 {/* Locked Puzzles */}
                                 <div className="relative" ref={modalPuzzlesDropdownRef}>
-                                    <h4 className="font-semibold text-sm mb-1 text-slate-600 dark:text-slate-400">Locked Puzzles</h4>
+                                    <h4 className="font-semibold text-sm mb-1 text-slate-600 dark:text-slate-400">{texts.modals.puzzle.lockedPuzzles}</h4>
                                     <button type="button" onClick={() => setOpenModalPuzzlePuzzlesDropdown(prev => !prev)} className="w-full text-left px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 flex justify-between items-center text-sm">
-                                        <span>{`${modalPuzzleData.lockedPuzzleIds?.length || 0} selected`}</span>
+                                        <span>{`${modalPuzzleData.lockedPuzzleIds?.length || 0} ${texts.editor.roomEditor.objectsSelected}`}</span>
                                         <Icon as="chevron-down" className={`w-4 h-4 transition-transform ${openModalPuzzlePuzzlesDropdown ? 'rotate-180' : ''}`} />
                                     </button>
                                     {openModalPuzzlePuzzlesDropdown && (
@@ -2066,7 +2067,7 @@ const Editor: React.FC = () => {
                                                     type="text"
                                                     value={modalPuzzlePuzzlesSearch}
                                                     onChange={(e) => setModalPuzzlePuzzlesSearch(e.target.value)}
-                                                    placeholder="Search puzzles..."
+                                                    placeholder={texts.modals.puzzle.searchPlaceholder}
                                                     className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
                                                 />
                                             </div>
@@ -2102,9 +2103,9 @@ const Editor: React.FC = () => {
 
                                 {/* Locked Rooms */}
                                 <div className="relative" ref={modalRoomsDropdownRef}>
-                                    <h4 className="font-semibold text-sm mb-1 text-slate-600 dark:text-slate-400">Locked Rooms</h4>
+                                    <h4 className="font-semibold text-sm mb-1 text-slate-600 dark:text-slate-400">{texts.modals.puzzle.lockedRooms}</h4>
                                     <button type="button" onClick={() => setOpenModalPuzzleRoomsDropdown(prev => !prev)} className="w-full text-left px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 flex justify-between items-center text-sm">
-                                        <span>{`${modalPuzzleData.lockedRoomIds?.length || 0} selected`}</span>
+                                        <span>{`${modalPuzzleData.lockedRoomIds?.length || 0} ${texts.editor.roomEditor.objectsSelected}`}</span>
                                         <Icon as="chevron-down" className={`w-4 h-4 transition-transform ${openModalPuzzleRoomsDropdown ? 'rotate-180' : ''}`} />
                                     </button>
                                     {openModalPuzzleRoomsDropdown && (
@@ -2114,7 +2115,7 @@ const Editor: React.FC = () => {
                                                     type="text"
                                                     value={modalPuzzleRoomsSearch}
                                                     onChange={(e) => setModalPuzzleRoomsSearch(e.target.value)}
-                                                    placeholder="Search rooms..."
+                                                    placeholder={texts.modals.puzzle.searchPlaceholder}
                                                     className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
                                                 />
                                             </div>
@@ -2141,9 +2142,9 @@ const Editor: React.FC = () => {
                                 
                                 {/* Locked Room Solves */}
                                 <div className="relative" ref={modalRoomSolvesDropdownRef}>
-                                    <h4 className="font-semibold text-sm mb-1 text-slate-600 dark:text-slate-400">Locked Room Solves</h4>
+                                    <h4 className="font-semibold text-sm mb-1 text-slate-600 dark:text-slate-400">{texts.modals.puzzle.lockedRoomSolves}</h4>
                                     <button type="button" onClick={() => setOpenModalPuzzleRoomSolvesDropdown(prev => !prev)} className="w-full text-left px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 flex justify-between items-center text-sm">
-                                        <span>{`${modalPuzzleData.lockedRoomSolveIds?.length || 0} selected`}</span>
+                                        <span>{`${modalPuzzleData.lockedRoomSolveIds?.length || 0} ${texts.editor.roomEditor.objectsSelected}`}</span>
                                         <Icon as="chevron-down" className={`w-4 h-4 transition-transform ${openModalPuzzleRoomSolvesDropdown ? 'rotate-180' : ''}`} />
                                     </button>
                                     {openModalPuzzleRoomSolvesDropdown && (
@@ -2153,7 +2154,7 @@ const Editor: React.FC = () => {
                                                     type="text"
                                                     value={modalPuzzleRoomSolvesSearch}
                                                     onChange={(e) => setModalPuzzleRoomSolvesSearch(e.target.value)}
-                                                    placeholder="Search rooms..."
+                                                    placeholder={texts.modals.puzzle.searchPlaceholder}
                                                     className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
                                                 />
                                             </div>
@@ -2167,7 +2168,7 @@ const Editor: React.FC = () => {
                                                 if (filteredRooms.length === 0) {
                                                   return (
                                                     <p className="text-xs text-slate-500 dark:text-slate-400 italic p-2">
-                                                      No rooms with a defined Solved State found.
+                                                      {texts.modals.puzzle.noRoomsWithSolvedState}
                                                     </p>
                                                   );
                                                 }
@@ -2199,9 +2200,9 @@ const Editor: React.FC = () => {
                                 
                                 {/* Locked Acts */}
                                 <div className="relative" ref={modalActsDropdownRef}>
-                                    <h4 className="font-semibold text-sm mb-1 text-slate-600 dark:text-slate-400">Locked Acts</h4>
+                                    <h4 className="font-semibold text-sm mb-1 text-slate-600 dark:text-slate-400">{texts.modals.puzzle.lockedActs}</h4>
                                     <button type="button" onClick={() => setOpenModalPuzzleActsDropdown(prev => !prev)} className="w-full text-left px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 flex justify-between items-center text-sm">
-                                        <span>{`${modalPuzzleData.lockedActNumbers?.length || 0} selected`}</span>
+                                        <span>{`${modalPuzzleData.lockedActNumbers?.length || 0} ${texts.editor.roomEditor.objectsSelected}`}</span>
                                         <Icon as="chevron-down" className={`w-4 h-4 transition-transform ${openModalPuzzleActsDropdown ? 'rotate-180' : ''}`} />
                                     </button>
                                     {openModalPuzzleActsDropdown && (
@@ -2211,7 +2212,7 @@ const Editor: React.FC = () => {
                                                     type="text"
                                                     value={modalPuzzleActsSearch}
                                                     onChange={(e) => setModalPuzzleActsSearch(e.target.value)}
-                                                    placeholder="Search acts..."
+                                                    placeholder={texts.modals.puzzle.searchPlaceholder}
                                                     className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
                                                 />
                                             </div>
@@ -2234,7 +2235,7 @@ const Editor: React.FC = () => {
                                                           });
                                                       }}
                                                     />
-                                                    Act {act}
+                                                    {texts.editor.roomsList.actPrefix} {act}
                                                   </label>
                                                 ))}
                                             </div>
@@ -2244,14 +2245,14 @@ const Editor: React.FC = () => {
                             </div>
                             {/* Column 2: When solved */}
                             <div className="space-y-4 mt-4 md:mt-0">
-                                <h3 className="text-base font-semibold text-slate-700 dark:text-slate-300">When solved</h3>
-                                <p className="text-xs text-slate-500 dark:text-slate-400 -mt-3">What happens when the puzzle is solved.</p>
+                                <h3 className="text-base font-semibold text-slate-700 dark:text-slate-300">{texts.modals.puzzle.whenSolvedTitle}</h3>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 -mt-3">{texts.modals.puzzle.whenSolvedDescription}</p>
 
                                 {/* Objects discarded */}
                                 <div className="relative" ref={modalDiscardObjectsDropdownRef}>
-                                    <h4 className="font-semibold text-sm mb-1 text-slate-600 dark:text-slate-400">Objects discarded</h4>
+                                    <h4 className="font-semibold text-sm mb-1 text-slate-600 dark:text-slate-400">{texts.modals.puzzle.discardedObjects}</h4>
                                     <button type="button" onClick={() => setOpenModalPuzzleDiscardObjectsDropdown(prev => !prev)} className="w-full text-left px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 flex justify-between items-center text-sm">
-                                        <span>{`${modalPuzzleData.discardObjectIds?.length || 0} selected`}</span>
+                                        <span>{`${modalPuzzleData.discardObjectIds?.length || 0} ${texts.editor.roomEditor.objectsSelected}`}</span>
                                         <Icon as="chevron-down" className={`w-4 h-4 transition-transform ${openModalPuzzleDiscardObjectsDropdown ? 'rotate-180' : ''}`} />
                                     </button>
                                     {openModalPuzzleDiscardObjectsDropdown && (
@@ -2261,7 +2262,7 @@ const Editor: React.FC = () => {
                                                     type="text"
                                                     value={modalPuzzleDiscardObjectsSearch}
                                                     onChange={(e) => setModalPuzzleDiscardObjectsSearch(e.target.value)}
-                                                    placeholder="Search objects..."
+                                                    placeholder={texts.modals.puzzle.searchPlaceholder}
                                                     className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
                                                 />
                                             </div>
@@ -2299,9 +2300,9 @@ const Editor: React.FC = () => {
                                 
                                 {/* Actions completed */}
                                 <div className="relative" ref={modalCompletedActionsDropdownRef}>
-                                    <h4 className="font-semibold text-sm mb-1 text-slate-600 dark:text-slate-400">Actions completed</h4>
+                                    <h4 className="font-semibold text-sm mb-1 text-slate-600 dark:text-slate-400">{texts.modals.puzzle.completedActions}</h4>
                                     <button type="button" onClick={() => setOpenModalPuzzleCompletedActionsDropdown(prev => !prev)} className="w-full text-left px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 flex justify-between items-center text-sm">
-                                        <span>{`${modalPuzzleData.completedActionIds?.length || 0} selected`}</span>
+                                        <span>{`${modalPuzzleData.completedActionIds?.length || 0} ${texts.editor.roomEditor.objectsSelected}`}</span>
                                         <Icon as="chevron-down" className={`w-4 h-4 transition-transform ${openModalPuzzleCompletedActionsDropdown ? 'rotate-180' : ''}`} />
                                     </button>
                                     {openModalPuzzleCompletedActionsDropdown && (
@@ -2311,7 +2312,7 @@ const Editor: React.FC = () => {
                                                     type="text"
                                                     value={modalPuzzleCompletedActionsSearch}
                                                     onChange={(e) => setModalPuzzleCompletedActionsSearch(e.target.value)}
-                                                    placeholder="Search actions..."
+                                                    placeholder={texts.modals.puzzle.searchPlaceholder}
                                                     className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
                                                 />
                                             </div>
@@ -2340,7 +2341,7 @@ const Editor: React.FC = () => {
                                                                   });
                                                               }}
                                                             />
-                                                            {action.name || <span className="italic">Untitled Action</span>}
+                                                            {action.name || <span className="italic">{texts.editor.dynamicContent.untitledAction}</span>}
                                                           </label>
                                                         ))}
                                                     </div>
@@ -2353,12 +2354,12 @@ const Editor: React.FC = () => {
                                 <div className="pt-2">
                                     <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer">
                                       <input type="checkbox" className="disabled:opacity-50" checked={modalPuzzleData.autoAddLockedObjects} onChange={e => handleModalPuzzleChange('autoAddLockedObjects', e.target.checked)} disabled={!modalPuzzleData.lockedObjectIds || modalPuzzleData.lockedObjectIds.length === 0} />
-                                      Automatically add locked objects to inventory upon solving.
+                                      {texts.modals.puzzle.autoAddObjects}
                                     </label>
                                 </div>
                                 <div className="pt-4 mt-4 border-t border-slate-200 dark:border-slate-700">
-                                    <h4 className="font-semibold text-sm mb-1 text-slate-600 dark:text-slate-400">Locked by</h4>
-                                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">Puzzles that must be solved before this one becomes available.</p>
+                                    <h4 className="font-semibold text-sm mb-1 text-slate-600 dark:text-slate-400">{texts.modals.puzzle.lockedByTitle}</h4>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">{texts.modals.puzzle.lockedByDescription}</p>
                                     {(() => {
                                         const lockingPuzzles = puzzleLockMap.get(modalPuzzleData.id);
                                         if (lockingPuzzles && lockingPuzzles.length > 0) {
@@ -2374,7 +2375,7 @@ const Editor: React.FC = () => {
                                         } else {
                                             return (
                                                 <p className="text-sm text-slate-500 dark:text-slate-400 italic">
-                                                    This puzzle is not locked by any other puzzle.
+                                                    {texts.modals.puzzle.notLocked}
                                                 </p>
                                             );
                                         }
@@ -2385,8 +2386,8 @@ const Editor: React.FC = () => {
                     </div>
                 </div>
                 <div className="flex-shrink-0 mt-6 pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-4">
-                    <button onClick={() => setPuzzleModalState(null)} className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">Cancel</button>
-                    <button onClick={handleSavePuzzleFromModal} className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors">Save & Close</button>
+                    <button onClick={() => setPuzzleModalState(null)} className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">{texts.modals.common.cancel}</button>
+                    <button onClick={handleSavePuzzleFromModal} className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors">{texts.modals.puzzle.saveAndClose}</button>
                 </div>
             </div>
         </div>
@@ -2395,45 +2396,45 @@ const Editor: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60] backdrop-blur-sm">
             <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-2xl w-full max-w-2xl flex flex-col">
                 <div className="flex-shrink-0 flex justify-between items-center mb-4 pb-4 border-b border-slate-200 dark:border-slate-700">
-                    <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">Edit Action</h2>
+                    <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">{texts.modals.action.title}</h2>
                     <button onClick={() => setActionModalState(null)} className="p-1.5 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700">
                         <Icon as="close" className="w-5 h-5" />
                     </button>
                 </div>
                 <div className="flex-grow space-y-4 overflow-y-auto pr-2">
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Action Name</label>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{texts.modals.action.nameLabel}</label>
                         <input
                             type="text"
                             value={modalActionData.name}
                             onChange={(e) => handleModalActionChange('name', e.target.value)}
-                            placeholder="e.g., Look under the rug"
+                            placeholder={texts.modals.action.namePlaceholder}
                             className="w-full font-semibold px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Description / Host Response</label>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{texts.modals.action.descriptionLabel}</label>
                         <div className="flex items-center gap-1 border border-slate-300 dark:border-slate-600 rounded-t-lg bg-slate-50 dark:bg-slate-700/50 p-1">
-                            <button onClick={() => applyModalTextFormatting('bold', actionDescriptionTextareaRef, modalActionData.description, (v) => handleModalActionChange('description', v))} title="Bold" className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded font-bold">B</button>
-                            <button onClick={() => applyModalTextFormatting('italic', actionDescriptionTextareaRef, modalActionData.description, (v) => handleModalActionChange('description', v))} title="Italic" className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded italic">I</button>
+                            <button onClick={() => applyModalTextFormatting('bold', actionDescriptionTextareaRef, modalActionData.description, (v) => handleModalActionChange('description', v))} title={texts.editor.formatting.bold} className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded font-bold">B</button>
+                            <button onClick={() => applyModalTextFormatting('italic', actionDescriptionTextareaRef, modalActionData.description, (v) => handleModalActionChange('description', v))} title={texts.editor.formatting.italic} className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded italic">I</button>
                             <div className="h-5 w-px bg-slate-300 dark:bg-slate-600 mx-1"></div>
-                            <button onClick={() => applyModalTextFormatting('highlight', actionDescriptionTextareaRef, modalActionData.description, (v) => handleModalActionChange('description', v), 'y')} title="Highlight Yellow" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"><div className="w-4 h-4 rounded-sm bg-yellow-400 border border-yellow-500"></div></button>
-                            <button onClick={() => applyModalTextFormatting('highlight', actionDescriptionTextareaRef, modalActionData.description, (v) => handleModalActionChange('description', v), 'c')} title="Highlight Cyan" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"><div className="w-4 h-4 rounded-sm bg-cyan-400 border border-cyan-500"></div></button>
-                            <button onClick={() => applyModalTextFormatting('highlight', actionDescriptionTextareaRef, modalActionData.description, (v) => handleModalActionChange('description', v), 'm')} title="Highlight Pink" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"><div className="w-4 h-4 rounded-sm bg-pink-400 border border-pink-500"></div></button>
-                            <button onClick={() => applyModalTextFormatting('highlight', actionDescriptionTextareaRef, modalActionData.description, (v) => handleModalActionChange('description', v), 'l')} title="Highlight Lime" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"><div className="w-4 h-4 rounded-sm bg-lime-400 border border-lime-500"></div></button>
+                            <button onClick={() => applyModalTextFormatting('highlight', actionDescriptionTextareaRef, modalActionData.description, (v) => handleModalActionChange('description', v), 'y')} title={texts.editor.formatting.highlightYellow} className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"><div className="w-4 h-4 rounded-sm bg-yellow-400 border border-yellow-500"></div></button>
+                            <button onClick={() => applyModalTextFormatting('highlight', actionDescriptionTextareaRef, modalActionData.description, (v) => handleModalActionChange('description', v), 'c')} title={texts.editor.formatting.highlightCyan} className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"><div className="w-4 h-4 rounded-sm bg-cyan-400 border border-cyan-500"></div></button>
+                            <button onClick={() => applyModalTextFormatting('highlight', actionDescriptionTextareaRef, modalActionData.description, (v) => handleModalActionChange('description', v), 'm')} title={texts.editor.formatting.highlightPink} className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"><div className="w-4 h-4 rounded-sm bg-pink-400 border border-pink-500"></div></button>
+                            <button onClick={() => applyModalTextFormatting('highlight', actionDescriptionTextareaRef, modalActionData.description, (v) => handleModalActionChange('description', v), 'l')} title={texts.editor.formatting.highlightLime} className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded"><div className="w-4 h-4 rounded-sm bg-lime-400 border border-lime-500"></div></button>
                         </div>
                         <textarea
                             ref={actionDescriptionTextareaRef}
                             value={modalActionData.description}
                             onChange={(e) => handleModalActionChange('description', e.target.value)}
-                            placeholder="e.g., You lift the corner of the rug and find a small, tarnished brass key."
+                            placeholder={texts.modals.action.descriptionPlaceholder}
                             rows={5}
                             className="w-full px-3 py-2 border border-t-0 border-slate-300 dark:border-slate-600 rounded-b-md bg-slate-50 dark:bg-slate-700 text-sm resize-y"
                         />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Image (Full Screen Overlay)</label>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{texts.modals.action.imageLabel}</label>
                             <div className="relative group w-32 h-32 bg-slate-100 dark:bg-slate-700/50 rounded-md border-2 border-dashed border-slate-300 dark:border-slate-600">
                               {modalActionData.image && (
                                 <img src={`${API_BASE_URL}/assets/${modalActionData.image}`} alt={modalActionData.name} className="w-full h-full object-cover rounded-md" />
@@ -2444,38 +2445,38 @@ const Editor: React.FC = () => {
                                   <>
                                     <div className="text-center text-slate-400 dark:text-slate-500 group-hover:opacity-0 transition-opacity">
                                       <Icon as="gallery" className="w-10 h-10 mx-auto" />
-                                      <p className="text-xs mt-1">Add Image</p>
+                                      <p className="text-xs mt-1">{texts.editor.roomEditor.uploadImage}</p>
                                     </div>
                                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                      <div className="pointer-events-none text-white text-center"><p className="font-bold text-xs">Upload New</p></div>
-                                      <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('modal-action-image'); }} className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors text-center"><Icon as="gallery" className="w-3.5 h-3.5" />From Library</button>
+                                      <div className="pointer-events-none text-white text-center"><p className="font-bold text-xs">{texts.editor.assetUploader.uploadNew}</p></div>
+                                      <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('modal-action-image'); }} className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors text-center"><Icon as="gallery" className="w-3.5 h-3.5" />{texts.editor.assetUploader.fromLibrary}</button>
                                     </div>
                                   </>
                                 )}
                               </label>
                               {modalActionData.image && (
                                 <div className="absolute inset-0 bg-black/60 p-1 flex flex-col justify-center items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-                                  <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('modal-action-image'); }} className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors" title="Select from library"><Icon as="gallery" className="w-3.5 h-3.5" />Change</button>
-                                  <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleModalActionChange('image', null); }} className="pointer-events-auto p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors" title="Clear Image"><Icon as="trash" className="w-4 h-4" /></button>
+                                  <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary('modal-action-image'); }} className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors" title={texts.editor.assetUploader.fromLibrary}><Icon as="gallery" className="w-3.5 h-3.5" />{texts.editor.assetUploader.change}</button>
+                                  <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleModalActionChange('image', null); }} className="pointer-events-auto p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors" title={texts.editor.assetUploader.clearImage}><Icon as="trash" className="w-4 h-4" /></button>
                                 </div>
                               )}
                             </div>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Sound</label>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{texts.modals.action.soundLabel}</label>
                             {modalActionData.sound ? (
                                 <div className="space-y-2">
                                     <AudioPreviewPlayer assetId={modalActionData.sound} />
-                                    <button onClick={() => handleModalActionFileUpload('sound', null)} className="text-red-500 hover:text-red-700 text-xs px-1">Clear Sound</button>
+                                    <button onClick={() => handleModalActionFileUpload('sound', null)} className="text-red-500 hover:text-red-700 text-xs px-1">{texts.modals.puzzle.clearSound}</button>
                                 </div>
                             ) : (
                                 <div className="flex gap-2">
                                     <label className="flex-1 cursor-pointer text-center px-3 py-2 text-sm bg-slate-100 dark:bg-slate-700/50 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600/50 transition-colors">
-                                        <span>Upload New</span>
+                                        <span>{texts.editor.assetUploader.uploadNew}</span>
                                         <input type="file" accept="audio/*" onChange={(e) => handleModalActionFileUpload('sound', e.target.files?.[0] || null)} className="sr-only"/>
                                     </label>
                                     <button type="button" onClick={(e) => { e.preventDefault(); openAssetLibrary('modal-action-sound'); }} className="flex-1 text-center px-3 py-2 text-sm bg-slate-100 dark:bg-slate-700/50 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600/50 transition-colors">
-                                        From Library
+                                        {texts.editor.assetUploader.fromLibrary}
                                     </button>
                                 </div>
                             )}
@@ -2489,20 +2490,20 @@ const Editor: React.FC = () => {
                                 checked={modalActionData.hideCompleteButton || false}
                                 onChange={e => handleModalActionChange('hideCompleteButton', e.target.checked)}
                             />
-                            Hide complete button and have a puzzle complete it automatically.
+                            {texts.modals.action.hideCompleteButton}
                         </label>
                     </div>
                 </div>
                 <div className="flex-shrink-0 mt-6 pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-4">
-                    <button onClick={() => setActionModalState(null)} className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">Cancel</button>
-                    <button onClick={handleSaveActionFromModal} className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors">Save & Close</button>
+                    <button onClick={() => setActionModalState(null)} className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">{texts.modals.common.cancel}</button>
+                    <button onClick={handleSaveActionFromModal} className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors">{texts.modals.action.saveAndClose}</button>
                 </div>
             </div>
         </div>
       )}
       <header className="bg-white dark:bg-slate-800 shadow-md p-2 flex justify-between items-center z-10">
         <div className="flex items-center gap-4">
-          <Link to="/" className="text-xl font-bold text-brand-600 dark:text-brand-400 p-2">Home</Link>
+          <Link to="/" className="text-xl font-bold text-brand-600 dark:text-brand-400 p-2">{texts.editor.header.homeLink}</Link>
           <input 
             type="text" 
             value={editingGameTitle} 
@@ -2518,25 +2519,25 @@ const Editor: React.FC = () => {
              className="flex items-center gap-2 px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
            >
               <Icon as="save" className="w-5 h-5" />
-              Save
+              {texts.editor.header.saveButton}
            </button>
            <button
             onClick={() => setIsAssetManagerOpen(true)}
             className="flex items-center gap-2 px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
           >
             <Icon as="gallery" className="w-5 h-5" />
-            Assets
+            {texts.editor.header.assetManagerButton}
           </button>
           <Link
             to={`/settings/${id}`}
             className="flex items-center gap-2 px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
           >
             <Icon as="settings" className="w-5 h-5" />
-            Settings
+            {texts.editor.header.settingsButton}
           </Link>
           <button onClick={() => setIsResetModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors duration-300 shadow">
             <Icon as="present" className="w-5 h-5" />
-            Present
+            {texts.editor.header.presentButton}
           </button>
         </div>
       </header>
@@ -2544,12 +2545,12 @@ const Editor: React.FC = () => {
         {/* Room List (Left Column) */}
         <div className="w-64 bg-white dark:bg-slate-800 p-4 flex flex-col border-r border-slate-200 dark:border-slate-700">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-slate-700 dark:text-slate-300">Rooms</h2>
+            <h2 className="text-lg font-semibold text-slate-700 dark:text-slate-300">{texts.editor.roomsList.title}</h2>
             <div className="flex gap-1">
-              <button onClick={addRoom} className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full" title="Add Room">
+              <button onClick={addRoom} className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full" title={texts.editor.roomsList.addRoomTooltip}>
                 <Icon as="plus" className="w-5 h-5" />
               </button>
-              <button onClick={deleteRoom} className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full" title="Delete Selected Room">
+              <button onClick={deleteRoom} className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full" title={texts.editor.roomsList.deleteRoomTooltip}>
                 <Icon as="trash" className="w-5 h-5" />
               </button>
             </div>
@@ -2561,7 +2562,7 @@ const Editor: React.FC = () => {
                   return (
                       <div key={act} className="border-t border-slate-200 dark:border-slate-700 first:border-t-0">
                           <button onClick={() => toggleActCollapse(actNumber)} className="w-full text-left font-semibold text-slate-500 dark:text-slate-400 py-2 flex justify-between items-center">
-                              <span>Act {act}</span>
+                              <span>{texts.editor.roomsList.actPrefix} {act}</span>
                                <Icon as="chevron-down" className={`w-4 h-4 transition-transform ${isCollapsed ? '' : 'rotate-180'}`} />
                           </button>
                           {!isCollapsed && rooms.map(room => (
@@ -2586,7 +2587,7 @@ const Editor: React.FC = () => {
                                   <div className="flex-grow flex justify-between items-center min-w-0">
                                     <span className="truncate">{room.name}</span>
                                     <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                      <button onClick={(e) => { e.stopPropagation(); handleDuplicateRoom(room.originalIndex); }} className="p-1 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title="Duplicate Room">
+                                      <button onClick={(e) => { e.stopPropagation(); handleDuplicateRoom(room.originalIndex); }} className="p-1 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title={texts.editor.roomsList.duplicateRoomTooltip}>
                                         <Icon as="duplicate" className="w-4 h-4" />
                                       </button>
                                     </div>
@@ -2598,7 +2599,7 @@ const Editor: React.FC = () => {
               })}
               {multiActRooms.length > 0 && (
                   <div className="border-t border-slate-200 dark:border-slate-700">
-                      <h3 className="font-semibold text-slate-500 dark:text-slate-400 py-2">Multi-Act Rooms</h3>
+                      <h3 className="font-semibold text-slate-500 dark:text-slate-400 py-2">{texts.editor.roomsList.multiActRoomsTitle}</h3>
                       {multiActRooms.map(room => (
                           <div
                               key={room.id}
@@ -2611,7 +2612,7 @@ const Editor: React.FC = () => {
                               <div className="flex-grow flex justify-between items-center min-w-0">
                                 <span className="truncate">{room.name}</span>
                                 <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <button onClick={(e) => { e.stopPropagation(); handleDuplicateRoom(room.originalIndex); }} className="p-1 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title="Duplicate Room">
+                                  <button onClick={(e) => { e.stopPropagation(); handleDuplicateRoom(room.originalIndex); }} className="p-1 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title={texts.editor.roomsList.duplicateRoomTooltip}>
                                     <Icon as="duplicate" className="w-4 h-4" />
                                   </button>
                                 </div>
@@ -2634,7 +2635,7 @@ const Editor: React.FC = () => {
               />
               <div className="relative" ref={actDropdownRef}>
                   <button onClick={() => setIsActDropdownOpen(prev => !prev)} className="flex items-center gap-2 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 text-sm">
-                      <span className="text-slate-500 dark:text-slate-400">Act(s):</span>
+                      <span className="text-slate-500 dark:text-slate-400">{texts.editor.roomEditor.actsLabel}</span>
                       <span className="font-semibold">{editingRoomActs.join(', ')}</span>
                       <Icon as="chevron-down" className={`w-4 h-4 transition-transform ${isActDropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
@@ -2644,7 +2645,7 @@ const Editor: React.FC = () => {
                               {allActs.map(act => (
                                   <label key={act} className="flex items-center gap-2 text-sm p-1.5 rounded cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700">
                                       <input type="checkbox" checked={editingRoomActs.includes(act)} onChange={() => handleActToggle(act)} className="w-4 h-4 rounded border-slate-400 text-brand-600 shadow-sm focus:ring-brand-500" />
-                                      Act {act}
+                                      {texts.editor.roomsList.actPrefix} {act}
                                   </label>
                               ))}
                           </div>
@@ -2653,7 +2654,7 @@ const Editor: React.FC = () => {
                                   type="number"
                                   value={newActNumber}
                                   onChange={e => setNewActNumber(e.target.value)}
-                                  placeholder="New Act #"
+                                  placeholder={texts.editor.roomEditor.newActPlaceholder}
                                   min="1"
                                   className="w-full px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded bg-slate-50 dark:bg-slate-700"
                               />
@@ -2667,7 +2668,7 @@ const Editor: React.FC = () => {
            {/* IMAGE UPLOADERS */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
             {['image', 'mapImage', 'solvedImage'].map(prop => {
-                const title = { image: 'Room Image', mapImage: 'Map Image', solvedImage: 'Solved State Image' }[prop] || '';
+                const title = { image: texts.editor.roomEditor.roomImage, mapImage: texts.editor.roomEditor.mapImage, solvedImage: texts.editor.roomEditor.solvedStateImage }[prop] || '';
                 const imageId = currentRoom[prop as keyof RoomType] as string | null;
                 return (
                     <div key={prop}>
@@ -2679,7 +2680,7 @@ const Editor: React.FC = () => {
                                 {!imageId && (
                                     <div className="text-center text-slate-400 dark:text-slate-500 group-hover:opacity-0 transition-opacity">
                                         <Icon as="gallery" className="w-10 h-10 mx-auto" />
-                                        <p className="text-xs mt-1">Upload Image</p>
+                                        <p className="text-xs mt-1">{texts.editor.roomEditor.uploadImage}</p>
                                     </div>
                                 )}
                             </label>
@@ -2688,20 +2689,20 @@ const Editor: React.FC = () => {
                                 <label className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors cursor-pointer">
                                   <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], prop as 'image' | 'mapImage' | 'solvedImage')} className="sr-only" />
                                   <Icon as="edit" className="w-3.5 h-3.5" />
-                                  Upload New
+                                  {texts.editor.assetUploader.uploadNew}
                                 </label>
                                 <button
                                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAssetLibrary(prop as 'image' | 'mapImage' | 'solvedImage'); }}
                                   className="pointer-events-auto flex items-center gap-1.5 text-xs px-2 py-1 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300 transition-colors"
                                 >
                                   <Icon as="gallery" className="w-3.5 h-3.5" />
-                                  From Library
+                                  {texts.editor.assetUploader.fromLibrary}
                                 </button>
                                 {imageId && (
                                   <button
                                     onClick={(e) => { e.preventDefault(); e.stopPropagation(); changeRoomProperty(prop as keyof RoomType, null); }}
                                     className="pointer-events-auto p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
-                                    title="Clear Image"
+                                    title={texts.editor.assetUploader.clearImage}
                                   >
                                     <Icon as="trash" className="w-4 h-4" />
                                   </button>
@@ -2720,32 +2721,32 @@ const Editor: React.FC = () => {
               checked={currentRoom.isFullScreenImage} 
               onChange={e => changeRoomProperty('isFullScreenImage', e.target.checked)} 
             />
-            Display main room image full-screen (hides sidebar).
+            {texts.editor.roomEditor.displayFullscreen}
           </label>
 
           {/* Room Descriptions */}
           <div className="grid grid-cols-2 gap-6">
             <div>
               <div className="flex justify-between items-center mb-1">
-                <h3 className="font-semibold text-slate-700 dark:text-slate-300">Room Description</h3>
-                <button onClick={() => setModalContent({ type: 'notes', content: editingRoomNotes })} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full text-slate-400 dark:text-slate-500" title="Edit in fullscreen">
+                <h3 className="font-semibold text-slate-700 dark:text-slate-300">{texts.editor.roomEditor.roomDescription}</h3>
+                <button onClick={() => setModalContent({ type: 'notes', content: editingRoomNotes })} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full text-slate-400 dark:text-slate-500" title={texts.editor.roomEditor.editFullscreen}>
                   <Icon as="expand" className="w-4 h-4"/>
                 </button>
               </div>
               <div className="flex items-center gap-1 border border-slate-300 dark:border-slate-600 rounded-t-lg bg-slate-50 dark:bg-slate-700/50 p-1">
-                  <button onClick={() => applyFormatting('bold', 'notes')} title="Bold" className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded font-bold">B</button>
-                  <button onClick={() => applyFormatting('italic', 'notes')} title="Italic" className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded italic">I</button>
+                  <button onClick={() => applyFormatting('bold', 'notes')} title={texts.editor.formatting.bold} className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded font-bold">B</button>
+                  <button onClick={() => applyFormatting('italic', 'notes')} title={texts.editor.formatting.italic} className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded italic">I</button>
                   <div className="h-5 w-px bg-slate-300 dark:bg-slate-600 mx-1"></div>
-                  <button onClick={() => applyFormatting('highlight', 'notes', 'y')} title="Highlight Yellow" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
+                  <button onClick={() => applyFormatting('highlight', 'notes', 'y')} title={texts.editor.formatting.highlightYellow} className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
                       <div className="w-4 h-4 rounded-sm bg-yellow-400 border border-yellow-500"></div>
                   </button>
-                   <button onClick={() => applyFormatting('highlight', 'notes', 'c')} title="Highlight Cyan" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
+                   <button onClick={() => applyFormatting('highlight', 'notes', 'c')} title={texts.editor.formatting.highlightCyan} className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
                       <div className="w-4 h-4 rounded-sm bg-cyan-400 border border-cyan-500"></div>
                   </button>
-                   <button onClick={() => applyFormatting('highlight', 'notes', 'm')} title="Highlight Pink" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
+                   <button onClick={() => applyFormatting('highlight', 'notes', 'm')} title={texts.editor.formatting.highlightPink} className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
                       <div className="w-4 h-4 rounded-sm bg-pink-400 border border-pink-500"></div>
                   </button>
-                   <button onClick={() => applyFormatting('highlight', 'notes', 'l')} title="Highlight Lime" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
+                   <button onClick={() => applyFormatting('highlight', 'notes', 'l')} title={texts.editor.formatting.highlightLime} className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
                       <div className="w-4 h-4 rounded-sm bg-lime-400 border border-lime-500"></div>
                   </button>
               </div>
@@ -2753,31 +2754,31 @@ const Editor: React.FC = () => {
                   ref={descriptionTextareaRef}
                   value={editingRoomNotes} 
                   onChange={e => setEditingRoomNotes(e.target.value)} 
-                  placeholder="The room is dark and smells of mildew..."
+                  placeholder={texts.editor.roomEditor.descriptionPlaceholder}
                   className="w-full h-48 px-3 py-2 border border-t-0 border-slate-300 dark:border-slate-600 rounded-b-lg bg-slate-50 dark:bg-slate-700 focus:outline-none resize-y"
               />
             </div>
             <div>
               <div className="flex justify-between items-center mb-1">
-                  <h3 className="font-semibold text-slate-700 dark:text-slate-300">Solved Description</h3>
-                  <button onClick={() => setModalContent({ type: 'solvedNotes', content: editingRoomSolvedNotes })} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full text-slate-400 dark:text-slate-500" title="Edit in fullscreen">
+                  <h3 className="font-semibold text-slate-700 dark:text-slate-300">{texts.editor.roomEditor.solvedDescription}</h3>
+                  <button onClick={() => setModalContent({ type: 'solvedNotes', content: editingRoomSolvedNotes })} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full text-slate-400 dark:text-slate-500" title={texts.editor.roomEditor.editFullscreen}>
                     <Icon as="expand" className="w-4 h-4"/>
                   </button>
               </div>
               <div className="flex items-center gap-1 border border-slate-300 dark:border-slate-600 rounded-t-lg bg-slate-50 dark:bg-slate-700/50 p-1">
-                  <button onClick={() => applyFormatting('bold', 'solvedNotes')} title="Bold" className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded font-bold">B</button>
-                  <button onClick={() => applyFormatting('italic', 'solvedNotes')} title="Italic" className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded italic">I</button>
+                  <button onClick={() => applyFormatting('bold', 'solvedNotes')} title={texts.editor.formatting.bold} className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded font-bold">B</button>
+                  <button onClick={() => applyFormatting('italic', 'solvedNotes')} title={texts.editor.formatting.italic} className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded italic">I</button>
                   <div className="h-5 w-px bg-slate-300 dark:bg-slate-600 mx-1"></div>
-                  <button onClick={() => applyFormatting('highlight', 'solvedNotes', 'y')} title="Highlight Yellow" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
+                  <button onClick={() => applyFormatting('highlight', 'solvedNotes', 'y')} title={texts.editor.formatting.highlightYellow} className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
                       <div className="w-4 h-4 rounded-sm bg-yellow-400 border border-yellow-500"></div>
                   </button>
-                  <button onClick={() => applyFormatting('highlight', 'solvedNotes', 'c')} title="Highlight Cyan" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
+                  <button onClick={() => applyFormatting('highlight', 'solvedNotes', 'c')} title={texts.editor.formatting.highlightCyan} className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
                       <div className="w-4 h-4 rounded-sm bg-cyan-400 border border-cyan-500"></div>
                   </button>
-                  <button onClick={() => applyFormatting('highlight', 'solvedNotes', 'm')} title="Highlight Pink" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
+                  <button onClick={() => applyFormatting('highlight', 'solvedNotes', 'm')} title={texts.editor.formatting.highlightPink} className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
                       <div className="w-4 h-4 rounded-sm bg-pink-400 border border-pink-500"></div>
                   </button>
-                  <button onClick={() => applyFormatting('highlight', 'solvedNotes', 'l')} title="Highlight Lime" className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
+                  <button onClick={() => applyFormatting('highlight', 'solvedNotes', 'l')} title={texts.editor.formatting.highlightLime} className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
                       <div className="w-4 h-4 rounded-sm bg-lime-400 border border-lime-500"></div>
                   </button>
               </div>
@@ -2785,16 +2786,16 @@ const Editor: React.FC = () => {
                   ref={solvedDescriptionTextareaRef}
                   value={editingRoomSolvedNotes} 
                   onChange={e => setEditingRoomSolvedNotes(e.target.value)} 
-                  placeholder="The room is now brightly lit..."
+                  placeholder={texts.editor.roomEditor.solvedDescriptionPlaceholder}
                   className="w-full h-48 px-3 py-2 border border-t-0 border-slate-300 dark:border-slate-600 rounded-b-lg bg-slate-50 dark:bg-slate-700 focus:outline-none resize-y"
               />
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
             <div>
-              <h3 className="font-semibold text-slate-700 dark:text-slate-300 mb-2">Room Background Color</h3>
+              <h3 className="font-semibold text-slate-700 dark:text-slate-300 mb-2">{texts.editor.roomEditor.backgroundColor}</h3>
               {game.globalBackgroundColor && (
-                  <p className="text-xs text-slate-500 dark:text-slate-400 italic mb-2">Global color is active</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 italic mb-2">{texts.editor.roomEditor.globalColorActive}</p>
               )}
               <div className={`flex flex-wrap gap-2 p-3 bg-slate-100 dark:bg-slate-700/50 rounded-lg ${game.globalBackgroundColor ? 'opacity-50' : ''}`}>
                   {COLORS.map(color => (
@@ -2810,9 +2811,9 @@ const Editor: React.FC = () => {
             </div>
 
             <div>
-              <h3 className="font-semibold text-slate-700 dark:text-slate-300 mb-2">Room Transition</h3>
+              <h3 className="font-semibold text-slate-700 dark:text-slate-300 mb-2">{texts.editor.roomEditor.transition}</h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
-                  Transitions affect entering a room, not exiting.
+                  {texts.editor.roomEditor.transitionDescription}
               </p>
               <div className="flex rounded-lg bg-slate-100 dark:bg-slate-700/50 p-1 max-w-sm">
                   <button
@@ -2823,7 +2824,7 @@ const Editor: React.FC = () => {
                           : 'text-slate-600 dark:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-600/50'
                       }`}
                   >
-                      Instant Cut
+                      {texts.editor.roomEditor.instantCut}
                   </button>
                   <button
                       onClick={() => changeRoomProperty('transitionType', 'fade')}
@@ -2833,13 +2834,13 @@ const Editor: React.FC = () => {
                           : 'text-slate-600 dark:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-600/50'
                       }`}
                   >
-                      Crossfade
+                      {texts.editor.roomEditor.crossfade}
                   </button>
               </div>
               {currentRoom.transitionType === 'fade' && (
                   <div className="mt-3 max-w-sm">
                       <label htmlFor="fade-duration" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                          Fade Duration (seconds)
+                          {texts.editor.roomEditor.fadeDuration}
                       </label>
                       <input
                           id="fade-duration"
@@ -2855,13 +2856,13 @@ const Editor: React.FC = () => {
             </div>
             
             <div>
-              <h3 className="font-semibold text-slate-700 dark:text-slate-300 mb-2">When entering this room</h3>
+              <h3 className="font-semibold text-slate-700 dark:text-slate-300 mb-2">{texts.editor.roomEditor.onRoomEnter}</h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
-                  Automatically remove objects from player inventory.
+                  {texts.editor.roomEditor.onRoomEnterDescription}
               </p>
               <div className="relative" ref={objectRemoveDropdownRef}>
                   <button type="button" onClick={() => setOpenObjectRemoveDropdown(prev => !prev)} className="w-full text-left px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 flex justify-between items-center text-sm">
-                      <span>{`${currentRoom.objectRemoveIds?.length || 0} objects selected`}</span>
+                      <span>{`${currentRoom.objectRemoveIds?.length || 0} ${texts.editor.roomEditor.objectsSelected}`}</span>
                       <Icon as="chevron-down" className={`w-4 h-4 transition-transform ${openObjectRemoveDropdown ? 'rotate-180' : ''}`} />
                   </button>
                   {openObjectRemoveDropdown && (
@@ -2871,7 +2872,7 @@ const Editor: React.FC = () => {
                                   type="text"
                                   value={objectRemoveSearch}
                                   onChange={(e) => setObjectRemoveSearch(e.target.value)}
-                                  placeholder="Search all game objects..."
+                                  placeholder={texts.editor.roomEditor.searchAllObjects}
                                   className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700 text-sm"
                               />
                           </div>
@@ -2894,7 +2895,7 @@ const Editor: React.FC = () => {
                                       </label>
                                   ))
                               ) : (
-                                  <p className="text-xs text-slate-500 dark:text-slate-400 italic text-center py-2">No matching objects found.</p>
+                                  <p className="text-xs text-slate-500 dark:text-slate-400 italic text-center py-2">{texts.editor.roomEditor.noMatchingObjects}</p>
                               )}
                           </div>
                       </div>
@@ -2903,7 +2904,7 @@ const Editor: React.FC = () => {
               <textarea 
                   value={editingRoomObjectRemoveText} 
                   onChange={e => setEditingRoomObjectRemoveText(e.target.value)} 
-                  placeholder="Optional text to show players when objects are removed."
+                  placeholder={texts.editor.roomEditor.objectRemovePlaceholder}
                   className="w-full mt-2 h-20 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:outline-none resize-y text-sm"
               />
             </div>
@@ -2915,8 +2916,8 @@ const Editor: React.FC = () => {
           <div className="flex-1 overflow-y-auto space-y-6 pr-2 -mr-2">
               <div>
                   <div className="flex justify-between items-center mb-2">
-                      <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300">Objects in this Room</h3>
-                      <button onClick={addObject} className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full" title="Add Object">
+                      <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300">{texts.editor.dynamicContent.objectsTitle}</h3>
+                      <button onClick={addObject} className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full" title={texts.editor.dynamicContent.addObject}>
                           <Icon as="plus" className="w-5 h-5" />
                       </button>
                   </div>
@@ -2929,12 +2930,12 @@ const Editor: React.FC = () => {
                          return (
                             <div key={obj.id} className="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-700">
                                 <div className="flex justify-between items-start">
-                                    <p className="font-semibold flex-1 min-w-0 break-words">{obj.name || <span className="italic text-slate-500">Untitled Object</span>}</p>
+                                    <p className="font-semibold flex-1 min-w-0 break-words">{obj.name || <span className="italic text-slate-500">{texts.editor.dynamicContent.untitledObject}</span>}</p>
                                     <div className="flex items-center gap-1 flex-shrink-0 ml-2">
-                                      <button onClick={() => setObjectModalState({ object: { ...obj }, index })} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title="Edit Object">
+                                      <button onClick={() => setObjectModalState({ object: { ...obj }, index })} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title={texts.editor.dynamicContent.editObject}>
                                         <Icon as="edit" className="w-4 h-4" />
                                       </button>
-                                      <button onClick={() => deleteObject(index)} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title="Delete Object">
+                                      <button onClick={() => deleteObject(index)} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title={texts.editor.dynamicContent.deleteObject}>
                                         <Icon as="trash" className="w-4 h-4" />
                                       </button>
                                     </div>
@@ -2942,24 +2943,24 @@ const Editor: React.FC = () => {
                                 {hasStatusIndicators && (
                                   <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 mt-2">
                                       {locks && (
-                                          <div className="flex items-center text-red-500" title={`Locked by: ${locks.join(', ')}`}>
+                                          <div className="flex items-center text-red-500" title={`${texts.editor.dynamicContent.lockedBy} ${locks.join(', ')}`}>
                                               <Icon as="lock" className="w-3 h-3" />
                                           </div>
                                       )}
                                       {isPickupable && (
-                                          <div title="Pickupable">
+                                          <div title={texts.editor.dynamicContent.pickupable}>
                                               <Icon as="hand-expand" className="w-3 h-3" />
                                           </div>
                                       )}
                                       {obj.showInRoomImage && obj.inRoomImage && (
-                                          <div title="Initially visible in room">
+                                          <div title={texts.editor.dynamicContent.initiallyVisible}>
                                               <Icon as="eye" className="w-3 h-3" />
                                           </div>
                                       )}
                                       {game.inventoryLayout === 'dual' && isPickupable && (
                                           <div 
                                             className="flex items-center justify-center w-3 h-3 bg-slate-200 dark:bg-slate-600 rounded-sm text-[9px] font-bold" 
-                                            title={`Goes to ${obj.inventorySlot === 2 ? (game.inventory2Title || 'Inventory 2') : (game.inventory1Title || 'Inventory 1')}`}
+                                            title={`${texts.editor.dynamicContent.goesTo} ${obj.inventorySlot === 2 ? (game.inventory2Title || 'Inventory 2') : (game.inventory1Title || 'Inventory 1')}`}
                                           >
                                               {obj.inventorySlot || 1}
                                           </div>
@@ -2969,14 +2970,14 @@ const Editor: React.FC = () => {
                             </div>
                          )
                       })}
-                      {editingRoomObjects.length === 0 && <p className="text-sm text-slate-500 dark:text-slate-400 italic">No objects in this room.</p>}
+                      {editingRoomObjects.length === 0 && <p className="text-sm text-slate-500 dark:text-slate-400 italic">{texts.editor.dynamicContent.noObjects}</p>}
                   </div>
               </div>
 
               <div>
                 <div className="flex justify-between items-center mb-2">
-                  <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300">Player Actions & Host Responses</h3>
-                  <button onClick={addAction} className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full" title="Add Action">
+                  <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300">{texts.editor.dynamicContent.actionsTitle}</h3>
+                  <button onClick={addAction} className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full" title={texts.editor.dynamicContent.addAction}>
                       <Icon as="plus" className="w-5 h-5" />
                   </button>
                 </div>
@@ -3003,20 +3004,20 @@ const Editor: React.FC = () => {
                                         <Icon as="reorder" className="w-5 h-5 text-slate-400 dark:text-slate-500" />
                                     </div>
                                     <div className="flex-grow min-w-0">
-                                      <p className="font-semibold truncate">{action.name || <span className="italic text-slate-500">Untitled Action</span>}</p>
+                                      <p className="font-semibold truncate">{action.name || <span className="italic text-slate-500">{texts.editor.dynamicContent.untitledAction}</span>}</p>
                                       {locks && (
-                                        <div className="flex items-center gap-1 text-xs text-red-500 mt-1" title={`Locked by: ${locks.join(', ')}`}>
+                                        <div className="flex items-center gap-1 text-xs text-red-500 mt-1" title={`${texts.editor.dynamicContent.lockedBy} ${locks.join(', ')}`}>
                                           <Icon as="lock" className="w-3 h-3"/>
-                                          <span>Locked</span>
+                                          <span>{texts.editor.dynamicContent.locked}</span>
                                         </div>
                                       )}
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-1 flex-shrink-0">
-                                  <button onClick={() => setActionModalState({ action: { ...action }, index })} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title="Edit Action">
+                                  <button onClick={() => setActionModalState({ action: { ...action }, index })} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title={texts.editor.dynamicContent.editAction}>
                                     <Icon as="edit" className="w-4 h-4" />
                                   </button>
-                                  <button onClick={(e) => handleDeleteAction(e, index)} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title="Delete Action">
+                                  <button onClick={(e) => handleDeleteAction(e, index)} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title={texts.editor.dynamicContent.deleteAction}>
                                     <Icon as="trash" className="w-4 h-4" />
                                   </button>
                                 </div>
@@ -3024,14 +3025,14 @@ const Editor: React.FC = () => {
                         </div>
                       )
                     })}
-                    {editingRoomActions.length === 0 && <p className="text-sm text-slate-500 dark:text-slate-400 italic">No actions in this room.</p>}
+                    {editingRoomActions.length === 0 && <p className="text-sm text-slate-500 dark:text-slate-400 italic">{texts.editor.dynamicContent.noActions}</p>}
                 </div>
               </div>
 
               <div>
                 <div className="flex justify-between items-center mb-2">
-                  <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300">Puzzles in this Room</h3>
-                  <button onClick={addPuzzle} className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full" title="Add Puzzle">
+                  <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300">{texts.editor.dynamicContent.puzzlesTitle}</h3>
+                  <button onClick={addPuzzle} className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full" title={texts.editor.dynamicContent.addPuzzle}>
                       <Icon as="plus" className="w-5 h-5" />
                   </button>
                 </div>
@@ -3058,20 +3059,20 @@ const Editor: React.FC = () => {
                                     <Icon as="reorder" className="w-5 h-5 text-slate-400 dark:text-slate-500" />
                                 </div>
                                 <div className="flex-grow min-w-0">
-                                  <p className="font-semibold truncate">{puzzle.name || <span className="italic text-slate-500">Untitled Puzzle</span>}</p>
+                                  <p className="font-semibold truncate">{puzzle.name || <span className="italic text-slate-500">{texts.editor.dynamicContent.untitledPuzzle}</span>}</p>
                                   {locks && (
-                                    <div className="flex items-center gap-1 text-xs text-red-500 mt-1" title={`Locked by: ${locks.join(', ')}`}>
+                                    <div className="flex items-center gap-1 text-xs text-red-500 mt-1" title={`${texts.editor.dynamicContent.lockedBy} ${locks.join(', ')}`}>
                                       <Icon as="lock" className="w-3 h-3"/>
-                                      <span>Locked</span>
+                                      <span>{texts.editor.dynamicContent.locked}</span>
                                     </div>
                                   )}
                                 </div>
                             </div>
                             <div className="flex items-center gap-1 flex-shrink-0">
-                              <button onClick={() => setPuzzleModalState({ puzzle: { ...puzzle }, index })} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title="Edit Puzzle">
+                              <button onClick={() => setPuzzleModalState({ puzzle: { ...puzzle }, index })} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title={texts.editor.dynamicContent.editPuzzle}>
                                 <Icon as="edit" className="w-4 h-4" />
                               </button>
-                              <button onClick={(e) => handleDeletePuzzle(e, index)} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title="Delete Puzzle">
+                              <button onClick={(e) => handleDeletePuzzle(e, index)} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full" title={texts.editor.dynamicContent.deletePuzzle}>
                                 <Icon as="trash" className="w-4 h-4" />
                               </button>
                             </div>
@@ -3079,7 +3080,7 @@ const Editor: React.FC = () => {
                         </div>
                       )
                     })}
-                    {editingRoomPuzzles.length === 0 && <p className="text-sm text-slate-500 dark:text-slate-400 italic">No puzzles in this room.</p>}
+                    {editingRoomPuzzles.length === 0 && <p className="text-sm text-slate-500 dark:text-slate-400 italic">{texts.editor.dynamicContent.noPuzzles}</p>}
                 </div>
               </div>
           </div>

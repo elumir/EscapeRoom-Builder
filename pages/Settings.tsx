@@ -4,6 +4,7 @@ import * as gameService from '../services/presentationService';
 import type { Game, Asset, SoundtrackTrack, SoundboardClip } from '../types';
 import Icon from '../components/Icon';
 import AudioPreviewPlayer from '../components/AudioPreviewPlayer';
+import * as texts from '../editor-text.json';
 
 type Status = 'loading' | 'success' | 'error';
 type Section = 'general' | 'sharing' | 'appearance' | 'soundtrack' | 'soundboard' | 'fonts' | 'danger';
@@ -60,7 +61,7 @@ const Settings: React.FC = () => {
             setGame({ ...game, visibility: newVisibility });
         } catch (error) {
             console.error("Failed to update visibility:", error);
-            alert("Could not update game visibility. Please try again.");
+            alert(texts.settings.alerts.visibilityFailed);
         }
     };
     
@@ -91,7 +92,7 @@ const Settings: React.FC = () => {
             setIsAssetModalOpen(false);
         } else if (assetModalTarget === 'soundboard') {
             if (game.soundboard?.some(clip => clip.id === assetId)) {
-                alert('This sound clip has already been added to the sound board.');
+                alert(texts.settings.alerts.soundAlreadyAdded);
             } else {
                 const newClip: SoundboardClip = { id: asset.id, name: asset.name };
                 const newSoundboard = [...(game.soundboard || []), newClip];
@@ -117,7 +118,7 @@ const Settings: React.FC = () => {
     
         } catch (error) {
             console.error("Audio upload failed:", error);
-            alert("Failed to upload audio file. Please try again.");
+            alert(texts.settings.alerts.audioUploadFailed);
         }
     };
 
@@ -129,13 +130,13 @@ const Settings: React.FC = () => {
             setAssetLibrary(updatedAssets);
         } catch (error) {
             console.error("Font upload failed:", error);
-            alert("Failed to upload font file. Please try again.");
+            alert(texts.settings.alerts.fontUploadFailed);
         }
     };
 
     const handleDeleteFont = async (assetId: string) => {
         if (!game) return;
-        if (window.confirm('Are you sure you want to delete this font?')) {
+        if (window.confirm(texts.settings.alerts.deleteFontConfirm)) {
             const success = await gameService.deleteAsset(game.id, assetId);
             if (success) {
                 setAssetLibrary(prev => prev.filter(a => a.id !== assetId));
@@ -144,7 +145,7 @@ const Settings: React.FC = () => {
                     handleGamePropertyChange('fontFamily', null);
                 }
             } else {
-                alert('Failed to delete font.');
+                alert(texts.settings.alerts.deleteFontFailed);
             }
         }
     };
@@ -229,24 +230,24 @@ const Settings: React.FC = () => {
 
     const handleDeleteGame = async () => {
         if (!game) return;
-        if (window.confirm('Are you absolutely sure you want to delete this game? This action is permanent and cannot be undone.')) {
+        if (window.confirm(texts.settings.alerts.deleteGameConfirm)) {
             const success = await gameService.deleteGame(game.id);
             if (success) {
                 navigate('/');
             } else {
-                alert('Failed to delete game. Please try again.');
+                alert(texts.settings.alerts.deleteGameFailed);
             }
         }
     };
     
     const SECTIONS: { id: Section, name: string, icon: React.ComponentProps<typeof Icon>['as'] }[] = [
-        { id: 'general', name: 'General', icon: 'settings' },
-        { id: 'sharing', name: 'Sharing', icon: 'share' },
-        { id: 'appearance', name: 'Appearance', icon: 'swatch' },
-        { id: 'soundtrack', name: 'Soundtrack', icon: 'audio' },
-        { id: 'soundboard', name: 'Sound Board', icon: 'play' },
-        { id: 'fonts', name: 'Fonts', icon: 'font' },
-        { id: 'danger', name: 'Danger Zone', icon: 'trash' },
+        { id: 'general', name: texts.settings.sidebar.general, icon: 'settings' },
+        { id: 'sharing', name: texts.settings.sidebar.sharing, icon: 'share' },
+        { id: 'appearance', name: texts.settings.sidebar.appearance, icon: 'swatch' },
+        { id: 'soundtrack', name: texts.settings.sidebar.soundtrack, icon: 'audio' },
+        { id: 'soundboard', name: texts.settings.sidebar.soundboard, icon: 'play' },
+        { id: 'fonts', name: texts.settings.sidebar.fonts, icon: 'font' },
+        { id: 'danger', name: texts.settings.sidebar.danger, icon: 'trash' },
     ];
 
     const COLORS = ['#000000', '#ffffff', '#f87171', '#fbbf24', '#34d399', '#60a5fa', '#a78bfa'];
@@ -254,11 +255,11 @@ const Settings: React.FC = () => {
     const fontAssets = assetLibrary.filter(asset => asset.mime_type.startsWith('font/'));
 
     if (status === 'loading') {
-        return <div className="flex items-center justify-center h-screen">Loading settings...</div>;
+        return <div className="flex items-center justify-center h-screen">{texts.settings.loading}</div>;
     }
     
     if (status === 'error' || !game) {
-        return <div className="flex items-center justify-center h-screen">Error: Game not found or you do not have permission to view its settings.</div>;
+        return <div className="flex items-center justify-center h-screen">{texts.settings.error}</div>;
     }
 
     return (
@@ -267,7 +268,7 @@ const Settings: React.FC = () => {
                 <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[100] backdrop-blur-sm">
                     <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-2xl w-full max-w-4xl h-[80vh] flex flex-col">
                         <div className="flex justify-between items-center mb-4">
-                            <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">Audio Library</h2>
+                            <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">{texts.modals.assetLibrary.audioTitle}</h2>
                             <button onClick={() => setIsAssetModalOpen(false)} className="p-1.5 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700">
                                 <Icon as="close" className="w-5 h-5" />
                             </button>
@@ -275,7 +276,7 @@ const Settings: React.FC = () => {
                         <div className="mb-4">
                             <label className="w-full cursor-pointer bg-brand-50 hover:bg-brand-100 text-brand-700 font-semibold py-2 px-4 rounded-lg inline-flex items-center justify-center transition-colors">
                                 <Icon as="plus" className="w-5 h-5 mr-2" />
-                                <span>Upload New Audio File</span>
+                                <span>{texts.modals.assetLibrary.uploadNewAudio}</span>
                                 <input type="file" className="hidden" accept="audio/*" onChange={(e) => e.target.files?.[0] && handleAudioUpload(e.target.files[0])} />
                             </label>
                         </div>
@@ -294,7 +295,7 @@ const Settings: React.FC = () => {
                                         onClick={() => handleSelectAsset(asset.id)}
                                         className="w-full text-center px-3 py-1.5 bg-brand-600 text-white rounded-md text-sm hover:bg-brand-700 transition-colors"
                                     >
-                                        Select
+                                        {texts.modals.assetLibrary.select}
                                     </button>
                                 </div>
                             ))}
@@ -304,12 +305,12 @@ const Settings: React.FC = () => {
             )}
             <header className="bg-white dark:bg-slate-800 shadow-md p-2 flex justify-between items-center z-10">
                 <div className="flex items-center gap-4">
-                    <h1 className="text-xl font-bold text-brand-600 dark:text-brand-400 p-2">Settings: {game.title}</h1>
+                    <h1 className="text-xl font-bold text-brand-600 dark:text-brand-400 p-2">{texts.settings.header.titlePrefix} {game.title}</h1>
                 </div>
                 <div className="flex items-center gap-2">
                     <Link to={`/editor/${id}`} className="flex items-center gap-2 px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">
                         <Icon as="edit" className="w-5 h-5" />
-                        Back to Editor
+                        {texts.settings.header.backToEditor}
                     </Link>
                 </div>
             </header>
@@ -337,10 +338,10 @@ const Settings: React.FC = () => {
                 <div className="flex-1 overflow-y-auto p-8">
                     {activeSection === 'general' && (
                         <div>
-                            <h2 className="text-2xl font-bold mb-6">General Settings</h2>
+                            <h2 className="text-2xl font-bold mb-6">{texts.settings.sections.general.title}</h2>
                             <div className="max-w-xl space-y-6">
                                 <div>
-                                    <label htmlFor="gameTitle" className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Game Title</label>
+                                    <label htmlFor="gameTitle" className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">{texts.settings.sections.general.gameTitleLabel}</label>
                                     <input
                                         id="gameTitle"
                                         type="text"
@@ -350,7 +351,7 @@ const Settings: React.FC = () => {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Inventory Layout</label>
+                                    <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">{texts.settings.sections.general.inventoryLayoutLabel}</label>
                                     <div className="flex rounded-lg bg-slate-200 dark:bg-slate-700/50 p-1">
                                         <button
                                             onClick={() => handleGamePropertyChange('inventoryLayout', 'single')}
@@ -360,7 +361,7 @@ const Settings: React.FC = () => {
                                                 : 'text-slate-600 dark:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-600/50'
                                             }`}
                                         >
-                                            Single Inventory
+                                            {texts.settings.sections.general.singleInventory}
                                         </button>
                                         <button
                                             onClick={() => handleGamePropertyChange('inventoryLayout', 'dual')}
@@ -370,13 +371,13 @@ const Settings: React.FC = () => {
                                                 : 'text-slate-600 dark:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-600/50'
                                             }`}
                                         >
-                                            Dual Inventories
+                                            {texts.settings.sections.general.dualInventories}
                                         </button>
                                     </div>
                                     {game.inventoryLayout === 'dual' && (
                                         <div className="mt-4 grid grid-cols-2 gap-4">
                                             <div>
-                                                <label htmlFor="inv1Title" className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Inventory 1 Title</label>
+                                                <label htmlFor="inv1Title" className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">{texts.settings.sections.general.inventory1Title}</label>
                                                 <input
                                                     id="inv1Title"
                                                     type="text"
@@ -386,7 +387,7 @@ const Settings: React.FC = () => {
                                                 />
                                             </div>
                                             <div>
-                                                <label htmlFor="inv2Title" className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Inventory 2 Title</label>
+                                                <label htmlFor="inv2Title" className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">{texts.settings.sections.general.inventory2Title}</label>
                                                 <input
                                                     id="inv2Title"
                                                     type="text"
@@ -399,9 +400,9 @@ const Settings: React.FC = () => {
                                     )}
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Discarded Object Behavior</label>
+                                    <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">{texts.settings.sections.general.discardBehavior}</label>
                                     <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
-                                        Choose what happens when an object is removed from the presenter's inventory.
+                                        {texts.settings.sections.general.discardDescription}
                                     </p>
                                     <div className="flex rounded-lg bg-slate-200 dark:bg-slate-700/50 p-1">
                                         <button
@@ -412,7 +413,7 @@ const Settings: React.FC = () => {
                                                 : 'text-slate-600 dark:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-600/50'
                                             }`}
                                         >
-                                            Move to Discard Pile
+                                            {texts.settings.sections.general.moveToDiscard}
                                         </button>
                                         <button
                                             onClick={() => handleGamePropertyChange('discardMode', 'return_to_room')}
@@ -422,14 +423,14 @@ const Settings: React.FC = () => {
                                                 : 'text-slate-600 dark:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-600/50'
                                             }`}
                                         >
-                                            Return to Original Room
+                                            {texts.settings.sections.general.returnToRoom}
                                         </button>
                                     </div>
                                 </div>
                                 <div>
                                     <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer">
                                       <input type="checkbox" className="rounded border-slate-400 text-brand-600 focus:ring-brand-500" checked={game.hideAvailableObjects || false} onChange={e => handleGamePropertyChange('hideAvailableObjects', e.target.checked)} />
-                                      Hide the "Available to Pick Up" section for the presenter.
+                                      {texts.settings.sections.general.hideAvailableObjects}
                                     </label>
                                 </div>
                             </div>
@@ -437,12 +438,12 @@ const Settings: React.FC = () => {
                     )}
                     {activeSection === 'sharing' && (
                         <div>
-                            <h2 className="text-2xl font-bold mb-6">Sharing & Visibility</h2>
+                            <h2 className="text-2xl font-bold mb-6">{texts.settings.sections.sharing.title}</h2>
                             <div className="max-w-xl space-y-6 bg-white dark:bg-slate-800 p-6 rounded-lg border border-slate-200 dark:border-slate-700">
-                                <h3 className="text-lg font-semibold">Game Visibility</h3>
+                                <h3 className="text-lg font-semibold">{texts.settings.sections.sharing.visibility}</h3>
                                 <div className="flex items-center gap-4">
                                     <p className={`font-semibold text-lg ${game.visibility === 'public' ? 'text-sky-500' : 'text-slate-500'}`}>
-                                        {game.visibility === 'public' ? 'Public' : 'Private'}
+                                        {game.visibility === 'public' ? texts.settings.sections.sharing.public : texts.settings.sections.sharing.private}
                                     </p>
                                     <label className="flex items-center cursor-pointer">
                                         <input type="checkbox" checked={game.visibility === 'public'} onChange={e => handleVisibilityChange(e.target.checked)} className="sr-only peer" />
@@ -451,27 +452,27 @@ const Settings: React.FC = () => {
                                 </div>
                                 {game.visibility === 'public' ? (
                                     <div>
-                                        <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">Anyone with the link can view and present this game.</p>
+                                        <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">{texts.settings.sections.sharing.publicDescription}</p>
                                         <div className="flex gap-2">
                                             <input type="text" readOnly value={`${window.location.origin}/game/presenter/${game.id}`} className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-100 dark:bg-slate-700/50" />
                                             <button onClick={handleCopyLink} className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors">
-                                                {copySuccess ? 'Copied!' : 'Copy'}
+                                                {copySuccess ? texts.settings.sections.sharing.copySuccess : texts.settings.sections.sharing.copy}
                                             </button>
                                         </div>
                                     </div>
                                 ) : (
-                                    <p className="text-sm text-slate-500 dark:text-slate-400">Only you can access and present this game.</p>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400">{texts.settings.sections.sharing.privateDescription}</p>
                                 )}
                             </div>
                         </div>
                     )}
                     {activeSection === 'appearance' && (
                         <div>
-                             <h2 className="text-2xl font-bold mb-6">Appearance</h2>
+                             <h2 className="text-2xl font-bold mb-6">{texts.settings.sections.appearance.title}</h2>
                             <div className="max-w-xl space-y-6">
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Global Background Color</label>
-                                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">Overrides individual room colors. Unselect to use per-room settings.</p>
+                                    <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">{texts.settings.sections.appearance.globalBgColor}</label>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">{texts.settings.sections.appearance.globalBgColorDescription}</p>
                                     <div className="flex flex-wrap gap-2 p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg">
                                         {COLORS.map(color => (
                                             <button 
@@ -484,7 +485,7 @@ const Settings: React.FC = () => {
                                     </div>
                                 </div>
                                  <div>
-                                    <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Map Display Mode</label>
+                                    <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">{texts.settings.sections.appearance.mapDisplayMode}</label>
                                      <div className="flex rounded-lg bg-slate-200 dark:bg-slate-700/50 p-1">
                                          <button
                                              onClick={() => handleGamePropertyChange('mapDisplayMode', 'layered')}
@@ -494,7 +495,7 @@ const Settings: React.FC = () => {
                                                  : 'text-slate-600 dark:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-600/50'
                                              }`}
                                          >
-                                             Layered Maps
+                                             {texts.settings.sections.appearance.layeredMaps}
                                          </button>
                                          <button
                                              onClick={() => handleGamePropertyChange('mapDisplayMode', 'room-specific')}
@@ -504,7 +505,7 @@ const Settings: React.FC = () => {
                                                  : 'text-slate-600 dark:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-600/50'
                                              }`}
                                          >
-                                             Room-Specific Map
+                                             {texts.settings.sections.appearance.roomSpecificMap}
                                          </button>
                                      </div>
                                 </div>
@@ -513,22 +514,22 @@ const Settings: React.FC = () => {
                     )}
                     {activeSection === 'soundtrack' && (
                         <div>
-                            <h2 className="text-2xl font-bold mb-6">Soundtrack</h2>
+                            <h2 className="text-2xl font-bold mb-6">{texts.settings.sections.soundtrack.title}</h2>
                             <div className="max-w-xl space-y-6">
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Playback Mode</label>
+                                    <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">{texts.settings.sections.soundtrack.playbackMode}</label>
                                     <div className="flex rounded-lg bg-slate-200 dark:bg-slate-700/50 p-1">
-                                        <button onClick={() => handleGamePropertyChange('soundtrackMode', 'sequential')} className={`flex-1 text-center text-sm px-3 py-1.5 rounded-md transition-colors ${(game.soundtrackMode === 'sequential' || !game.soundtrackMode) ? 'bg-white dark:bg-slate-600 shadow-sm font-semibold' : 'text-slate-600 dark:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-600/50'}`}>Sequential</button>
-                                        <button onClick={() => handleGamePropertyChange('soundtrackMode', 'shuffle')} className={`flex-1 text-center text-sm px-3 py-1.5 rounded-md transition-colors ${game.soundtrackMode === 'shuffle' ? 'bg-white dark:bg-slate-600 shadow-sm font-semibold' : 'text-slate-600 dark:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-600/50'}`}>Shuffle</button>
-                                        <button onClick={() => handleGamePropertyChange('soundtrackMode', 'loop')} className={`flex-1 text-center text-sm px-3 py-1.5 rounded-md transition-colors ${game.soundtrackMode === 'loop' ? 'bg-white dark:bg-slate-600 shadow-sm font-semibold' : 'text-slate-600 dark:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-600/50'}`}>Loop Current</button>
+                                        <button onClick={() => handleGamePropertyChange('soundtrackMode', 'sequential')} className={`flex-1 text-center text-sm px-3 py-1.5 rounded-md transition-colors ${(game.soundtrackMode === 'sequential' || !game.soundtrackMode) ? 'bg-white dark:bg-slate-600 shadow-sm font-semibold' : 'text-slate-600 dark:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-600/50'}`}>{texts.settings.sections.soundtrack.sequential}</button>
+                                        <button onClick={() => handleGamePropertyChange('soundtrackMode', 'shuffle')} className={`flex-1 text-center text-sm px-3 py-1.5 rounded-md transition-colors ${game.soundtrackMode === 'shuffle' ? 'bg-white dark:bg-slate-600 shadow-sm font-semibold' : 'text-slate-600 dark:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-600/50'}`}>{texts.settings.sections.soundtrack.shuffle}</button>
+                                        <button onClick={() => handleGamePropertyChange('soundtrackMode', 'loop')} className={`flex-1 text-center text-sm px-3 py-1.5 rounded-md transition-colors ${game.soundtrackMode === 'loop' ? 'bg-white dark:bg-slate-600 shadow-sm font-semibold' : 'text-slate-600 dark:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-600/50'}`}>{texts.settings.sections.soundtrack.loopCurrent}</button>
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Volume: {Math.round((game.soundtrackVolume ?? 0.5) * 100)}%</label>
+                                    <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">{texts.settings.sections.soundtrack.volume} {Math.round((game.soundtrackVolume ?? 0.5) * 100)}%</label>
                                     <input type="range" min="0" max="1" step="0.05" value={game.soundtrackVolume ?? 0.5} onChange={e => handleGamePropertyChange('soundtrackVolume', parseFloat(e.target.value))} className="w-full" />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Tracks</label>
+                                    <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">{texts.settings.sections.soundtrack.tracks}</label>
                                     <div className="space-y-2">
                                         {(game.soundtrack || []).map(track => (
                                             <div key={track.id} className="flex items-center gap-2 p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md">
@@ -543,17 +544,17 @@ const Settings: React.FC = () => {
                                             </div>
                                         ))}
                                     </div>
-                                    <button onClick={() => openAssetModal('soundtrack')} className="mt-4 flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm">Add Track</button>
+                                    <button onClick={() => openAssetModal('soundtrack')} className="mt-4 flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm">{texts.settings.sections.soundtrack.addTrack}</button>
                                 </div>
                             </div>
                         </div>
                     )}
                     {activeSection === 'soundboard' && (
                         <div>
-                             <h2 className="text-2xl font-bold mb-6">Sound Board</h2>
+                             <h2 className="text-2xl font-bold mb-6">{texts.settings.sections.soundboard.title}</h2>
                               <div className="max-w-xl space-y-6">
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Clips</label>
+                                    <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">{texts.settings.sections.soundboard.clips}</label>
                                     <div className="space-y-2">
                                         {(game.soundboard || []).map((clip, index) => (
                                             <div
@@ -583,21 +584,21 @@ const Settings: React.FC = () => {
                                             </div>
                                         ))}
                                     </div>
-                                    <button onClick={() => openAssetModal('soundboard')} className="mt-4 flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm">Add Clip</button>
+                                    <button onClick={() => openAssetModal('soundboard')} className="mt-4 flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm">{texts.settings.sections.soundboard.addClip}</button>
                                 </div>
                             </div>
                         </div>
                     )}
                     {activeSection === 'fonts' && (
                         <div>
-                            <h2 className="text-2xl font-bold mb-6">Fonts</h2>
+                            <h2 className="text-2xl font-bold mb-6">{texts.settings.sections.fonts.title}</h2>
                              <div className="max-w-xl space-y-6">
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Custom Fonts</label>
+                                    <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">{texts.settings.sections.fonts.customFonts}</label>
                                     <div className="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg">
                                         <label className="w-full cursor-pointer bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 font-semibold py-2 px-4 rounded-lg inline-flex items-center justify-center transition-colors">
                                             <Icon as="plus" className="w-5 h-5 mr-2" />
-                                            <span>Upload Font File (.ttf, .otf, .woff, .woff2)</span>
+                                            <span>{texts.settings.sections.fonts.uploadFont}</span>
                                             <input type="file" className="hidden" accept=".ttf,.otf,.woff,.woff2" onChange={(e) => e.target.files?.[0] && handleFontUpload(e.target.files[0])} />
                                         </label>
                                         <div className="mt-4 space-y-2">
@@ -613,14 +614,14 @@ const Settings: React.FC = () => {
                                     </div>
                                 </div>
                                  <div>
-                                    <label htmlFor="fontFamily" className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Active Font</label>
+                                    <label htmlFor="fontFamily" className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">{texts.settings.sections.fonts.activeFont}</label>
                                     <select
                                         id="fontFamily"
                                         value={game.fontFamily || ''}
                                         onChange={e => handleGamePropertyChange('fontFamily', e.target.value || null)}
                                         className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-700"
                                     >
-                                        <option value="">Default (System Font)</option>
+                                        <option value="">{texts.settings.sections.fonts.defaultFont}</option>
                                         {fontAssets.map(font => (
                                             <option key={font.id} value={font.name} style={{ fontFamily: `'${font.name}'` }}>
                                                 {font.name}
@@ -633,14 +634,14 @@ const Settings: React.FC = () => {
                     )}
                     {activeSection === 'danger' && (
                         <div>
-                            <h2 className="text-2xl font-bold mb-6">Danger Zone</h2>
+                            <h2 className="text-2xl font-bold mb-6">{texts.settings.sections.danger.title}</h2>
                             <div className="max-w-xl p-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-500/30 rounded-lg">
-                                <h3 className="text-lg font-bold text-red-800 dark:text-red-300">Delete This Game</h3>
+                                <h3 className="text-lg font-bold text-red-800 dark:text-red-300">{texts.settings.sections.danger.deleteGame}</h3>
                                 <p className="mt-2 text-sm text-red-700 dark:text-red-400">
-                                    Once you delete this game, there is no going back. Please be certain. All associated rooms, puzzles, objects, and assets will be permanently removed.
+                                    {texts.settings.sections.danger.deleteWarning}
                                 </p>
                                 <button onClick={handleDeleteGame} className="mt-4 px-4 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors">
-                                    Delete Game Permanently
+                                    {texts.settings.sections.danger.deleteButton}
                                 </button>
                             </div>
                         </div>
