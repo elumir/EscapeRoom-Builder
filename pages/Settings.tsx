@@ -275,14 +275,20 @@ const Settings: React.FC = () => {
                                 <input type="file" className="hidden" accept="audio/*" onChange={(e) => e.target.files?.[0] && handleAudioUpload(e.target.files[0])} />
                             </label>
                         </div>
-                        <div className="flex-grow overflow-y-auto pr-2 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        <div className="flex-grow overflow-y-auto pr-2 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                             {assetLibrary.filter(asset => asset.mime_type.startsWith('audio/')).map(asset => (
-                                <div key={asset.id} className="group relative rounded-md overflow-hidden bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 p-2 flex flex-col justify-between">
-                                    <p className="text-sm font-semibold truncate mb-2">{asset.name}</p>
-                                    <AudioPreviewPlayer assetId={asset.id} />
+                                <div key={asset.id} className="group rounded-md bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 p-3 flex flex-col justify-between">
+                                    <div>
+                                        <div className="flex justify-between items-start gap-2 mb-3">
+                                            <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 flex-grow pr-2 break-words">{asset.name}</p>
+                                            <div onClick={(e) => e.stopPropagation()} className="flex-shrink-0">
+                                                <AudioPreviewPlayer assetId={asset.id} variant="simple" />
+                                            </div>
+                                        </div>
+                                    </div>
                                     <button
                                         onClick={() => handleSelectAsset(asset.id)}
-                                        className="mt-2 w-full text-center px-3 py-1.5 bg-brand-600 text-white rounded-md text-sm hover:bg-brand-700 transition-colors"
+                                        className="w-full text-center px-3 py-1.5 bg-brand-600 text-white rounded-md text-sm hover:bg-brand-700 transition-colors"
                                     >
                                         Select
                                     </button>
