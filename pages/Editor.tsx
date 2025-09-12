@@ -11,6 +11,7 @@ import AudioPreviewPlayer from '../components/AudioPreviewPlayer';
 import FontLoader from '../components/FontLoader';
 
 type Status = 'loading' | 'success' | 'error';
+type SaveStatus = 'saved' | 'unsaved' | 'saving' | 'error';
 
 const NAME_COLORS = [
     { name: 'Default', value: null, bg: 'bg-slate-400', border: 'border-slate-500' },
@@ -28,6 +29,7 @@ const Editor: React.FC = () => {
   const navigate = useNavigate();
   const [game, setGame] = useState<Game | null>(null);
   const [status, setStatus] = useState<Status>('loading');
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved');
   const [selectedRoomIndex, setSelectedRoomIndex] = useState(0);
   const [editingGameTitle, setEditingGameTitle] = useState('');
   const [editingRoomName, setEditingRoomName] = useState('');
@@ -103,6 +105,7 @@ const Editor: React.FC = () => {
   const placementAreaRef = useRef<HTMLDivElement>(null);
   const dragOffsetRef = useRef({ x: 0, y: 0 });
   const dragImageSizeRef = useRef({ width: 0, height: 0 });
+  const autosaveTimeoutRef = useRef<number | null>(null);
 
   const { objectLockMap, puzzleLockMap, actionLockMap } = useMemo(() => {
     const objectLockMap = new Map<string, string[]>();
@@ -208,19 +211,52 @@ const Editor: React.FC = () => {
     };
   }, []);
 
-  const updateGame = useCallback((updatedGame: Game) => {
+  const updateLocalGame = useCallback((updatedGame: Game) => {
     setGame(updatedGame);
-    gameService.saveGame(updatedGame);
+    setSaveStatus('unsaved');
   }, []);
+  
+  const triggerSave = useCallback(async (manual = false) => {
+      if (!game || saveStatus === 'saving' || (!manual && saveStatus === 'saved')) {
+          return;
+      }
+      if (autosaveTimeoutRef.current) {
+          clearTimeout(autosaveTimeoutRef.current);
+      }
+      setSaveStatus('saving');
+      try {
+          await gameService.saveGame(game);
+          setSaveStatus('saved');
+      } catch (error) {
+          console.error("Failed to save game:", error);
+          setSaveStatus('error');
+      }
+  }, [game, saveStatus]);
+
+  useEffect(() => {
+      if (saveStatus === 'unsaved') {
+          if (autosaveTimeoutRef.current) {
+              clearTimeout(autosaveTimeoutRef.current);
+          }
+          autosaveTimeoutRef.current = window.setTimeout(() => {
+              triggerSave(false);
+          }, 2000);
+      }
+      return () => {
+          if (autosaveTimeoutRef.current) {
+              clearTimeout(autosaveTimeoutRef.current);
+          }
+      };
+  }, [game, saveStatus, triggerSave]);
 
   useEffect(() => {
     if (game && game.title !== editingGameTitle) {
       const handler = setTimeout(() => {
-        updateGame({ ...game, title: editingGameTitle });
+        updateLocalGame({ ...game, title: editingGameTitle });
       }, 500);
       return () => clearTimeout(handler);
     }
-  }, [editingGameTitle, game, updateGame]);
+  }, [editingGameTitle, game, updateLocalGame]);
 
   const useDebouncedUpdater = <T,>(value: T, property: keyof RoomType) => {
     useEffect(() => {
@@ -230,12 +266,12 @@ const Editor: React.FC = () => {
                 if (currentRoom && JSON.stringify(currentRoom[property]) !== JSON.stringify(value)) {
                     const newRooms = [...game.rooms];
                     newRooms[selectedRoomIndex] = { ...currentRoom, [property]: value };
-                    updateGame({ ...game, rooms: newRooms });
+                    updateLocalGame({ ...game, rooms: newRooms });
                 }
             }, 500);
             return () => clearTimeout(handler);
         }
-    }, [value, selectedRoomIndex, game, updateGame, property]);
+    }, [value, selectedRoomIndex, game, updateLocalGame, property]);
   };
   
   useDebouncedUpdater(editingRoomName, 'name');
@@ -277,7 +313,7 @@ const Editor: React.FC = () => {
     const latestAct = game.rooms.length > 0 ? Math.max(...game.rooms.map(r => r.act || 1)) : 1;
     const newRoom: RoomType = { id: generateUUID(), name: `Room ${game.rooms.length + 1}`, image: null, mapImage: null, notes: '', backgroundColor: '#000000', isFullScreenImage: false, act: latestAct, objectRemoveIds: [], objectRemoveText: '', objects: [], puzzles: [], actions: [], isSolved: false, solvedImage: null, solvedNotes: '', transitionType: 'none', transitionDuration: 1 };
     const newRooms = [...game.rooms, newRoom];
-    updateGame({ ...game, rooms: newRooms });
+    updateLocalGame({ ...game, rooms: newRooms });
     selectRoom(newRooms.length - 1, newRooms);
     setTimeout(() => {
         roomsContainerRef.current?.lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'end' });
@@ -303,7 +339,7 @@ const Editor: React.FC = () => {
       newRooms.splice(sourceIndex + 1, 0, newRoom);
       const newGame = { ...game, rooms: newRooms };
       
-      updateGame(newGame);
+      updateLocalGame(newGame);
       
       selectRoom(sourceIndex + 1, newRooms);
   };
@@ -316,7 +352,7 @@ const Editor: React.FC = () => {
     if(window.confirm('Are you sure you want to delete this room?')){
         const newRooms = game.rooms.filter((_, i) => i !== selectedRoomIndex);
         const newIndex = Math.max(0, selectedRoomIndex - 1);
-        updateGame({ ...game, rooms: newRooms });
+        updateLocalGame({ ...game, rooms: newRooms });
         selectRoom(newIndex, newRooms);
     }
   };
@@ -325,7 +361,7 @@ const Editor: React.FC = () => {
     if (!game) return;
     const newRooms = [...game.rooms];
     newRooms[selectedRoomIndex] = { ...newRooms[selectedRoomIndex], [property]: value };
-    updateGame({ ...game, rooms: newRooms });
+    updateLocalGame({ ...game, rooms: newRooms });
   }
 
   const handleFileUpload = async (file: File, property: 'image' | 'mapImage' | 'solvedImage') => {
@@ -334,7 +370,7 @@ const Editor: React.FC = () => {
           const { assetId } = await gameService.uploadAsset(game.id, file);
           const newRooms = [...game.rooms];
           newRooms[selectedRoomIndex] = { ...newRooms[selectedRoomIndex], [property]: assetId };
-          updateGame({ ...game, rooms: newRooms });
+          updateLocalGame({ ...game, rooms: newRooms });
           
           const assets = await gameService.getAssetsForGame(game.id);
           setAssetLibrary(assets);
@@ -445,7 +481,7 @@ const Editor: React.FC = () => {
               });
 
               if (gameWasModified) {
-                  updateGame(updatedGame);
+                  updateLocalGame(updatedGame);
                   
                   const currentRoomFromUpdatedGame = updatedGame.rooms[selectedRoomIndex];
                   if (currentRoomFromUpdatedGame) {
@@ -486,7 +522,7 @@ const Editor: React.FC = () => {
             const newSoundtrack = game.soundtrack.map(t => 
                 t.id === editingAssetName.id ? { ...t, name: newName } : t
             );
-            updateGame({ ...game, soundtrack: newSoundtrack });
+            updateLocalGame({ ...game, soundtrack: newSoundtrack });
         }
     } else {
         alert('Failed to update asset name.');
@@ -510,7 +546,7 @@ const Editor: React.FC = () => {
 
     const newRooms = [...game.rooms];
     newRooms[selectedRoomIndex] = { ...newRooms[selectedRoomIndex], objects: newObjects };
-    updateGame({ ...game, rooms: newRooms });
+    updateLocalGame({ ...game, rooms: newRooms });
   }
 
   const addPuzzle = () => {
@@ -537,7 +573,7 @@ const Editor: React.FC = () => {
 
     const newRooms = [...game.rooms];
     newRooms[selectedRoomIndex] = { ...newRooms[selectedRoomIndex], puzzles: newPuzzles };
-    updateGame({ ...game, rooms: newRooms });
+    updateLocalGame({ ...game, rooms: newRooms });
   };
 
   const handleDeletePuzzle = (e: React.MouseEvent, index: number) => {
@@ -585,7 +621,7 @@ const Editor: React.FC = () => {
       
       const newRooms = [...game.rooms];
       newRooms[selectedRoomIndex] = { ...newRooms[selectedRoomIndex], actions: newActions };
-      updateGame({ ...game, rooms: newRooms });
+      updateLocalGame({ ...game, rooms: newRooms });
       
       setActionModalState(null);
   };
@@ -597,7 +633,7 @@ const Editor: React.FC = () => {
 
       const newRooms = [...game.rooms];
       newRooms[selectedRoomIndex] = { ...newRooms[selectedRoomIndex], actions: newActions };
-      updateGame({ ...game, rooms: newRooms });
+      updateLocalGame({ ...game, rooms: newRooms });
   };
   
   const handleDeleteAction = (e: React.MouseEvent, index: number) => {
@@ -640,7 +676,7 @@ const Editor: React.FC = () => {
     
     const newRooms = [...game.rooms];
     newRooms[selectedRoomIndex] = { ...newRooms[selectedRoomIndex], puzzles: newPuzzles };
-    updateGame({ ...game, rooms: newRooms });
+    updateLocalGame({ ...game, rooms: newRooms });
     
     setPuzzleModalState(null);
   };
@@ -678,7 +714,7 @@ const Editor: React.FC = () => {
       
       const newRooms = [...game.rooms];
       newRooms[selectedRoomIndex] = { ...newRooms[selectedRoomIndex], objects: newObjects };
-      updateGame({ ...game, rooms: newRooms });
+      updateLocalGame({ ...game, rooms: newRooms });
       
       setObjectModalState(null);
   };
@@ -737,7 +773,7 @@ const Editor: React.FC = () => {
         visitedRoomIds: game.rooms.length > 0 ? [game.rooms[0].id] : [],
     };
 
-    updateGame(resetGame);
+    updateLocalGame(resetGame);
     
     const newCurrentRoom = resetGame.rooms[selectedRoomIndex];
     if (newCurrentRoom) {
@@ -779,7 +815,7 @@ const Editor: React.FC = () => {
     const selectedRoomId = game.rooms[selectedRoomIndex].id;
     const newSelectedRoomIndex = newRooms.findIndex(r => r.id === selectedRoomId);
 
-    updateGame({ ...game, rooms: newRooms });
+    updateLocalGame({ ...game, rooms: newRooms });
     
     if (newSelectedRoomIndex !== -1) {
       setSelectedRoomIndex(newSelectedRoomIndex);
@@ -816,7 +852,7 @@ const Editor: React.FC = () => {
 
       const newRooms = [...game.rooms];
       newRooms[selectedRoomIndex] = { ...newRooms[selectedRoomIndex], puzzles: newPuzzles };
-      updateGame({ ...game, rooms: newRooms });
+      updateLocalGame({ ...game, rooms: newRooms });
 
       setDraggedPuzzleIndex(null);
       setDropTargetPuzzleIndex(null);
@@ -846,7 +882,7 @@ const Editor: React.FC = () => {
 
       const newRooms = [...game.rooms];
       newRooms[selectedRoomIndex] = { ...newRooms[selectedRoomIndex], actions: newActions };
-      updateGame({ ...game, rooms: newRooms });
+      updateLocalGame({ ...game, rooms: newRooms });
 
       setDraggedActionIndex(null);
       setDropTargetActionIndex(null);
@@ -1099,6 +1135,31 @@ const Editor: React.FC = () => {
     if (!game) return [];
     return [...new Set(game.rooms.map(r => r.act || 1))].sort((a,b) => a - b);
   }, [game]);
+
+  const renderSaveStatusIndicator = () => {
+        switch (saveStatus) {
+            case 'saving':
+                return (
+                    <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+                        <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div>
+                        <span>Saving...</span>
+                    </div>
+                );
+            case 'saved':
+                 return (
+                    <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+                        <Icon as="check" className="w-4 h-4" />
+                        <span>All changes saved</span>
+                    </div>
+                );
+            case 'unsaved':
+                 return <span className="text-sm text-amber-500 dark:text-amber-400">Unsaved changes</span>;
+            case 'error':
+                 return <span className="text-sm text-red-500 dark:text-red-400">Save failed</span>;
+            default:
+                return null;
+        }
+    };
 
   if (status === 'loading') {
     return <div className="flex items-center justify-center h-screen">Loading game...</div>;
@@ -2329,7 +2390,16 @@ const Editor: React.FC = () => {
             className="text-lg font-semibold bg-transparent rounded-md p-1 focus:bg-slate-100 dark:focus:bg-slate-700 outline-none"
           />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
+           <div className="w-48 text-right">{renderSaveStatusIndicator()}</div>
+           <button
+             onClick={() => triggerSave(true)}
+             disabled={saveStatus === 'saved' || saveStatus === 'saving'}
+             className="flex items-center gap-2 px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+           >
+              <Icon as="save" className="w-5 h-5" />
+              Save
+           </button>
            <button
             onClick={() => setIsAssetManagerOpen(true)}
             className="flex items-center gap-2 px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
